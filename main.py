@@ -5,7 +5,7 @@ import os
 import time
 from datetime import datetime, timedelta
 
-app = FastAPI(title="AgroDecide Backend Proxy", version="1.0.0")
+app = FastAPI(title="AgroDecide Backend Proxy", version="1.1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -14,15 +14,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Config from environment variables ─────────────────────
+# ── Config ─────────────────────────────────────────────────
 COP_CLIENT_ID     = os.getenv("COP_CLIENT_ID")
 COP_CLIENT_SECRET = os.getenv("COP_CLIENT_SECRET")
 PROXY_URL         = os.getenv("PROXY_URL")
 PROXY_USER        = os.getenv("PROXY_USER")
 PROXY_PASS        = os.getenv("PROXY_PASS")
-GEMINI_KEY        = os.getenv("GEMINI_KEY")
+GROQ_KEY          = os.getenv("GROQ_KEY")
 
-# ── Simple in-memory cache ─────────────────────────────────
+# ── Cache ──────────────────────────────────────────────────
 _cache = {}
 
 def cache_get(key):
@@ -34,15 +34,11 @@ def cache_get(key):
 def cache_set(key, data, ttl):
     _cache[key] = {"data": data, "exp": time.time() + ttl}
 
-# ── HTTP client (with optional proxy) ─────────────────────
+# ── HTTP clients ───────────────────────────────────────────
 def make_client(use_proxy=True, timeout=30):
     if use_proxy and PROXY_URL and PROXY_USER:
         proxy = f"http://{PROXY_USER}:{PROXY_PASS}@{PROXY_URL.replace('http://', '')}"
-        return httpx.AsyncClient(
-            proxy=proxy,
-            timeout=timeout,
-            verify=False
-        )
+        return httpx.AsyncClient(proxy=proxy, timeout=timeout, verify=False)
     return httpx.AsyncClient(timeout=timeout)
 
 # ── Copernicus token ───────────────────────────────────────
@@ -57,8 +53,7 @@ async def get_token():
         "client_id": COP_CLIENT_ID,
         "client_secret": COP_CLIENT_SECRET,
     }
-
-    # Try with proxy first, fallback to direct
+    last_err = None
     for use_proxy in [True, False]:
         try:
             async with make_client(use_proxy) as client:
@@ -69,14 +64,14 @@ async def get_token():
                 cache_set("cop_token", token, td.get("expires_in", 600) - 30)
                 return token
         except Exception as e:
-            if not use_proxy:
-                raise HTTPException(502, f"Copernicus auth failed: {e}")
+            last_err = e
+    raise HTTPException(502, f"Copernicus auth failed: {last_err}")
 
 # ── Routes ─────────────────────────────────────────────────
 
 @app.get("/")
 async def root():
-    return {"status": "ok", "service": "AgroDecide Proxy", "version": "1.0.0"}
+    return {"status": "ok", "service": "AgroDecide Proxy", "version": "1.1.0"}
 
 @app.get("/health")
 async def health():
@@ -97,14 +92,17 @@ async def stac_search(lat: float, lon: float, days: int = 60, limit: int = 10):
     end   = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     start = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
     bbox  = f"{lon-0.1},{lat-0.1},{lon+0.1},{lat+0.1}"
-    url   = (
+
+    # Without sortby — more compatible across STAC versions
+    url = (
         f"https://catalogue.dataspace.copernicus.eu/stac/collections/SENTINEL-2/items"
-        f"?bbox={bbox}&datetime={start}/{end}&limit={limit}&sortby=-datetime"
+        f"?bbox={bbox}&datetime={start}/{end}&limit={limit}"
     )
 
     token = await get_token()
     headers = {"Authorization": f"Bearer {token}"}
 
+    last_err = None
     for use_proxy in [True, False]:
         try:
             async with make_client(use_proxy) as client:
@@ -114,8 +112,8 @@ async def stac_search(lat: float, lon: float, days: int = 60, limit: int = 10):
                 cache_set(key, data, 6 * 3600)
                 return {**data, "_cache": "miss"}
         except Exception as e:
-            if not use_proxy:
-                raise HTTPException(502, f"STAC error: {e}")
+            last_err = e
+    raise HTTPException(502, f"STAC error: {last_err}")
 
 @app.get("/api/meteo")
 async def meteo(lat: float, lon: float):
@@ -165,25 +163,46 @@ async def meteo_history(lat: float, lon: float, days: int = 90):
 
 @app.post("/api/ai")
 async def ai_chat(body: dict):
-    """Proxy to Gemini Flash - keeps API key server-side"""
-    if not GEMINI_KEY:
-        raise HTTPException(500, "GEMINI_KEY not configured")
+    """Groq LLaMA — fast, free tier"""
+    if not GROQ_KEY:
+        raise HTTPException(500, "GROQ_KEY not configured")
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_KEY}"
+    # Convert Gemini-style contents to OpenAI-style messages
+    messages = []
+    system_text = body.get("system", "You are a helpful assistant.")
+    messages.append({"role": "system", "content": system_text})
+
+    for item in body.get("contents", []):
+        role = item.get("role", "user")
+        # Gemini uses "model", OpenAI uses "assistant"
+        if role == "model":
+            role = "assistant"
+        parts = item.get("parts", [])
+        text = " ".join(p.get("text", "") for p in parts if "text" in p)
+        if text:
+            messages.append({"role": role, "content": text})
 
     payload = {
-        "system_instruction": {"parts": [{"text": body.get("system", "You are a helpful assistant.")}]},
-        "contents": body.get("contents", []),
-        "generationConfig": {"maxOutputTokens": 500, "temperature": 0.7}
+        "model": "llama-3.3-70b-versatile",
+        "messages": messages,
+        "max_tokens": 500,
+        "temperature": 0.7,
     }
 
     async with make_client(False) as client:
-        r = await client.post(url, json=payload, timeout=30)
-        r.raise_for_status()
+        r = await client.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_KEY}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=30,
+        )
+        if r.status_code != 200:
+            detail = r.text[:300]
+            raise HTTPException(r.status_code, f"Groq error: {detail}")
         data = r.json()
 
-    if "error" in data:
-        raise HTTPException(502, data["error"].get("message", "Gemini error"))
-
-    text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-    return {"text": text}
+    text = data["choices"][0]["message"]["content"]
+    return {"text": text, "model": data.get("model"), "provider": "groq"}
