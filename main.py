@@ -230,10 +230,10 @@ async def wms_proxy(request: Request):
     params.setdefault("WIDTH", "512")
     params.setdefault("HEIGHT", "512")
     params.setdefault("STYLES", "")
-    # Sentinel Hub uses SRSNAME not CRS
-    if "CRS" in params:
-        params["SRSNAME"] = params.pop("CRS")
-    params.setdefault("SRSNAME", "EPSG:3857")
+    # Sentinel Hub uses CRS (keep as-is)
+    params.setdefault("CRS", "EPSG:3857")
+    # Remove SRSNAME if present — Sentinel Hub doesn't use it
+    params.pop("SRSNAME", None)
 
     # Cache key from the full param set
     cache_key = "wms:" + "&".join(f"{k}={v}" for k, v in sorted(params.items()))
