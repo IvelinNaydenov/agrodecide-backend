@@ -1,11 +1,12 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
 import os
 import time
 from datetime import datetime, timedelta
 
-app = FastAPI(title="AgroDecide Backend Proxy", version="1.1.0")
+app = FastAPI(title="AgroDecide Backend Proxy", version="1.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -206,3 +207,54 @@ async def ai_chat(body: dict):
 
     text = data["choices"][0]["message"]["content"]
     return {"text": text, "model": data.get("model"), "provider": "groq"}
+
+@app.get("/api/wms")
+async def wms_proxy(request: Request):
+    """
+    Proxy Sentinel Hub WMS requests server-side with auth token.
+    Frontend calls /api/wms?LAYERS=TRUE-COLOR&BBOX=...&WIDTH=...&HEIGHT=...
+    Backend adds Bearer token and forwards to Sentinel Hub.
+    Tiles cached 6h (Sentinel updates max twice daily).
+    """
+    WMS_INSTANCE = os.getenv("WMS_INSTANCE", "fbea40c0-99d9-457b-b682-d60959f18f77")
+    WMS_URL = f"https://sh.dataspace.copernicus.eu/ogc/wms/{WMS_INSTANCE}"
+
+    # Forward all query params from frontend
+    params = dict(request.query_params)
+    params.setdefault("SERVICE", "WMS")
+    params.setdefault("REQUEST", "GetMap")
+    params.setdefault("VERSION", "1.3.0")
+    params.setdefault("FORMAT", "image/jpeg")
+    params.setdefault("CRS", "EPSG:3857")
+    params.setdefault("WIDTH", "512")
+    params.setdefault("HEIGHT", "512")
+
+    # Cache key from the full param set
+    cache_key = "wms:" + "&".join(f"{k}={v}" for k, v in sorted(params.items()))
+    cached = cache_get(cache_key)
+    if cached:
+        fmt = params.get("FORMAT", "image/jpeg")
+        return Response(content=cached, media_type=fmt,
+                        headers={"X-Cache": "HIT"})
+
+    token = await get_token()
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "image/jpeg,image/png,*/*",
+    }
+
+    last_err = None
+    for use_proxy in [True, False]:
+        try:
+            async with make_client(use_proxy, timeout=20) as client:
+                r = await client.get(WMS_URL, params=params, headers=headers)
+                r.raise_for_status()
+                img_bytes = r.content
+                fmt = r.headers.get("content-type", "image/jpeg")
+                cache_set(cache_key, img_bytes, 6 * 3600)
+                return Response(content=img_bytes, media_type=fmt,
+                                headers={"X-Cache": "MISS"})
+        except Exception as e:
+            last_err = e
+
+    raise HTTPException(502, f"WMS proxy error: {last_err}")
