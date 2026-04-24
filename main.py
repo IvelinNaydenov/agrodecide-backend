@@ -95,7 +95,7 @@ async def stac_search(lat: float, lon: float, days: int = 60, limit: int = 10):
 
     # Without sortby — more compatible across STAC versions
     url = (
-        f"https://catalogue.dataspace.copernicus.eu/stac/collections/SENTINEL-2/items"
+        f"https://stac.dataspace.copernicus.eu/v1/collections/sentinel-2-l2a/items"
         f"?bbox={bbox}&datetime={start}/{end}&limit={limit}"
     )
 
