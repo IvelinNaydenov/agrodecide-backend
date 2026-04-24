@@ -221,13 +221,19 @@ async def wms_proxy(request: Request):
 
     # Forward all query params from frontend
     params = dict(request.query_params)
+    # Normalize to uppercase — Sentinel Hub requires it
+    params = {k.upper(): v for k, v in params.items()}
     params.setdefault("SERVICE", "WMS")
     params.setdefault("REQUEST", "GetMap")
     params.setdefault("VERSION", "1.3.0")
     params.setdefault("FORMAT", "image/jpeg")
-    params.setdefault("CRS", "EPSG:3857")
     params.setdefault("WIDTH", "512")
     params.setdefault("HEIGHT", "512")
+    params.setdefault("STYLES", "")
+    # Sentinel Hub uses SRSNAME not CRS
+    if "CRS" in params:
+        params["SRSNAME"] = params.pop("CRS")
+    params.setdefault("SRSNAME", "EPSG:3857")
 
     # Cache key from the full param set
     cache_key = "wms:" + "&".join(f"{k}={v}" for k, v in sorted(params.items()))
