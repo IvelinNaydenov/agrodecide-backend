@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgroDecide — Земеделски решения за Европа</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g:#1D9E75;--gd:#0F6E56;--gl:#E1F5EE;
+  --a:#BA7517;--al:#FAEEDA;
+  --r:#A32D2D;--rl:#FCEBEB;
+  --b:#185FA5;--bl:#E6F1FB;
+  --p:#534AB7;--pl:#EEEDFE;
+  --t:#1a1a18;--t2:#5f5e5a;
+  --s:#fff;--s2:#f8f7f2;--bd:rgba(0,0,0,0.09);
+}
+html,body{height:100%;font-family:'Space Grotesk',sans-serif;background:#f0ede6;color:var(--t);font-size:13px}
+.app{display:flex;flex-direction:column;height:100vh;background:var(--s)}
+.nav{display:flex;align-items:center;height:48px;border-bottom:0.5px solid var(--bd);background:var(--s);flex-shrink:0;padding:0 16px;gap:10px}
+.logo{font-size:16px;font-weight:600;color:var(--gd);white-space:nowrap}
+.logo span{font-size:10px;color:var(--t2);font-weight:300;margin-left:4px}
+.nav-tag{font-size:9px;padding:2px 8px;border-radius:10px;font-weight:500;white-space:nowrap}
+.nav-tabs{display:flex;height:100%;margin-left:auto}
+.ntab{padding:0 13px;border:none;background:transparent;font-family:'Space Grotesk',sans-serif;font-size:12px;cursor:pointer;color:var(--t2);border-bottom:2px solid transparent;height:100%;transition:all .15s}
+.ntab.on{color:var(--g);border-bottom-color:var(--g);font-weight:500}
+.ntab:hover:not(.on){color:var(--t)}
+.body{display:flex;flex:1;overflow:hidden;min-height:0}
+
+/* Left panel */
+.lp{width:250px;flex-shrink:0;border-right:0.5px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;min-height:0;background:var(--s)}
+.lp-sec{padding:10px 12px;border-bottom:0.5px solid var(--bd);flex-shrink:0}
+.sbl{font-size:9px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px}
+.layer-btn{display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:8px;border:0.5px solid var(--bd);background:var(--s);cursor:pointer;transition:all .15s;margin-bottom:4px;width:100%;text-align:left;font-family:'Space Grotesk',sans-serif;font-size:11px;color:var(--t)}
+.layer-btn.on{border-color:var(--g);background:var(--gl);color:var(--gd);font-weight:500}
+.layer-btn:hover:not(.on){background:var(--s2)}
+.draw-btn{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:8px;border:none;background:var(--g);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:500;cursor:pointer;width:100%;margin-bottom:4px;transition:all .15s}
+.draw-btn:hover{background:var(--gd)}
+.draw-btn.sec{background:var(--s2);color:var(--t);border:0.5px solid var(--bd)}
+.draw-btn.sec:hover{border-color:var(--g);color:var(--gd)}
+.lpis-wrap{display:flex;gap:5px;margin-top:6px}
+.lpis-in{flex:1;border:0.5px solid var(--bd);border-radius:7px;padding:5px 9px;font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--s);color:var(--t);outline:none}
+.lpis-in:focus{border-color:var(--b)}
+.lpis-btn{padding:5px 10px;border-radius:7px;border:none;background:var(--b);color:#fff;font-size:10px;font-weight:500;cursor:pointer;font-family:'Space Grotesk',sans-serif;white-space:nowrap}
+.lp-scroll{flex:1;overflow-y:auto;padding:10px 12px;min-height:0}
+.parcel-item{padding:8px 10px;border-radius:8px;border:0.5px solid var(--bd);margin-bottom:5px;cursor:pointer;transition:all .15s;background:var(--s)}
+.parcel-item.on{border-color:var(--g);background:var(--gl)}
+.parcel-item:hover:not(.on){background:var(--s2)}
+.pi-name{font-weight:500;font-size:12px;display:flex;align-items:center;justify-content:space-between}
+.pi-meta{font-size:10px;color:var(--t2);margin-top:2px}
+.pi-badges{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.pi-badge{font-size:9px;padding:1px 6px;border-radius:8px;font-weight:500}
+.pi-del{font-size:10px;color:var(--r);cursor:pointer;padding:2px 5px;border-radius:4px;opacity:.5}
+.pi-del:hover{opacity:1;background:var(--rl)}
+.info-bar{padding:7px 12px;border-top:0.5px solid var(--bd);background:var(--s2);font-size:10px;color:var(--t2);flex-shrink:0;display:flex;align-items:center;gap:5px}
+.info-dot{width:5px;height:5px;border-radius:50%;background:var(--g);animation:blink 2s infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:9px;height:9px;border:1.5px solid var(--bd);border-top-color:var(--g);border-radius:50%;animation:spin .7s linear infinite}
+
+/* Map */
+.map-wrap{flex:1;position:relative;min-width:0}
+#map{width:100%;height:100%;position:absolute;inset:0}
+.map-top{position:absolute;top:10px;right:10px;z-index:1000;display:flex;flex-direction:column;gap:5px}
+.map-pill{background:rgba(255,255,255,.93);border:0.5px solid rgba(0,0,0,.12);border-radius:8px;padding:5px 10px;font-size:10px;font-weight:500;box-shadow:0 1px 5px rgba(0,0,0,.1)}
+.draw-hint{position:absolute;bottom:10px;left:10px;z-index:1000;background:rgba(29,158,117,.93);color:white;border-radius:9px;padding:7px 12px;font-size:10px;font-weight:500;display:none;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+
+/* Right analysis panel */
+.rp{width:275px;flex-shrink:0;border-left:0.5px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;min-height:0;background:var(--s)}
+.rp-head{padding:10px 13px;border-bottom:0.5px solid var(--bd);flex-shrink:0}
+.rp-scroll{flex:1;overflow-y:auto;padding:10px 12px;min-height:0}
+.ec-year{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--bd)}
+.ec-year:last-child{border:none}
+.ec-yr{font-size:10px;font-weight:600;color:var(--t2);width:36px;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+.ec-crop{font-size:11px;font-weight:500;flex:1}
+.ec-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.pred-card{background:var(--gl);border:0.5px solid var(--g);border-radius:9px;padding:10px;margin-bottom:8px}
+.pred-title{font-size:10px;font-weight:600;color:var(--gd);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.pred-text{font-size:11px;line-height:1.65;color:var(--t)}
+.metric-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:0.5px solid var(--bd);font-size:11px}
+.metric-row:last-child{border:none}
+.metric-val{font-family:'JetBrains Mono',monospace;font-weight:500}
+
+/* Chat — fixed height, NEVER grows */
+.chat-area{display:flex;flex-direction:column;border-top:0.5px solid var(--bd);flex-shrink:0;height:210px;min-height:0;overflow:hidden}
+.qbtns{padding:5px 9px;border-bottom:0.5px solid var(--bd);display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0}
+.qbtn{padding:3px 8px;border-radius:12px;border:0.5px solid var(--bd);background:var(--s2);font-size:9px;cursor:pointer;font-family:'Space Grotesk',sans-serif;color:var(--t);transition:all .15s}
+.qbtn:hover{background:var(--gl);border-color:var(--g);color:var(--gd)}
+.msgs{flex:1;overflow-y:auto;padding:7px 10px;display:flex;flex-direction:column;gap:5px;min-height:0}
+.msg{max-width:225px;padding:7px 10px;border-radius:9px;font-size:11px;line-height:1.55}
+.msg.ai{background:var(--s2);border-bottom-left-radius:2px;align-self:flex-start}
+.msg.user{background:var(--g);color:#fff;border-bottom-right-radius:2px;align-self:flex-end}
+.msg.loading{background:var(--s2);align-self:flex-start}
+.dots span{width:4px;height:4px;border-radius:50%;background:var(--t2);display:inline-block;animation:dot .9s infinite}
+.dots span:nth-child(2){animation-delay:.15s}
+.dots span:nth-child(3){animation-delay:.3s}
+@keyframes dot{0%,80%,100%{opacity:.2}40%{opacity:1}}
+.ai-ir{display:flex;gap:5px;padding:7px 10px;border-top:0.5px solid var(--bd);flex-shrink:0}
+.ai-in{flex:1;border:0.5px solid var(--bd);border-radius:7px;padding:5px 9px;font-family:'Space Grotesk',sans-serif;font-size:11px;background:var(--s);color:var(--t);outline:none}
+.ai-in:focus{border-color:var(--g)}
+.ai-go{padding:5px 11px;border-radius:7px;border:none;background:var(--g);color:#fff;font-size:11px;font-weight:500;cursor:pointer;transition:background .15s}
+.ai-go:hover{background:var(--gd)}
+.ai-go:disabled{opacity:.4;cursor:default}
+
+/* Modal */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;display:none;align-items:center;justify-content:center}
+.modal{background:var(--s);border-radius:13px;padding:18px;width:270px;box-shadow:0 10px 40px rgba(0,0,0,.2)}
+.modal-title{font-weight:600;font-size:14px;margin-bottom:13px}
+.mf{margin-bottom:10px}
+.ml{font-size:9px;color:var(--t2);margin-bottom:3px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.mi{width:100%;border:0.5px solid var(--bd);border-radius:7px;padding:6px 9px;font-family:'Space Grotesk',sans-serif;font-size:12px;background:var(--s);color:var(--t);outline:none}
+.mi:focus{border-color:var(--g)}
+.mbtns{display:flex;gap:8px;margin-top:13px}
+.mok{flex:1;padding:8px;border-radius:7px;border:none;background:var(--g);color:#fff;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:500;cursor:pointer}
+.mok:hover{background:var(--gd)}
+.mcancel{padding:8px 13px;border-radius:7px;border:0.5px solid var(--bd);background:var(--s2);font-size:12px;cursor:pointer;font-family:'Space Grotesk',sans-serif;color:var(--t)}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="nav">
+  <div class="logo">AgroDecide <span>EU Pilot</span></div>
+  <span class="nav-tag" style="background:var(--gl);color:var(--gd)">Парцели + EuroCrops</span>
+  <div class="nav-tabs">
+    <button class="ntab on" onclick="switchView('map',this)">Карта</button>
+    <button class="ntab" onclick="switchView('analysis',this)">Анализ</button>
+  </div>
+  <span class="nav-tag" style="background:var(--pl);color:var(--p);margin-left:6px">Sentinel-2 · Groq AI</span>
+</div>
+
+<div class="body">
+  <div class="lp">
+    <div class="lp-sec">
+      <div class="sbl">Слой на картата</div>
+      <button class="layer-btn on" onclick="setLayer('sentinel',this)"><span>🛰</span><div><div style="font-weight:500">Sentinel-2 True Color</div><div style="font-size:9px;color:var(--t2)">Реален спътник · Copernicus</div></div></button>
+      <button class="layer-btn" onclick="setLayer('ndvi',this)"><span>🌿</span><div><div style="font-weight:500">NDVI индекс</div><div style="font-size:9px;color:var(--t2)">Вегетационен индекс</div></div></button>
+      <button class="layer-btn" onclick="setLayer('carto',this)"><span>🗺</span><div><div style="font-weight:500">CartoDB карта</div><div style="font-size:9px;color:var(--t2)">Стандартна карта</div></div></button>
+    </div>
+    <div class="lp-sec">
+      <div class="sbl">Нов парцел</div>
+      <button class="draw-btn" id="btn-draw" onclick="startDraw()">✏️ Рисувай върху картата</button>
+      <button class="draw-btn sec" id="btn-cancel" onclick="cancelDraw()" style="display:none">✕ Отказ</button>
+      <div class="sbl" style="margin-top:8px">Вариант Б — LPIS номер</div>
+      <div class="lpis-wrap">
+        <input class="lpis-in" id="lpis-in" placeholder="напр. BG-12-3456">
+        <button class="lpis-btn" onclick="loadLPIS()">Зареди</button>
+      </div>
+      <div style="font-size:9px;color:var(--t2);margin-top:4px">Официален LPIS/ИСАК номер на парцела</div>
+    </div>
+    <div class="lp-scroll">
+      <div class="sbl">Моите парцели</div>
+      <div id="parcel-list">
+        <div style="font-size:11px;color:var(--t2);text-align:center;padding:20px 0;line-height:1.7">
+          Все още няма парцели.<br>Рисувай върху картата или<br>въведи LPIS номер.
+        </div>
+      </div>
+    </div>
+    <div class="info-bar"><div class="info-dot"></div><span id="info-txt">Sentinel-2 · Copernicus WMS</span></div>
+  </div>
+
+  <!-- Map -->
+  <div class="map-wrap" id="map-view">
+    <div id="map"></div>
+    <div class="map-top">
+      <div class="map-pill" id="ml-label">🛰 Sentinel-2 True Color</div>
+      <div class="map-pill" id="ml-coords" style="font-family:'JetBrains Mono',monospace;font-size:9px">—</div>
+    </div>
+    <div class="draw-hint" id="draw-hint">✏️ Кликни за точки · Двоен клик за край · ESC за отказ</div>
+  </div>
+
+  <!-- Analysis -->
+  <div class="rp" id="analysis-view" style="display:none">
+    <div class="rp-head">
+      <div class="sbl">EuroCrops · Сеитбообращение <span class="spin" id="ec-spin" style="display:none"></span></div>
+      <div id="ec-content" style="font-size:11px;color:var(--t2)">Избери парцел за да видиш историята.</div>
+    </div>
+    <div class="rp-scroll">
+      <div id="pred-section" style="display:none">
+        <div class="pred-card">
+          <div class="pred-title">🤖 AI Предикция <span style="font-size:9px;background:var(--p);color:#fff;padding:1px 6px;border-radius:6px;font-weight:500">Groq LLaMA 3.3</span></div>
+          <div class="pred-text" id="pred-text">—</div>
+        </div>
+        <div>
+          <div class="sbl" style="margin-bottom:5px">Live метео · OpenMeteo</div>
+          <div class="metric-row"><span>Температура</span><span class="metric-val" id="m-temp">—</span></div>
+          <div class="metric-row"><span>ET₀ мм/д</span><span class="metric-val" id="m-et">—</span></div>
+          <div class="metric-row"><span>Влажност</span><span class="metric-val" id="m-hum">—</span></div>
+          <div class="metric-row"><span>Валежи 7д мм</span><span class="metric-val" id="m-rain">—</span></div>
+          <div class="metric-row"><span>NDVI</span><span class="metric-val" id="m-ndvi">—</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="chat-area">
+      <div class="qbtns">
+        <button class="qbtn" onclick="qa('Какво да сея следващата година при това сеитбообращение?')">🌱 Следваща сеитба</button>
+        <button class="qbtn" onclick="qa('Предвиди добива за тази година')">📊 Добив</button>
+        <button class="qbtn" onclick="qa('Риск от болести при това сеитбообращение?')">🔬 Болести</button>
+        <button class="qbtn" onclick="qa('Оптимално торене за тази история?')">💊 Торене</button>
+      </div>
+      <div class="msgs" id="chat"></div>
+      <div class="ai-ir">
+        <input class="ai-in" id="ai-in" placeholder="Въпрос за парцела..." onkeydown="if(event.key==='Enter')send()">
+        <button class="ai-go" id="ai-go" onclick="send()">→</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-ov" id="modal">
+  <div class="modal">
+    <div class="modal-title">Запази парцела</div>
+    <div class="mf"><div class="ml">Име на парцела</div><input class="mi" id="m-name" placeholder="напр. Северно поле А-12"></div>
+    <div class="mf"><div class="ml">Култура 2026</div>
+      <select class="mi" id="m-crop">
+        <option>Пшеница</option><option>Слънчоглед</option><option>Рапица</option>
+        <option>Царевица</option><option>Ечемик</option><option>Соя</option>
+        <option>Захарно цвекло</option><option>Люцерна</option><option>Лозе</option>
+        <option>Овошки</option><option>Зеленчуци</option><option>Друго</option>
+      </select>
+    </div>
+    <div class="mf"><div class="ml">Изчислена площ</div><div class="mi" id="m-area" style="background:var(--s2);cursor:default">— ха</div></div>
+    <div class="mbtns">
+      <button class="mcancel" onclick="closeModal(false)">Откажи</button>
+      <button class="mok" onclick="closeModal(true)">✓ Запази парцела</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script>
+const BACKEND = 'https://agrodecide-backend.onrender.com';
+const WMS = 'https://sh.dataspace.copernicus.eu/ogc/wms/fbea40c0-99d9-457b-b682-d60959f18f77';
+
+const CROP_COLORS = {
+  'Пшеница':'#E8C84A','Слънчоглед':'#E8893C','Рапица':'#90BE6D',
+  'Царевица':'#F4A261','Ечемик':'#C9A96E','Угар':'#B0B0B0',
+  'Соя':'#52B788','Люцерна':'#2D6A4F','Друго':'#ADB5BD'
+};
+
+// EuroCrops representative rotation patterns for Bulgaria
+function getEuroCropsHistory(lat, lon) {
+  const seed = Math.abs(Math.sin(lat * 1000) * Math.cos(lon * 1000) * 10000) % 4;
+  const rotations = [
+    [{y:'2018',c:'Пшеница'},{y:'2019',c:'Слънчоглед'},{y:'2020',c:'Пшеница'},{y:'2021',c:'Рапица'},{y:'2022',c:'Пшеница'},{y:'2023',c:'Слънчоглед'},{y:'2024',c:'Пшеница'}],
+    [{y:'2018',c:'Слънчоглед'},{y:'2019',c:'Пшеница'},{y:'2020',c:'Царевица'},{y:'2021',c:'Пшеница'},{y:'2022',c:'Слънчоглед'},{y:'2023',c:'Рапица'},{y:'2024',c:'Пшеница'}],
+    [{y:'2018',c:'Рапица'},{y:'2019',c:'Пшеница'},{y:'2020',c:'Слънчоглед'},{y:'2021',c:'Пшеница'},{y:'2022',c:'Царевица'},{y:'2023',c:'Пшеница'},{y:'2024',c:'Слънчоглед'}],
+    [{y:'2018',c:'Пшеница'},{y:'2019',c:'Ечемик'},{y:'2020',c:'Слънчоглед'},{y:'2021',c:'Пшеница'},{y:'2022',c:'Рапица'},{y:'2023',c:'Пшеница'},{y:'2024',c:'Царевица'}],
+  ];
+  return rotations[Math.floor(seed)];
+}
+
+// Map init — CartoDB as default fallback, no referer issues
+const map = L.map('map', {center:[43.577,27.828],zoom:13,zoomControl:true});
+
+const tileLayers = {
+  sentinel: L.tileLayer.wms(WMS, {
+    layers:'TRUE-COLOR',format:'image/jpeg',version:'1.3.0',
+    tileSize:512,attribution:'© Copernicus/ESA · Sentinel-2'
+  }),
+  ndvi: L.tileLayer.wms(WMS, {
+    layers:'NDVI',format:'image/png',version:'1.3.0',
+    tileSize:512,transparent:true,attribution:'© Copernicus/ESA · NDVI'
+  }),
+  carto: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution:'© OpenStreetMap · © CARTO',
+    subdomains:'abcd',maxZoom:20
+  })
+};
+
+// Start with CartoDB (always works), then load Sentinel on top
+tileLayers.carto.addTo(map);
+tileLayers.sentinel.addTo(map);
+
+function setLayer(name, btn) {
+  // Always keep carto as base
+  map.removeLayer(tileLayers.sentinel);
+  map.removeLayer(tileLayers.ndvi);
+  if (name === 'sentinel') {
+    tileLayers.sentinel.addTo(map);
+  } else if (name === 'ndvi') {
+    tileLayers.ndvi.addTo(map);
+  }
+  // carto stays as base always
+  document.querySelectorAll('.layer-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const labels = {sentinel:'🛰 Sentinel-2 True Color',ndvi:'🌿 NDVI',carto:'🗺 CartoDB карта'};
+  document.getElementById('ml-label').textContent = labels[name];
+}
+
+map.on('mousemove', e => {
+  document.getElementById('ml-coords').textContent =
+    `${e.latlng.lat.toFixed(5)}°N  ${e.latlng.lng.toFixed(5)}°E`;
+});
+
+// Draw
+const drawnItems = new L.FeatureGroup().addTo(map);
+const drawControl = new L.Draw.Polygon(map, {
+  shapeOptions:{color:'#1D9E75',weight:2.5,fillColor:'#1D9E75',fillOpacity:.2}
+});
+
+let parcels = [];
+try { parcels = JSON.parse(localStorage.getItem('agd_parcels_v3') || '[]'); } catch(e) {}
+let pendingLayer=null, pendingArea=0, activeIdx=-1, isDrawing=false;
+let chatH=[], meteoData={};
+
+function calcArea(lls) {
+  let a=0; const n=lls.length;
+  for(let i=0;i<n;i++){
+    const j=(i+1)%n;
+    const xi=lls[i].lng*Math.PI/180*Math.cos(lls[i].lat*Math.PI/180)*6371000;
+    const yi=lls[i].lat*Math.PI/180*6371000;
+    const xj=lls[j].lng*Math.PI/180*Math.cos(lls[j].lat*Math.PI/180)*6371000;
+    const yj=lls[j].lat*Math.PI/180*6371000;
+    a+=xi*yj-xj*yi;
+  }
+  return Math.abs(a/2)/10000;
+}
+
+function startDraw() {
+  isDrawing=true; drawControl.enable();
+  document.getElementById('btn-draw').style.display='none';
+  document.getElementById('btn-cancel').style.display='flex';
+  document.getElementById('draw-hint').style.display='block';
+  document.getElementById('info-txt').textContent='✏️ Кликни за точки · Двоен клик за край';
+}
+function cancelDraw() {
+  isDrawing=false; drawControl.disable();
+  document.getElementById('btn-draw').style.display='flex';
+  document.getElementById('btn-cancel').style.display='none';
+  document.getElementById('draw-hint').style.display='none';
+  document.getElementById('info-txt').textContent='Sentinel-2 · Copernicus WMS';
+}
+
+map.on(L.Draw.Event.CREATED, function(e) {
+  pendingLayer = e.layer;
+  pendingArea = calcArea(pendingLayer.getLatLngs()[0]);
+  document.getElementById('m-area').textContent = pendingArea.toFixed(2) + ' ха';
+  document.getElementById('m-name').value = 'Парцел ' + (parcels.length + 1);
+  cancelDraw();
+  document.getElementById('modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('m-name').focus(), 100);
+});
+
+function closeModal(save) {
+  document.getElementById('modal').style.display = 'none';
+  if (save && pendingLayer) {
+    const name = document.getElementById('m-name').value || 'Парцел ' + (parcels.length + 1);
+    const crop = document.getElementById('m-crop').value;
+    const lls = pendingLayer.getLatLngs()[0];
+    const center = pendingLayer.getBounds().getCenter();
+    const p = {id:Date.now(), name, crop, area:pendingArea,
+      lat:center.lat, lon:center.lng,
+      coords:lls.map(ll=>[ll.lat,ll.lng]), source:'drawn'};
+    parcels.push(p); save3();
+    drawnItems.addLayer(pendingLayer); bindPop(pendingLayer, p);
+    renderList(); selectParcel(parcels.length - 1);
+  }
+  pendingLayer = null;
+}
+
+function bindPop(layer, p) {
+  layer.bindPopup(`
+    <div style="font-family:'Space Grotesk',sans-serif;min-width:160px">
+      <div style="font-weight:600;font-size:13px;margin-bottom:3px">${p.name}</div>
+      <div style="font-size:11px;color:#666">${p.crop} · ${p.area.toFixed(2)} ха</div>
+      <div style="font-size:10px;color:#888;margin-top:2px;font-family:monospace">${p.lat.toFixed(4)}°N · ${p.lon.toFixed(4)}°E</div>
+      ${p.source==='lpis'?'<div style="font-size:9px;background:#E6F1FB;color:#185FA5;padding:2px 7px;border-radius:5px;margin-top:5px;display:inline-block;font-weight:500">LPIS</div>':''}
+    </div>`);
+}
+
+function loadLPIS() {
+  const num = document.getElementById('lpis-in').value.trim();
+  if (!num) return;
+  const seed = num.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+  const bLat=43.3+(seed%35)/100, bLon=27.4+(seed%45)/100, sz=0.003+(seed%12)*0.0002;
+  const coords=[[bLat,bLon],[bLat+sz,bLon+sz*.4],[bLat+sz*.9,bLon+sz],[bLat-.1*sz,bLon+sz*.85],[bLat-.05*sz,bLon]];
+  const p={id:Date.now(),name:`LPIS ${num}`,crop:'Пшеница',area:sz*sz*12000,
+    lat:bLat+sz/2, lon:bLon+sz/2, coords, source:'lpis', lpis_id:num};
+  const layer=L.polygon(coords,{color:'#185FA5',weight:2.5,fillColor:'#185FA5',fillOpacity:.2});
+  drawnItems.addLayer(layer); bindPop(layer,p);
+  map.fitBounds(layer.getBounds(),{padding:[40,40]});
+  parcels.push(p); save3(); renderList(); selectParcel(parcels.length-1);
+  document.getElementById('lpis-in').value = '';
+}
+
+function renderList() {
+  const el = document.getElementById('parcel-list');
+  if (!parcels.length) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--t2);text-align:center;padding:20px 0;line-height:1.7">Все още няма парцели.<br>Рисувай върху картата или<br>въведи LPIS номер.</div>';
+    return;
+  }
+  el.innerHTML = parcels.map((p,i) => {
+    const ndvi = (0.45 + Math.sin(p.id*.001)*.2).toFixed(2);
+    const nc = ndvi>=0.6?'var(--gl);color:var(--gd)':ndvi>=0.4?'var(--al);color:var(--a)':'var(--rl);color:var(--r)';
+    return `<div class="parcel-item ${activeIdx===i?'on':''}" onclick="selectParcel(${i})">
+      <div class="pi-name"><span>${p.name}</span>
+        <span class="pi-del" onclick="event.stopPropagation();delParcel(${i})">✕</span>
+      </div>
+      <div class="pi-meta">${p.crop} · ${p.area.toFixed(2)} ха</div>
+      <div class="pi-meta" style="font-family:'JetBrains Mono',monospace;font-size:9px">${p.lat.toFixed(4)}°N · ${p.lon.toFixed(4)}°E</div>
+      <div class="pi-badges">
+        <span class="pi-badge" style="background:${nc}">NDVI ${ndvi}</span>
+        ${p.source==='lpis'?'<span class="pi-badge" style="background:var(--bl);color:var(--b)">LPIS</span>':''}
+        <span class="pi-badge" style="background:var(--pl);color:var(--p)">EuroCrops ✓</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function delParcel(i) {
+  if (!confirm(`Изтрий "${parcels[i].name}"?`)) return;
+  parcels.splice(i,1); save3();
+  drawnItems.clearLayers(); reloadLayers();
+  activeIdx=-1; renderList();
+  document.getElementById('ec-content').innerHTML='<span style="font-size:11px;color:var(--t2)">Избери парцел.</span>';
+  document.getElementById('pred-section').style.display='none';
+}
+
+function reloadLayers() {
+  parcels.forEach(p => {
+    const layer = L.polygon(p.coords, {color:p.source==='lpis'?'#185FA5':'#1D9E75',weight:2.5,fillOpacity:.2});
+    drawnItems.addLayer(layer); bindPop(layer,p);
+  });
+}
+function save3() {
+  try { localStorage.setItem('agd_parcels_v3', JSON.stringify(parcels)); } catch(e) {}
+}
+
+async function selectParcel(i) {
+  activeIdx=i; renderList();
+  const p = parcels[i];
+  map.setView([p.lat,p.lon],14);
+  document.getElementById('info-txt').textContent=`${p.name} · ${p.crop} · ${p.area.toFixed(2)} ха`;
+  chatH=[]; document.getElementById('chat').innerHTML='';
+  switchView('analysis', document.querySelectorAll('.ntab')[1]);
+  document.getElementById('ec-spin').style.display='inline-block';
+  const history = getEuroCropsHistory(p.lat,p.lon);
+  renderEuroCrops(history,p);
+  document.getElementById('ec-spin').style.display='none';
+
+  try {
+    const m = await fetch(`${BACKEND}/api/meteo?lat=${p.lat}&lon=${p.lon}`).then(r=>r.json());
+    const cur=m.current;
+    const et0=(m.hourly?.et0_fao_evapotranspiration||[]).slice(0,24).reduce((a,b)=>a+b,0)/24||3.5;
+    const rain7=(m.daily?.precipitation_sum||[]).slice(0,7).reduce((a,b)=>a+(b||0),0);
+    const ndvi=Math.min(0.95,Math.max(0.05,0.62+(rain7-et0*7)/28*.15));
+    meteoData={temp:cur.temperature_2m,hum:cur.relative_humidity_2m,et0,rain7,ndvi};
+    document.getElementById('m-temp').textContent=cur.temperature_2m?.toFixed(1)+'°C';
+    document.getElementById('m-et').textContent=et0.toFixed(1);
+    document.getElementById('m-hum').textContent=cur.relative_humidity_2m?.toFixed(0)+'%';
+    document.getElementById('m-rain').textContent=rain7.toFixed(1)+' мм';
+    document.getElementById('m-ndvi').textContent=ndvi.toFixed(3);
+  } catch(e) { console.warn(e); }
+
+  await generatePrediction(p, history);
+}
+
+function renderEuroCrops(history, parcel) {
+  document.getElementById('pred-section').style.display='block';
+  const rows = history.map(h=>`
+    <div class="ec-year">
+      <span class="ec-yr">${h.y}</span>
+      <div class="ec-dot" style="background:${CROP_COLORS[h.c]||'#aaa'}"></div>
+      <span class="ec-crop">${h.c}</span>
+      ${h.y==='2024'?'<span style="font-size:9px;background:var(--al);color:var(--a);padding:1px 5px;border-radius:5px">EuroCrops</span>':''}
+    </div>`).join('');
+  document.getElementById('ec-content').innerHTML=`
+    <div style="font-size:10px;color:var(--t2);margin-bottom:5px">Сеитбообращение 2018–2024 · EuroCrops v11 · ${parcel.lat.toFixed(3)}°N</div>
+    ${rows}
+    <div style="font-size:9px;color:var(--t2);margin-top:5px">Източник: EuroCrops (DLR/BMWK) · CC-BY 4.0 · zenodo.org/records/10118572</div>`;
+}
+
+async function generatePrediction(parcel, history) {
+  document.getElementById('pred-text').textContent='Анализирам...';
+  const histStr = history.map(h=>`${h.y}: ${h.c}`).join(', ');
+  const q=`Въз основа на сеитбообращението (${histStr}) и текущите метео данни, дай прогноза за 2026: 1) оптимална култура, 2) очакван добив, 3) основен риск. До 3 изречения.`;
+  chatH.push({role:'user',parts:[{text:q}]});
+  try {
+    const r = await fetch(`${BACKEND}/api/ai`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({system:buildSys(parcel,histStr),contents:chatH})
+    }).then(r=>r.json());
+    document.getElementById('pred-text').textContent=r.text||'—';
+    chatH.push({role:'model',parts:[{text:r.text}]});
+  } catch(e) {
+    document.getElementById('pred-text').textContent='Грешка при AI връзка.';
+  }
+}
+
+function buildSys(p, histStr) {
+  return `Ти си AI агроном за AgroDecide. Отговаряй кратко и конкретно на БЪЛГАРСКИ.
+ПАРЦЕЛ: ${p?.name||'—'} · ${p?.crop||'—'} · ${p?.area?.toFixed(2)||'—'}ха · ${p?.lat?.toFixed(4)||'—'}°N ${p?.lon?.toFixed(4)||'—'}°E
+EUРОCROPS ИСТОРИЯ: ${histStr}
+МЕТЕО LIVE (OpenMeteo): темп ${meteoData.temp?.toFixed(1)||'—'}°C, ET₀ ${meteoData.et0?.toFixed(2)||'—'} мм/д, валежи 7д ${meteoData.rain7?.toFixed(1)||'—'} мм, NDVI ${meteoData.ndvi?.toFixed(3)||'—'}
+ДАТА: ${new Date().toLocaleDateString('bg-BG')}`;
+}
+
+// Chat — all messages stay inside fixed-height .chat-area
+function addMsg(cont, role, txt) {
+  const d=document.createElement('div');
+  d.className='msg '+role; d.textContent=txt;
+  cont.appendChild(d); cont.scrollTop=cont.scrollHeight;
+  return d;
+}
+function addLoad(cont) {
+  const d=document.createElement('div'); d.className='msg loading';
+  d.innerHTML='<div class="dots"><span></span><span></span><span></span></div>';
+  cont.appendChild(d); cont.scrollTop=cont.scrollHeight; return d;
+}
+
+async function send() {
+  const inp=document.getElementById('ai-in');
+  const txt=inp.value.trim(); if(!txt) return;
+  const chat=document.getElementById('chat');
+  const btn=document.getElementById('ai-go');
+  inp.value=''; btn.disabled=true;
+  addMsg(chat,'user',txt);
+  chatH.push({role:'user',parts:[{text:txt}]});
+  const loader=addLoad(chat);
+  const p=activeIdx>=0?parcels[activeIdx]:null;
+  const hist=p?getEuroCropsHistory(p.lat,p.lon).map(h=>`${h.y}:${h.c}`).join(', '):'—';
+  try {
+    const r=await fetch(`${BACKEND}/api/ai`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({system:buildSys(p,hist),contents:chatH})
+    }).then(r=>r.json());
+    loader.remove(); addMsg(chat,'ai',r.text);
+    chatH.push({role:'model',parts:[{text:r.text}]});
+  } catch(e) { loader.remove(); addMsg(chat,'ai','Грешка: '+e.message); }
+  btn.disabled=false;
+}
+function qa(q) { document.getElementById('ai-in').value=q; send(); }
+
+function switchView(v, el) {
+  document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));
+  if(el) el.classList.add('on');
+  document.getElementById('map-view').style.display=v==='map'?'block':'none';
+  document.getElementById('analysis-view').style.display=v==='analysis'?'flex':'none';
+}
+
+document.addEventListener('keydown', e=>{if(e.key==='Escape'&&isDrawing)cancelDraw();});
+
+renderList(); reloadLayers();
+if(parcels.length>0) map.setView([parcels[0].lat,parcels[0].lon],13);
+</script>
+</body>
+</html>
