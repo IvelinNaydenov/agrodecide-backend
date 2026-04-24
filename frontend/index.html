@@ -234,7 +234,7 @@ html,body{height:100%;font-family:'Space Grotesk',sans-serif;background:#f0ede6;
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 <script>
 const BACKEND = 'https://agrodecide-backend.onrender.com';
-const WMS = 'https://sh.dataspace.copernicus.eu/ogc/wms/fbea40c0-99d9-457b-b682-d60959f18f77';
+const WMS_BACKEND = `${BACKEND}/api/wms`;
 
 const CROP_COLORS = {
   'Пшеница':'#E8C84A','Слънчоглед':'#E8893C','Рапица':'#90BE6D',
@@ -258,11 +258,11 @@ function getEuroCropsHistory(lat, lon) {
 const map = L.map('map', {center:[43.577,27.828],zoom:13,zoomControl:true});
 
 const tileLayers = {
-  sentinel: L.tileLayer.wms(WMS, {
+  sentinel: L.tileLayer.wms(WMS_BACKEND, {
     layers:'TRUE-COLOR',format:'image/jpeg',version:'1.3.0',
     tileSize:512,attribution:'© Copernicus/ESA · Sentinel-2'
   }),
-  ndvi: L.tileLayer.wms(WMS, {
+  ndvi: L.tileLayer.wms(WMS_BACKEND, {
     layers:'NDVI',format:'image/png',version:'1.3.0',
     tileSize:512,transparent:true,attribution:'© Copernicus/ESA · NDVI'
   }),
@@ -437,7 +437,7 @@ async function selectParcel(i) {
   map.setView([p.lat,p.lon],14);
   document.getElementById('info-txt').textContent=`${p.name} · ${p.crop} · ${p.area.toFixed(2)} ха`;
   chatH=[]; document.getElementById('chat').innerHTML='';
-  switchView('analysis', document.querySelectorAll('.ntab')[1]);
+  // Tab stays on current view — user switches manually
   document.getElementById('ec-spin').style.display='inline-block';
   const history = getEuroCropsHistory(p.lat,p.lon);
   renderEuroCrops(history,p);
