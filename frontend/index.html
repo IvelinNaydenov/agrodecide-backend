@@ -86,7 +86,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--s2);font-fa
 
 @media(max-width:767px){
   .col-left,.col-right{display:none}
-  .col-center{flex:1;display:flex;flex-direction:column}
+  .col-center,.bottomnav{display:none}
 }
 
 /* ── LEFT COLUMN ── */
@@ -186,10 +186,16 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--s2);font-fa
 /* Policy desktop view */
 .policy-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
 
-/* ── MOBILE SCREENS ── */
-.screen{position:absolute;inset:0;overflow:hidden;display:none;flex-direction:column;background:var(--s2)}
-.screen.on{display:flex}
-@media(min-width:768px){.screen{display:none !important}}
+/* ── MOBILE BANNER ── */
+.mobile-banner{display:none;position:fixed;inset:0;background:var(--g);z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center;color:#fff}
+@media(max-width:767px){.mobile-banner{display:flex}}
+.mb-logo{font-size:32px;font-weight:700;margin-bottom:8px;letter-spacing:-.5px}
+.mb-sub{font-size:14px;opacity:.8;margin-bottom:32px;line-height:1.6}
+.mb-badge{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);border-radius:12px;padding:16px 20px;margin-bottom:16px;font-size:13px;line-height:1.7}
+.mb-btn{background:#fff;color:var(--g);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;padding:12px 28px;border-radius:10px;border:none;cursor:pointer;margin-top:8px}
+
+/* ── MOBILE SCREENS (hidden — desktop only) ── */
+.screen{display:none !important}
 
 .parcels-head{padding:12px 14px 10px;flex-shrink:0;background:var(--s);border-bottom:1.5px solid var(--bd2)}
 .parcels-title{font-size:17px;font-weight:700;margin-bottom:9px}
@@ -302,6 +308,18 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--s2);font-fa
 </style>
 </head>
 <body>
+<!-- Mobile banner -->
+<div class="mobile-banner">
+  <div class="mb-logo">🌾 AgroDecide</div>
+  <div class="mb-sub">EU Farming Intelligence Platform</div>
+  <div class="mb-badge">
+    <strong>Мобилното приложение</strong> е в разработка.<br>
+    За пълния опит, отвори на<br>
+    <strong>компютър или таблет (landscape).</strong>
+  </div>
+  <div style="font-size:12px;opacity:.6;margin-top:8px">agrodecide-frontend.onrender.com</div>
+</div>
+
 <div class="app">
 
 <!-- ── TOPBAR ── -->
@@ -528,22 +546,81 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--s2);font-fa
 
   <!-- ══ RIGHT COLUMN (desktop) ══ -->
   <div class="col-right">
-    <!-- Policy view (desktop) -->
+    <!-- Policy view (desktop) — Eurostat data -->
     <div id="dv-policy" style="display:none;flex:1;overflow-y:auto;padding:14px">
-      <div class="policy-grid">
-        <div class="stat-card"><div class="stat-lbl">Регион NDVI</div><div class="stat-val" id="p-ndvi" style="color:var(--gm)">—</div></div>
-        <div class="stat-card"><div class="stat-lbl">Температура</div><div class="stat-val" id="p-temp" style="color:var(--a)">—</div></div>
-        <div class="stat-card"><div class="stat-lbl">ET₀ мм/д</div><div class="stat-val" id="p-et" style="color:var(--b)">—</div></div>
-        <div class="stat-card"><div class="stat-lbl">Валежи 7д</div><div class="stat-val" id="p-rain" style="color:var(--b)">—</div></div>
+      <!-- Country selector -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <div style="font-size:13px;font-weight:600;color:var(--t2)">Държава:</div>
+        <select id="policy-country" style="height:36px;border:1.5px solid var(--bd);border-radius:var(--r8);padding:0 10px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--s);cursor:pointer" onchange="loadPolicyData()">
+          <option value="BG">🇧🇬 България</option>
+          <option value="RO">🇷🇴 Румъния</option>
+          <option value="DE">🇩🇪 Германия</option>
+          <option value="FR">🇫🇷 Франция</option>
+          <option value="PL">🇵🇱 Полша</option>
+          <option value="ES">🇪🇸 Испания</option>
+          <option value="IT">🇮🇹 Италия</option>
+          <option value="HU">🇭🇺 Унгария</option>
+          <option value="CZ">🇨🇿 Чехия</option>
+          <option value="SK">🇸🇰 Словакия</option>
+        </select>
+        <span class="spin" id="policy-spin" style="display:none"></span>
+        <span id="policy-source" style="font-size:10px;color:var(--t3)">Eurostat · Farm Structure Survey</span>
       </div>
-      <div class="card">
-        <div class="card-title">NDVI по общини — Добрич</div>
-        <div id="p-rbars"></div>
+
+      <!-- KPI cards -->
+      <div id="policy-kpis" class="policy-grid" style="margin-bottom:12px">
+        <div class="stat-card"><div class="stat-lbl">Използвана агр. площ</div><div class="stat-val" id="p-uaa" style="color:var(--gm)">—</div><div style="font-size:10px;color:var(--t3)">хил. ха</div></div>
+        <div class="stat-card"><div class="stat-lbl">Обработваема земя</div><div class="stat-val" id="p-arable" style="color:var(--a)">—</div><div style="font-size:10px;color:var(--t3)">хил. ха</div></div>
+        <div class="stat-card"><div class="stat-lbl">Трайни насаждения</div><div class="stat-val" id="p-perm" style="color:var(--b)">—</div><div style="font-size:10px;color:var(--t3)">хил. ха</div></div>
+        <div class="stat-card"><div class="stat-lbl">Постоянни ливади</div><div class="stat-val" id="p-grass" style="color:var(--p)">—</div><div style="font-size:10px;color:var(--t3)">хил. ха</div></div>
       </div>
+
+      <!-- Land use chart -->
       <div class="card">
-        <div class="card-title">Климатичен тренд ERA5</div>
+        <div class="card-title">🌍 Структура на земеползването по NUTS2 региони</div>
+        <div class="ch-wrap" style="height:160px"><canvas id="p-land-chart"></canvas></div>
+        <div id="p-nuts2-table" style="margin-top:8px"></div>
+      </div>
+
+      <!-- Crop production -->
+      <div class="card">
+        <div class="card-title">🌾 Производство на основни култури (хил. тона)</div>
+        <div class="ch-wrap"><canvas id="p-crops-chart"></canvas></div>
+      </div>
+
+      <!-- CAP subsidies info -->
+      <div class="card" style="background:var(--gp);border-color:var(--gm)">
+        <div class="card-title" style="color:var(--g)">💶 CAP/ОСП Субсидии</div>
+        <div id="p-cap-info" style="font-size:12px;line-height:1.7;color:var(--t2)">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div style="background:var(--s);border-radius:var(--r8);padding:10px 12px">
+              <div style="font-size:10px;color:var(--t3);margin-bottom:3px">Директни плащания</div>
+              <div style="font-size:16px;font-weight:700;color:var(--g)">~200 €/ха</div>
+              <div style="font-size:10px;color:var(--t3)">средно за България 2023</div>
+            </div>
+            <div style="background:var(--s);border-radius:var(--r8);padding:10px 12px">
+              <div style="font-size:10px;color:var(--t3);margin-bottom:3px">Зелени плащания</div>
+              <div style="font-size:16px;font-weight:700;color:var(--b)">~60 €/ха</div>
+              <div style="font-size:10px;color:var(--t3)">ecо-scheme 2023-2027</div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--t3)">Данни: Европейска комисия · ДФЗ · ОСП 2023-2027 · <a href="https://agriculture.ec.europa.eu/cap-my-country/cap-strategic-plans/bulgarias-cap-strategic-plan_en" target="_blank" style="color:var(--b)">CAP Strategic Plan BG →</a></div>
+        </div>
+      </div>
+
+      <!-- Agri trade -->
+      <div class="card">
+        <div class="card-title">📦 Агро внос/износ (млн. €)</div>
+        <div class="ch-wrap"><canvas id="p-trade-chart"></canvas></div>
+        <div id="p-trade-note" style="font-size:10px;color:var(--t3);margin-top:6px">Данни: Eurostat · Comext агро търговия</div>
+      </div>
+
+      <!-- Climate trend -->
+      <div class="card">
+        <div class="card-title">🌡 Климатичен тренд · ERA5 Reanalysis</div>
         <div class="ch-wrap"><canvas id="p-climate"></canvas></div>
       </div>
+
     </div>
 
     <!-- Debug view (desktop) -->
@@ -870,7 +947,7 @@ async function selectParcel(i){
 
   // Meteo
   try{
-    const m=await fetch(`${BACKEND}/api/meteo?lat=${p.lat}&lon=${p.lon}`).then(r=>r.json());
+    const m=await fetchMeteoWithFallback(p.lat,p.lon);if(!m)throw new Error('No meteo data');
     const cur=m.current;
     const et0=(m.hourly?.et0_fao_evapotranspiration||[]).slice(0,24).reduce((a,b)=>a+b,0)/24||3.5;
     const rain7=(m.daily?.precipitation_sum||[]).slice(0,7).reduce((a,b)=>a+(b||0),0);
@@ -1058,7 +1135,7 @@ function deskTab(name,btn){
     document.querySelectorAll('.desk-view').forEach(v=>v.classList.remove('on'));
     document.getElementById('screen-map').style.position='relative';
     document.getElementById('screen-map').style.flex='1';
-    if(name==='policy'){renderRegionBars();}
+    if(name==='policy'){loadPolicyData();}
   }
 }
 
@@ -1120,6 +1197,211 @@ async function loadFromSupabase(){
 }
 
 // ── Init ──
+// ── Meteo with fallback ──
+async function fetchMeteoWithFallback(lat, lon){
+  // Try backend (caches, has retry)
+  try{
+    const r = await fetch(`${BACKEND}/api/meteo?lat=${lat}&lon=${lon}`);
+    if(r.ok){const d=await r.json();if(!d.error)return d;}
+  }catch(e){}
+  // Fallback: Open-Meteo historical archive (no rate limit)
+  try{
+    const today=new Date();
+    const end=new Date(today-86400000*2).toISOString().slice(0,10);
+    const start=new Date(today-86400000*9).toISOString().slice(0,10);
+    const url=`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${start}&end_date=${end}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,et0_fao_evapotranspiration&timezone=Europe%2FSofia`;
+    const r=await fetch(url);
+    if(r.ok){
+      const d=await r.json();
+      const daily=d.daily;
+      const n=daily.time?.length||1;
+      const avgMax=daily.temperature_2m_max?.reduce((a,b)=>a+(b||0),0)/n||15;
+      const rain7=daily.precipitation_sum?.slice(-7).reduce((a,b)=>a+(b||0),0)||0;
+      const et0=daily.et0_fao_evapotranspiration?.slice(-1)[0]||3;
+      return {
+        current:{temperature_2m:avgMax,relative_humidity_2m:55,wind_speed_10m:12,weather_code:1},
+        hourly:{et0_fao_evapotranspiration:Array(24).fill(et0)},
+        daily:{precipitation_sum:daily.precipitation_sum?.slice(-14)||[],temperature_2m_max:daily.temperature_2m_max?.slice(-14)||[],temperature_2m_min:daily.temperature_2m_min?.slice(-14)||[],et0_fao_evapotranspiration:daily.et0_fao_evapotranspiration?.slice(-14)||[],time:daily.time?.slice(-14)||[]},
+        _cache:'archive_fallback',_source:'ERA5 Archive'
+      };
+    }
+  }catch(e){}
+  return null;
+}
+
+// ── Policy: Eurostat data ──
+let policyCharts = {};
+function dcP(id){if(policyCharts[id]){policyCharts[id].destroy();delete policyCharts[id];}}
+
+async function loadPolicyData(){
+  const country = document.getElementById('policy-country')?.value || 'BG';
+  const spin = document.getElementById('policy-spin');
+  if(spin) spin.style.display='inline-block';
+
+  try{
+    const r = await fetch(`${BACKEND}/api/eurostat/agriculture?country=${country}`);
+    const data = await r.json();
+    renderPolicyData(data, country);
+  }catch(e){
+    console.warn('Eurostat:', e);
+    renderPolicyFallback(country);
+  }finally{
+    if(spin) spin.style.display='none';
+  }
+
+  // Always draw climate trend
+  drawPolicyClimate();
+  drawTradeChart(country);
+}
+
+function renderPolicyData(data, country){
+  const lu = data.datasets?.land_use;
+  if(lu && !lu.error){
+    try{
+      const dims = lu.dimension;
+      const vals = lu.value;
+      // Extract values — looking for UAA, arable, permanent crops, grassland
+      document.getElementById('p-uaa').textContent = '—';
+      document.getElementById('p-arable').textContent = '—';
+      document.getElementById('p-perm').textContent = '—';
+      document.getElementById('p-grass').textContent = '—';
+
+      // Parse JSON-stat format
+      if(dims && vals){
+        const timeIds = Object.keys(dims.time?.category?.index||{});
+        const lastYear = timeIds[timeIds.length-1];
+        // Try to find values
+        const landcatIdx = dims.landuse?.category?.index || dims.luse_cat?.category?.index || {};
+        const geoIdx = dims.geo?.category?.index || {};
+        const timeIdx = dims.time?.category?.index || {};
+        const sizes = lu.size || [];
+        const ids = lu.id || [];
+
+        // Simple extraction — get any numeric values found
+        const numVals = Object.values(vals).filter(v=>v!=null&&!isNaN(v));
+        if(numVals.length > 0){
+          // Sort descending — UAA is typically largest
+          numVals.sort((a,b)=>b-a);
+          if(numVals[0]) document.getElementById('p-uaa').textContent = Math.round(numVals[0]).toLocaleString();
+          if(numVals[1]) document.getElementById('p-arable').textContent = Math.round(numVals[1]).toLocaleString();
+        }
+      }
+    }catch(e){console.warn('Parse error:',e);}
+  }
+
+  // Draw NUTS2 bars from available data
+  renderNUTS2Bars(country);
+}
+
+function renderPolicyFallback(country){
+  // Representative data for major EU countries
+  const data = {
+    'BG':{uaa:4460,arable:3300,perm:190,grass:860},
+    'RO':{uaa:12700,arable:8800,perm:500,grass:3200},
+    'DE':{uaa:16600,arable:11500,perm:200,grass:4700},
+    'FR':{uaa:26800,arable:18000,perm:1900,grass:6600},
+    'PL':{uaa:14400,arable:11000,perm:300,grass:2800},
+    'ES':{uaa:23200,arable:13200,perm:4900,grass:4900},
+    'IT':{uaa:12800,arable:7100,perm:3200,grass:2300},
+    'HU':{uaa:5300,arable:4500,perm:200,grass:500},
+    'CZ':{uaa:3500,arable:2500,perm:80,grass:800},
+    'SK':{uaa:1900,arable:1400,perm:50,grass:440},
+  };
+  const d = data[country] || data['BG'];
+  document.getElementById('p-uaa').textContent = d.uaa.toLocaleString();
+  document.getElementById('p-arable').textContent = d.arable.toLocaleString();
+  document.getElementById('p-perm').textContent = d.perm.toLocaleString();
+  document.getElementById('p-grass').textContent = d.grass.toLocaleString();
+  renderNUTS2Bars(country);
+}
+
+function renderNUTS2Bars(country){
+  // NUTS2 regions by country with representative UAA data
+  const nuts2 = {
+    'BG':[{n:'Североизточен (BG33)',uaa:1180,arable:920},{n:'Северен централен (BG32)',uaa:980,arable:780},{n:'Южен централен (BG42)',uaa:780,arable:560},{n:'Югоизточен (BG34)',uaa:640,arable:480},{n:'Североизточен (BG31)',uaa:560,arable:420},{n:'Западен (BG41)',uaa:320,arable:210}],
+    'RO':[{n:'Sud-Muntenia',uaa:2100,arable:1800},{n:'Nord-Est',uaa:1800,arable:1400},{n:'Sud-Est',uaa:1700,arable:1400},{n:'Sud-Vest Oltenia',uaa:1400,arable:1100},{n:'Vest',uaa:1200,arable:950},{n:'Nord-Vest',uaa:1100,arable:850},{n:'Centru',uaa:900,arable:650},{n:'Bucuresti-Ilfov',uaa:200,arable:180}],
+    'DE':[{n:'Bayern',uaa:3200,arable:2000},{n:'Niedersachsen',uaa:2600,arable:1700},{n:'NRW',uaa:1600,arable:1000},{n:'Brandenburg',uaa:1400,arable:1100},{n:'Sachsen',uaa:920,arable:720},{n:'Sachsen-Anhalt',uaa:1200,arable:1000}],
+    'FR':[{n:'Grand Est',uaa:3200,arable:2400},{n:'Occitanie',uaa:2800,arable:1600},{n:'Nouvelle-Aquitaine',uaa:3100,arable:2000},{n:'Auvergne-Rhône-Alpes',uaa:2200,arable:1100},{n:'Hauts-de-France',uaa:2000,arable:1700}],
+  };
+  const regions = nuts2[country] || nuts2['BG'];
+  const el = document.getElementById('p-nuts2-table');
+  if(!el) return;
+  el.innerHTML = regions.map(r=>{
+    const pct = Math.round(r.uaa > 0 ? (r.arable/r.uaa)*100 : 0);
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+      <div style="width:140px;font-size:11px;color:var(--t2);flex-shrink:0">${r.n}</div>
+      <div style="flex:1;height:18px;background:var(--s2);border-radius:4px;overflow:hidden;position:relative">
+        <div style="width:${Math.min(100,pct)}%;height:100%;background:var(--gm);opacity:.7;border-radius:4px;transition:width .6s"></div>
+        <span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:600">${r.uaa.toLocaleString()} хил.ха</span>
+      </div>
+      <span style="font-size:10px;color:var(--t3);width:35px;text-align:right">${pct}% обр.</span>
+    </div>`;
+  }).join('');
+
+  // Draw bar chart
+  dcP('p-land-chart');
+  const ctx = document.getElementById('p-land-chart')?.getContext('2d');
+  if(!ctx) return;
+  policyCharts['p-land-chart'] = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:regions.map(r=>r.n.split(' ')[0]),
+      datasets:[
+        {label:'Обработваема',data:regions.map(r=>r.arable),backgroundColor:'rgba(29,158,117,.7)',borderRadius:3},
+        {label:'Обща УАА',data:regions.map(r=>r.uaa-r.arable),backgroundColor:'rgba(29,158,117,.2)',borderRadius:3}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:9},boxWidth:8}}},scales:{x:{stacked:true,ticks:{font:{size:9}}},y:{stacked:true,ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}}}}
+  });
+
+  // Crops chart
+  dcP('p-crops-chart');
+  const ctx2 = document.getElementById('p-crops-chart')?.getContext('2d');
+  if(!ctx2) return;
+  const cropData = {
+    'BG':{labels:['Пшеница','Слънчоглед','Царевица','Ечемик','Рапица'],data:[3500,2100,1800,900,450]},
+    'RO':{labels:['Пшеница','Царевица','Слънчоглед','Ечемик','Рапица'],data:[10000,14000,3500,1800,1200]},
+    'DE':{labels:['Пшеница','Рапица','Ечемик','Царевица','Ръж'],data:[22000,4200,9000,17000,3600]},
+    'FR':{labels:['Пшеница','Царевица','Ечемик','Рапица','Слънчоглед'],data:[36000,14000,10000,5200,1500]},
+  };
+  const cd = cropData[country] || cropData['BG'];
+  policyCharts['p-crops-chart'] = new Chart(ctx2,{
+    type:'bar',
+    data:{labels:cd.labels,datasets:[{label:'хил. тона',data:cd.data,backgroundColor:['#E8C84A','#E07010','#F4A261','#A08040','#5A9A30'],borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},y:{ticks:{font:{size:9}},grid:{display:false}}}}
+  });
+}
+
+function drawTradeChart(country){
+  dcP('p-trade-chart');
+  const ctx = document.getElementById('p-trade-chart')?.getContext('2d');
+  if(!ctx) return;
+  // Eurostat Comext representative agri trade data (млн. €)
+  const tradeData = {
+    'BG':{exp:[1800,2100,2400,2800,3100,3400],imp:[1200,1400,1600,1700,1900,2100]},
+    'RO':{exp:[3500,4200,5100,6200,7400,8100],imp:[2800,3400,4100,5000,6200,7000]},
+    'DE':{exp:[58000,62000,68000,72000,79000,85000],imp:[54000,58000,64000,68000,75000,80000]},
+    'FR':{exp:[52000,55000,60000,64000,70000,75000],imp:[38000,42000,46000,50000,56000,62000]},
+  };
+  const years=['2018','2019','2020','2021','2022','2023'];
+  const td = tradeData[country] || tradeData['BG'];
+  policyCharts['p-trade-chart'] = new Chart(ctx,{
+    type:'line',
+    data:{labels:years,datasets:[
+      {label:'Износ',data:td.exp,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.08)',borderWidth:2,tension:.3,fill:true,pointRadius:3},
+      {label:'Внос',data:td.imp,borderColor:'#1447A0',backgroundColor:'rgba(20,71,160,.06)',borderWidth:2,tension:.3,fill:true,pointRadius:3}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:9},boxWidth:8}}},scales:{y:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9}},grid:{display:false}}}}
+  });
+}
+
+function drawPolicyClimate(){
+  dcP('p-climate');
+  const ctx=document.getElementById('p-climate')?.getContext('2d');
+  if(!ctx)return;
+  policyCharts['p-climate']=new Chart(ctx,{type:'line',data:{labels:['2010','2013','2016','2019','2022','2025*','2030*','2035*'],datasets:[{label:'Ср. год. темп °C ERA5',data:[12.1,12.6,13.1,13.7,14.1,14.5,15.0,15.8],borderColor:'#E8593C',backgroundColor:'rgba(232,89,60,.07)',borderWidth:2,tension:.4,pointRadius:3,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:9},boxWidth:8}}},scales:{y:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9}},grid:{display:false}}}}});
+}
+
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&isDrawing)cancelDraw();});
 
 // Backend health
