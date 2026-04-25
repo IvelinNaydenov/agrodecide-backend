@@ -394,18 +394,19 @@ def supa_headers():
 @app.post("/api/parcels")
 async def save_parcel(body: dict):
     """Save parcel to Supabase"""
+    import json as _json
+    coords = body.get("coords", [])
     payload = {
         "name": body.get("name"),
         "crop": body.get("crop"),
         "area_ha": body.get("area"),
         "source": body.get("source", "drawn"),
         "lpis_id": body.get("lpis_id"),
+        "coords_json": _json.dumps(coords) if coords else None,
     }
     # Convert coords to WKT polygon for PostGIS
-    coords = body.get("coords", [])
     if coords:
         pts = ", ".join(f"{c[1]} {c[0]}" for c in coords)
-        # Close the ring
         first = f"{coords[0][1]} {coords[0][0]}"
         payload["geom"] = f"SRID=4326;POLYGON(({pts}, {first}))"
 
