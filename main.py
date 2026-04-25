@@ -216,7 +216,7 @@ async def wms_proxy(request: Request):
     Backend adds Bearer token and forwards to Sentinel Hub.
     Tiles cached 6h (Sentinel updates max twice daily).
     """
-    WMS_INSTANCE = os.getenv("WMS_INSTANCE", "fbea40c0-99d9-457b-b682-d60959f18f77")
+    WMS_INSTANCE = os.getenv("WMS_INSTANCE", "69051eb2-80ae-466a-9501-850209a883db")
     WMS_URL = f"https://sh.dataspace.copernicus.eu/ogc/wms/{WMS_INSTANCE}"
 
     # Forward all query params from frontend
