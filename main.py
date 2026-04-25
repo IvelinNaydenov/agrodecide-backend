@@ -542,3 +542,41 @@ async def crop_history(lat: float, lon: float, radius_km: float = 10):
     }
     cache_set(cache_key, result, 24 * 3600)  # Cache 24h — historical data doesn't change
     return result
+
+@app.get("/api/eurostat/agriculture")
+async def eurostat_agriculture(country: str = "BG"):
+    """
+    Fetch agricultural land use data from Eurostat API.
+    Dataset: ef_lus_main — Main farm land use by NUTS2 region
+    """
+    cache_key = f"eurostat:agri:{country}"
+    cached = cache_get(cache_key)
+    if cached:
+        return {**cached, "_cache": "hit"}
+
+    import asyncio as _aio
+
+    # Multiple Eurostat datasets
+    datasets = {
+        "land_use": f"https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ef_lus_main?geo={country}&lang=en&format=JSON",
+        "crop_production": f"https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/apro_cpshr?geo={country}&lang=en&format=JSON&unit=THA",
+        "land_overview": f"https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/lan_use_ovw?geo={country}&lang=en&format=JSON",
+    }
+
+    results = {}
+    async with make_client(False, timeout=30) as client:
+        for key, url in datasets.items():
+            for attempt in range(2):
+                try:
+                    r = await client.get(url)
+                    if r.status_code == 200:
+                        results[key] = r.json()
+                        break
+                    elif r.status_code == 429:
+                        await _aio.sleep(2)
+                except Exception as e:
+                    results[key] = {"error": str(e)}
+
+    result = {"country": country, "datasets": results, "_cache": "miss"}
+    cache_set(cache_key, result, 24 * 3600)
+    return result
