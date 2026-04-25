@@ -297,12 +297,20 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);font-fa
     <div class="modal-handle"></div>
     <div class="modal-title">Запази парцела</div>
     <div class="mf"><div class="ml">Име</div><input class="mi" id="m-name" placeholder="напр. Северно поле А-12"></div>
-    <div class="mf"><div class="ml">Култура 2026</div>
+    <div class="mf"><div class="ml">Планирана култура <span style="font-weight:400;text-transform:none;opacity:.7">(незадължително)</span></div>
       <select class="mi" id="m-crop" style="cursor:pointer">
+        <option value="unknown">🤔 Не знам / Искам съвет</option>
+        <option value="none">🌱 Незасято / Угар</option>
+        <option disabled>── Земеделски ──</option>
         <option>Пшеница</option><option>Слънчоглед</option><option>Рапица</option>
         <option>Царевица</option><option>Ечемик</option><option>Соя</option>
         <option>Захарно цвекло</option><option>Люцерна</option><option>Лозе</option>
         <option>Овошки</option><option>Зеленчуци</option><option>Друго</option>
+        <option disabled>── Неземеделски ──</option>
+        <option value="forest">🌲 Гора / Дървесна растителност</option>
+        <option value="water">💧 Водоем / Напоителен канал</option>
+        <option value="built">🏗 Застроена площ / Инфраструктура</option>
+        <option value="pasture">🐄 Пасище / Ливада</option>
       </select>
     </div>
     <div class="mf"><div class="ml">Площ</div><div class="mi" id="m-area" style="display:flex;align-items:center;background:var(--surface2);cursor:default">— ха</div></div>
@@ -455,7 +463,9 @@ async function selectParcel(i){
   activeIdx=i;renderList();const p=parcels[i];
   map.setView([p.lat,p.lon],14);chatH=[];document.getElementById('chat').innerHTML='';
   document.getElementById('an-name').textContent=p.name;
-  document.getElementById('an-meta').textContent=`${p.crop} · ${p.area.toFixed(2)} ха · ${p.lat.toFixed(4)}°N`;
+  const cropLabels = {unknown:'🤔 Не знам / Искам съвет',none:'🌱 Незасято / Угар',forest:'🌲 Гора',water:'💧 Водоем',built:'🏗 Застроена площ',pasture:'🐄 Пасище'};
+  const cropLabel = cropLabels[p.crop] || p.crop;
+  document.getElementById('an-meta').textContent=`${cropLabel} · ${p.area.toFixed(2)} ха · ${p.lat.toFixed(4)}°N`;
   document.getElementById('an-empty').style.display='none';
   document.getElementById('an-content').style.display='block';
   let history=getEuroCropsHistory(p.lat,p.lon);
@@ -580,12 +590,28 @@ function buildSys(p, histStr, ndviResult){
   const priorityRule = ndviResult && ndviResult.confidence>=70
     ? 'ПРАВИЛО: NDVI ≥70% сигурност → приоритизирай спътниковите данни над историческите.'
     : 'ПРАВИЛО: NDVI <70% сигурност → ползвай историческите данни като основен сигнал.';
+
+  const cropStatus = (!p?.crop || p?.crop==='unknown' || p?.crop==='none')
+    ? `ЗАЯВЕНА КУЛТУРА: Фермерът не е посочил култура — използвай NDVI и историята за определяне.`
+    : `ЗАЯВЕНА КУЛТУРА ОТ ФЕРМЕРА: ${p.crop}`;
+
+  const nonAgri = ['forest','water','built','pasture'];
+  const taskLine = (!p?.crop || p?.crop==='unknown')
+    ? 'ЗАДАЧА: 1) Определи текущата култура от NDVI, 2) Препоръчай следваща за ротацията, 3) Очакван добив, 4) Основен риск.'
+    : p?.crop==='none'
+    ? 'ЗАДАЧА: Парцелът е незасят/угар. 1) Препоръчай оптималната начална култура за тази почва и климат, 2) Предложи 3-годишно сеитбообращение, 3) Основен риск при старт.'
+    : nonAgri.includes(p?.crop)
+    ? 'ЗАДАЧА: Парцелът е маркиран като неземеделски. Информирай фермера: 1) Потвърди от NDVI дали е наистина неземеделски, 2) Ако NDVI показва растителност — провери дали може да се преведе към земеделска употреба, 3) Какви са регулаторните ограничения в ЕС за този тип земя.'
+    : 'ЗАДАЧА: 1) Потвърди или коментирай избраната от фермера култура спрямо NDVI, 2) Препоръчай следваща за ротацията, 3) Очакван добив, 4) Основен риск.';
+
   return `Ти си AI агроном за AgroDecide. Отговаряй кратко и конкретно на БЪЛГАРСКИ.
-ПАРЦЕЛ: ${p?.name||'—'} · ${p?.crop||'—'} · ${p?.area?.toFixed(2)||'—'}ха · ${p?.lat?.toFixed(4)||'—'}°N
+ПАРЦЕЛ: ${p?.name||'—'} · ${p?.area?.toFixed(2)||'—'}ха · ${p?.lat?.toFixed(4)||'—'}°N
+${cropStatus}
 ${ndviLine}
 EUROCROPS/LUCAS ИСТОРИЯ: ${histStr}
 МЕТЕО LIVE: темп ${meteoData.temp?.toFixed(1)||'—'}°C, ET₀ ${meteoData.et0?.toFixed(2)||'—'} мм/д, валежи 7д ${meteoData.rain7?.toFixed(1)||'—'} мм
 ${priorityRule}
+${taskLine}
 ДАТА: ${new Date().toLocaleDateString('bg-BG')}
 При конфликт между NDVI и историческите данни — обясни разликата накратко.`;
 }
