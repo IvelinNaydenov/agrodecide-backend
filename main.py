@@ -148,8 +148,9 @@ async def meteo_history(lat: float, lon: float, days: int = 90):
 
     end   = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
     start = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
+    # Use archive API for historical data (forecast only works for future/recent)
     url = (
-        f"https://api.open-meteo.com/v1/forecast"
+        f"https://archive-api.open-meteo.com/v1/archive"
         f"?latitude={lat}&longitude={lon}"
         f"&daily=precipitation_sum,temperature_2m_max,et0_fao_evapotranspiration"
         f"&start_date={start}&end_date={end}&timezone=Europe%2FSofia"
@@ -283,8 +284,9 @@ async def classify_crop(lat: float, lon: float, days: int = 180):
     # Fetch meteo history for NDVI proxy
     end   = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
     start = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
+    # Use archive API for historical data (forecast only works for future/recent)
     url = (
-        f"https://api.open-meteo.com/v1/forecast"
+        f"https://archive-api.open-meteo.com/v1/archive"
         f"?latitude={lat}&longitude={lon}"
         f"&daily=precipitation_sum,temperature_2m_max,et0_fao_evapotranspiration"
         f"&start_date={start}&end_date={end}&timezone=Europe%2FSofia"
