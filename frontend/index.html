@@ -179,6 +179,15 @@ html,body{height:100%;font-family:'Space Grotesk',sans-serif;background:#f0ede6;
     </div>
     <div class="rp-scroll">
       <div id="pred-section" style="display:none">
+
+        <!-- NDVI Classification -->
+        <div style="margin-bottom:8px">
+          <div class="sbl" style="margin-bottom:5px">🛰 NDVI Класификация · Sentinel-2 <span class="spin" id="ndvi-cls-spin" style="display:none"></span></div>
+          <div id="ndvi-cls-card" style="border:0.5px solid var(--bd);border-radius:9px;padding:9px 11px;background:var(--s2)">
+            <div style="font-size:11px;color:var(--t2)">Зарежда...</div>
+          </div>
+        </div>
+
         <div class="pred-card">
           <div class="pred-title">🤖 AI Предикция <span style="font-size:9px;background:var(--p);color:#fff;padding:1px 6px;border-radius:6px;font-weight:500">Groq LLaMA 3.3</span></div>
           <div class="pred-text" id="pred-text">—</div>
@@ -431,6 +440,33 @@ function save3() {
   try { localStorage.setItem('agd_parcels_v3', JSON.stringify(parcels)); } catch(e) {}
 }
 
+async function loadNDVIClassification(p) {
+  const card = document.getElementById('ndvi-cls-card');
+  const spin = document.getElementById('ndvi-cls-spin');
+  if (!card) return;
+  spin.style.display = 'inline-block';
+  card.innerHTML = '<div style="font-size:11px;color:var(--t2)">Анализирам NDVI времева серия (180 дни)...</div>';
+  try {
+    const r = await fetch(`${BACKEND}/api/ndvi/classify?lat=${p.lat}&lon=${p.lon}&days=180`);
+    const data = await r.json();
+    const cls = data.classification;
+    const conf = cls.confidence || 0;
+    const confColor = conf >= 70 ? 'var(--gd)' : conf >= 50 ? 'var(--a)' : 'var(--r)';
+    const confBg   = conf >= 70 ? 'var(--gl)' : conf >= 50 ? 'var(--al)' : 'var(--rl)';
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-weight:600;font-size:13px">${cls.crop || '—'}</div>
+        <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:${confBg};color:${confColor};font-weight:600">${conf}% сигурност</span>
+      </div>
+      <div style="font-size:10px;color:var(--t2);line-height:1.6;margin-bottom:5px">${cls.reasoning || ''}</div>
+      ${cls.rotation_hint ? `<div style="font-size:9px;background:var(--bl);color:var(--b);padding:3px 8px;border-radius:6px;margin-top:4px">💡 ${cls.rotation_hint}</div>` : ''}
+      <div style="font-size:9px;color:var(--t2);margin-top:5px">${data.series_summary || ''}</div>`;
+  } catch(e) {
+    card.innerHTML = `<div style="font-size:11px;color:var(--r)">Грешка: ${e.message}</div>`;
+  }
+  spin.style.display = 'none';
+}
+
 async function selectParcel(i) {
   activeIdx=i; renderList();
   const p = parcels[i];
@@ -441,6 +477,7 @@ async function selectParcel(i) {
   document.getElementById('ec-spin').style.display='inline-block';
   const history = getEuroCropsHistory(p.lat,p.lon);
   renderEuroCrops(history,p);
+  loadNDVIClassification(p);
   document.getElementById('ec-spin').style.display='none';
 
   try {
