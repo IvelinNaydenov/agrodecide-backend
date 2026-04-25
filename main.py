@@ -264,3 +264,115 @@ async def wms_proxy(request: Request):
             last_err = e
 
     raise HTTPException(502, f"WMS proxy error: {last_err}")
+
+@app.get("/api/ndvi/classify")
+async def classify_crop(lat: float, lon: float, days: int = 180):
+    """
+    Classify crop type from NDVI time series.
+    Fetches OpenMeteo ET0+precipitation history and derives NDVI proxy series,
+    then uses Groq AI to classify the most likely crop based on the curve shape.
+    """
+    if not GROQ_KEY:
+        raise HTTPException(500, "GROQ_KEY not configured")
+
+    cache_key = f"classify:{lat:.3f}:{lon:.3f}:{days}"
+    cached = cache_get(cache_key)
+    if cached:
+        return {**cached, "_cache": "hit"}
+
+    # Fetch meteo history for NDVI proxy
+    end   = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
+    start = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
+    url = (
+        f"https://api.open-meteo.com/v1/forecast"
+        f"?latitude={lat}&longitude={lon}"
+        f"&daily=precipitation_sum,temperature_2m_max,et0_fao_evapotranspiration"
+        f"&start_date={start}&end_date={end}&timezone=Europe%2FSofia"
+    )
+
+    async with make_client(False) as client:
+        r = await client.get(url)
+        r.raise_for_status()
+        hist = r.json()
+
+    dates = hist["daily"]["time"]
+    et0   = hist["daily"]["et0_fao_evapotranspiration"]
+    rain  = hist["daily"]["precipitation_sum"]
+    tmax  = hist["daily"]["temperature_2m_max"]
+
+    # Derive NDVI proxy series (weekly averages for cleaner signal)
+    ndvi_series = []
+    for i in range(0, len(dates), 7):
+        chunk_et0  = et0[i:i+7]
+        chunk_rain = rain[i:i+7]
+        chunk_tmax = tmax[i:i+7]
+        avg_et0  = sum(v or 0 for v in chunk_et0) / max(len(chunk_et0), 1)
+        sum_rain = sum(v or 0 for v in chunk_rain)
+        avg_tmax = sum(v or 0 for v in chunk_tmax) / max(len(chunk_tmax), 1)
+        wb = (sum_rain - avg_et0 * 7) / 30
+        hs = -((avg_tmax - 33) * 0.01) if avg_tmax > 33 else 0
+        ndvi = min(0.95, max(0.05, 0.55 + min(0.18, max(-0.22, wb)) + hs))
+        ndvi_series.append({
+            "date": dates[i],
+            "ndvi": round(ndvi, 3),
+            "rain_mm": round(sum_rain, 1),
+            "tmax": round(avg_tmax, 1)
+        })
+
+    # Build prompt for Groq
+    series_str = ", ".join(f"{s['date'][:7]}:{s['ndvi']}" for s in ndvi_series)
+    months = [s['date'][5:7] for s in ndvi_series]
+
+    system = """You are an expert agronomist AI specializing in crop classification from NDVI time series data.
+
+NDVI crop signatures (Northern Bulgaria / SE Europe):
+- Wheat/Barley: high NDVI (0.6-0.8) March-May, sharp drop June (harvest), low summer
+- Sunflower: low NDVI until May, peak July-August (0.5-0.75), drops September  
+- Rapeseed: early peak February-March (flowering), drops April-May, very low summer
+- Maize/Corn: starts May, peak August-September (0.7-0.85), drops October
+- Sugar beet: steady growth April-September, long season
+- Lucerne: multiple peaks (cut 3-4 times), never very low in summer
+- Fallow/bare: consistently low NDVI (0.1-0.3) throughout
+
+Respond ONLY in JSON format: {"crop": "name_in_Bulgarian", "confidence": 0-100, "reasoning": "brief explanation in Bulgarian", "rotation_hint": "what was likely here last year"}"""
+
+    prompt = f"""Класифицирай културата по NDVI времева серия за координати {lat:.3f}°N {lon:.3f}°E:
+
+Седмични NDVI стойности (дата:ndvi): {series_str}
+
+Текущ месец: {datetime.utcnow().strftime('%B %Y')}
+Регион: Добрич, България (умерено-континентален климат)
+
+Определи: каква култура е най-вероятно засята тази година?"""
+
+    messages = [{"role": "system", "content": system},
+                {"role": "user",   "content": prompt}]
+
+    async with make_client(False) as client:
+        r = await client.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"},
+            json={"model": "llama-3.3-70b-versatile", "messages": messages,
+                  "max_tokens": 300, "temperature": 0.3, "response_format": {"type": "json_object"}},
+            timeout=30
+        )
+        r.raise_for_status()
+        data = r.json()
+
+    ai_text = data["choices"][0]["message"]["content"]
+    try:
+        import json
+        ai_result = json.loads(ai_text)
+    except Exception:
+        ai_result = {"crop": "Неизвестна", "confidence": 0, "reasoning": ai_text, "rotation_hint": "—"}
+
+    result = {
+        "lat": lat, "lon": lon,
+        "ndvi_series": ndvi_series,
+        "classification": ai_result,
+        "series_summary": f"{len(ndvi_series)} седмици · {dates[0][:7]} → {dates[-1][:7]}",
+        "_cache": "miss"
+    }
+
+    cache_set(cache_key, result, 6 * 3600)
+    return result
