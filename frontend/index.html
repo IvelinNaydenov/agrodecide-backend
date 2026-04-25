@@ -549,9 +549,53 @@ function navSwitch(name,btn){
 }
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&isDrawing)cancelDraw();});
+
+// Load parcels from Supabase on startup
+async function loadParcelsFromSupabase(){
+  try{
+    const r=await fetch(`${BACKEND}/api/parcels`);
+    if(!r.ok) throw new Error(r.status);
+    const data=await r.json();
+    if(!data || !data.length) return;
+    let changed=false;
+    data.forEach(sb=>{
+      // Skip if already in local list (matched by supabase_id)
+      if(parcels.find(lp=>lp.supabase_id===sb.id)) return;
+      // Only add if has coords stored (coords_json field)
+      if(!sb.coords_json) return;
+      try{
+        const coords=JSON.parse(sb.coords_json);
+        if(!coords || !coords.length) return;
+        const center=coords.reduce((a,c)=>[a[0]+c[0]/coords.length,a[1]+c[1]/coords.length],[0,0]);
+        parcels.push({
+          id:Date.now()+'_sb',
+          supabase_id:sb.id,
+          name:sb.name, crop:sb.crop,
+          area:sb.area_ha,
+          lat:center[0], lon:center[1],
+          coords, source:sb.source||'drawn',
+          lpis_id:sb.lpis_id
+        });
+        changed=true;
+      }catch(e){}
+    });
+    if(changed){saveP();renderList();reloadLayers();}
+  }catch(e){console.warn('Supabase load:',e);}
+}
+
+// Backend health check
+fetch(`${BACKEND}/health`).then(r=>r.json()).then(d=>{
+  if(d.status==='healthy'){document.getElementById('stv-be').textContent='OK · '+d.cache_keys+' кеша';}
+}).catch(()=>{
+  document.getElementById('st-be').className='st-dot st-warn';
+  document.getElementById('stv-be').textContent='Офлайн';
+});
+
+// Init — load from localStorage first (instant), then sync with Supabase
 renderList();reloadLayers();
-if(parcels.length>0)map.setView([parcels[0].lat,parcels[0].lon],13);
-fetch(`${BACKEND}/health`).then(r=>r.json()).then(d=>{if(d.status==='healthy'){document.getElementById('stv-be').textContent='OK · '+d.cache_keys+' кеша';}}).catch(()=>{document.getElementById('st-be').className='st-dot st-warn';document.getElementById('stv-be').textContent='Офлайн';});
+if(parcels.length>0 && parcels[0].coords && parcels[0].coords.length>0)
+  map.setView([parcels[0].lat,parcels[0].lon],13);
+loadParcelsFromSupabase();
 </script>
 </body>
 </html>
