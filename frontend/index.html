@@ -2,287 +2,595 @@
 <html lang="bg">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0F6E56">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<style>:root{--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px)}</style>
-<title>AgroDecide</title>
+<title>AgroDecide — EU Farming Intelligence</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --green:#0F6E56;--green-mid:#1D9E75;--green-light:#E8F5EE;--green-pale:#F0FAF5;
-  --amber:#9A6000;--amber-light:#FFF3DC;
-  --red:#B91C1C;--red-light:#FEE2E2;
-  --blue:#1447A0;--blue-light:#EFF6FF;
-  --purple:#4C3DB5;--purple-light:#EEF2FF;
-  --bg:#F5F5F0;--surface:#FFFFFF;--surface2:#F0EDE8;
-  --border:#D4D0C8;--border-strong:#B0A898;
-  --text:#111110;--text2:#444440;--text3:#777770;
-  --touch:48px;--radius:10px;--radius-sm:7px;
+  --g:#0F6E56;--gm:#1D9E75;--gl:#E4F5EE;--gp:#F0FAF5;
+  --a:#8A5200;--al:#FFF0D6;
+  --r:#B91C1C;--rl:#FEE2E2;
+  --b:#1447A0;--bl:#EFF6FF;
+  --p:#4C3DB5;--pl:#EEF2FF;
+  --t:#0D0D0B;--t2:#4A4A45;--t3:#8A8A82;
+  --s:#FFFFFF;--s2:#F4F2ED;--s3:#ECEAE4;
+  --bd:rgba(0,0,0,.08);--bd2:rgba(0,0,0,.13);
+  --touch:48px;--r8:8px;--r12:12px;--r16:16px;
+  --shadow:0 1px 4px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+  --shadow-md:0 2px 8px rgba(0,0,0,.1),0 8px 24px rgba(0,0,0,.08);
 }
-html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);font-family:'Inter',sans-serif;color:var(--text);font-size:15px;line-height:1.5}
-.app{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:-webkit-fill-available;background:var(--bg)}
-.topbar{display:flex;align-items:center;height:52px;flex-shrink:0;background:var(--green);padding:0 14px;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.25);z-index:100}
-.topbar-logo{font-size:17px;font-weight:700;color:#fff;letter-spacing:-.3px}
-.topbar-logo span{font-size:11px;font-weight:400;opacity:.75;margin-left:5px}
-.topbar-actions{margin-left:auto;display:flex;gap:6px;align-items:center}
-.topbar-btn{width:40px;height:40px;border-radius:var(--radius-sm);border:none;background:rgba(255,255,255,.15);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
-.topbar-btn:active{background:rgba(255,255,255,.3)}
-.bottomnav{display:flex;height:calc(60px + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);flex-shrink:0;background:var(--surface);border-top:1.5px solid var(--border);box-shadow:0 -2px 10px rgba(0,0,0,.1);z-index:100}
-.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:transparent;color:var(--text3);font-family:'Inter',sans-serif;font-size:10px;font-weight:500;cursor:pointer;transition:color .15s;padding:6px 4px}
-.bnav-btn .icon{font-size:22px;line-height:1}
-.bnav-btn.on{color:var(--green)}
-.bnav-ind{width:24px;height:3px;border-radius:2px;margin-top:2px}
-.bnav-btn.on .bnav-ind{background:var(--green)}
-.main{flex:1;overflow:hidden;position:relative;min-height:0}
-.screen{position:absolute;inset:0;overflow:hidden;display:none;flex-direction:column}
+html,body{height:100%;height:100dvh;overflow:hidden;background:var(--s2);font-family:'DM Sans',sans-serif;color:var(--t);font-size:14px;line-height:1.5}
+
+/* ── App Shell ── */
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+
+/* ── Topbar ── */
+.topbar{
+  display:flex;align-items:center;height:50px;flex-shrink:0;
+  background:var(--g);padding:0 16px;gap:0;
+  box-shadow:0 2px 12px rgba(0,0,0,.2);z-index:200;
+}
+.t-logo{font-size:16px;font-weight:700;color:#fff;letter-spacing:-.3px;white-space:nowrap}
+.t-logo sup{font-size:9px;font-weight:400;opacity:.65;margin-left:4px;vertical-align:super}
+.t-live{margin-left:10px;font-size:10px;font-weight:600;padding:2px 8px;border-radius:12px;background:rgba(255,255,255,.18);color:#fff;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.t-live .dot{width:5px;height:5px;border-radius:50%;background:#4ade80;animation:blink 1.5s infinite}
+
+/* Desktop tabs in topbar */
+.t-tabs{display:none;height:100%;margin-left:20px}
+.t-tab{padding:0 14px;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;color:rgba(255,255,255,.65);border-bottom:2.5px solid transparent;height:100%;transition:all .15s}
+.t-tab.on{color:#fff;border-bottom-color:rgba(255,255,255,.8)}
+.t-tab:hover:not(.on){color:rgba(255,255,255,.85)}
+
+/* Status pills — desktop only */
+.t-pills{display:none;margin-left:auto;gap:6px;align-items:center}
+.pill{font-size:10px;font-weight:600;padding:3px 9px;border-radius:12px;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.pill .dot{width:5px;height:5px;border-radius:50%}
+.p-live{background:rgba(255,255,255,.15);color:#fff}.p-live .dot{background:#4ade80;animation:blink 2s infinite}
+.p-warn{background:rgba(255,200,50,.2);color:#fde68a}.p-warn .dot{background:#fbbf24}
+.p-err{background:rgba(255,80,80,.2);color:#fca5a5}.p-err .dot{background:#f87171}
+
+/* Mobile right actions */
+.t-actions{margin-left:auto;display:flex;gap:5px}
+.t-btn{width:38px;height:38px;border-radius:var(--r8);border:none;background:rgba(255,255,255,.15);color:#fff;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.t-btn:active{background:rgba(255,255,255,.28)}
+
+/* ── Main body ── */
+.main{flex:1;display:flex;overflow:hidden;min-height:0}
+
+/* ── DESKTOP LAYOUT (≥ 768px) ── */
+@media(min-width:768px){
+  .t-tabs{display:flex}
+  .t-pills{display:flex}
+  .t-actions{display:none}
+  .bottomnav{display:none}
+
+  /* 3-column layout */
+  .col-left{display:flex;flex-direction:column;width:230px;flex-shrink:0;border-right:1px solid var(--bd2);background:var(--s);overflow:hidden}
+  .col-center{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+  .col-right{display:flex;flex-direction:column;width:265px;flex-shrink:0;border-left:1px solid var(--bd2);background:var(--s);overflow:hidden}
+
+  /* Hide mobile screens */
+  #screen-parcels,#screen-analysis,#screen-settings{display:none !important}
+  #screen-map{display:flex !important;flex-direction:column}
+
+  /* Desktop views controlled by tabs */
+  .desk-view{display:none;flex:1;overflow-y:auto}
+  .desk-view.on{display:block}
+}
+
+@media(max-width:767px){
+  .col-left,.col-right{display:none}
+  .col-center{flex:1;display:flex;flex-direction:column}
+}
+
+/* ── LEFT COLUMN ── */
+.col-left-head{padding:10px 12px;border-bottom:1px solid var(--bd);flex-shrink:0}
+.sbl{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px}
+.col-left-scroll{flex:1;overflow-y:auto;padding:10px 12px}
+
+/* Parcel cards in sidebar */
+.sb-parcel{padding:8px 10px;border-radius:var(--r8);border:1px solid var(--bd);cursor:pointer;margin-bottom:6px;background:var(--s);transition:all .15s}
+.sb-parcel.on{border-color:var(--gm);background:var(--gl)}
+.sb-parcel:hover:not(.on){background:var(--s2)}
+.sb-p-name{font-size:12px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.sb-p-meta{font-size:10px;color:var(--t3);margin-top:1px;font-family:'DM Mono',monospace}
+.sb-p-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;margin-top:4px;display:inline-block}
+
+/* Indicator bars */
+.irow{display:flex;align-items:center;gap:7px;padding:3px 0}
+.ilbl{font-size:10px;color:var(--t3);width:52px;flex-shrink:0}
+.ibar{flex:1;height:4px;background:var(--s3);border-radius:2px;overflow:hidden}
+.ifill{height:100%;border-radius:2px;transition:width .8s ease}
+.ival{font-size:10px;font-weight:600;width:38px;text-align:right;flex-shrink:0;font-family:'DM Mono',monospace}
+
+/* API status */
+.api-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bd)}
+.api-row:last-child{border:none}
+.api-name{font-size:11px;font-weight:500}
+.api-sub{font-size:9px;color:var(--t3)}
+.api-badge{font-size:9px;font-weight:600;padding:2px 7px;border-radius:8px}
+
+/* ── CENTER COLUMN ── */
+/* Map */
+#screen-map{position:relative}
+#map{flex:1;min-height:0;width:100%;height:100%;position:absolute;inset:0}
+
+/* Center tabs (desktop) */
+.c-tabs{display:flex;border-bottom:1px solid var(--bd);background:var(--s);flex-shrink:0;z-index:10;position:relative}
+.c-tab{padding:8px 13px;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;color:var(--t3);border-bottom:2px solid transparent;transition:all .15s}
+.c-tab.on{color:var(--g);border-bottom-color:var(--g)}
+.c-tab:hover:not(.on){color:var(--t)}
+
+/* Map overlays */
+.layer-pills{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;gap:5px;background:rgba(255,255,255,.93);border-radius:22px;padding:4px 7px;box-shadow:var(--shadow-md);border:1px solid var(--bd)}
+.layer-pill{padding:4px 12px;border-radius:16px;border:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;background:transparent;color:var(--t2);transition:all .15s;white-space:nowrap}
+.layer-pill.on{background:var(--g);color:#fff}
+.map-coords{position:absolute;bottom:76px;right:10px;z-index:1000;background:rgba(255,255,255,.9);border-radius:6px;padding:4px 9px;font-size:10px;font-weight:500;font-family:'DM Mono',monospace;box-shadow:var(--shadow);border:0.5px solid var(--bd)}
+@media(min-width:768px){.map-coords{bottom:10px}}
+.draw-hint{position:absolute;top:58px;left:50%;transform:translateX(-50%);z-index:1000;background:var(--g);color:#fff;border-radius:var(--r8);padding:7px 14px;font-size:12px;font-weight:600;display:none;box-shadow:var(--shadow-md);white-space:nowrap}
+.map-fab-wrap{position:absolute;bottom:10px;left:0;right:0;z-index:1000;display:flex;gap:8px;padding:0 12px}
+@media(min-width:768px){.map-fab-wrap{left:10px;right:auto;width:auto}}
+.map-fab{flex:1;height:var(--touch);border-radius:var(--r12);border:none;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:var(--shadow-md);transition:all .15s}
+@media(min-width:768px){.map-fab{flex:none;padding:0 18px}}
+.fab-primary{background:var(--g);color:#fff}
+.fab-primary:active{background:#0a5040}
+.fab-cancel{background:var(--r);color:#fff;max-width:110px}
+.fab-locate{position:absolute;bottom:70px;right:10px;z-index:1000;width:44px;height:44px;border-radius:var(--r8);border:none;background:rgba(255,255,255,.94);box-shadow:var(--shadow-md);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+@media(min-width:768px){.fab-locate{bottom:10px;right:10px}}
+
+/* Desktop center content */
+.desk-content{flex:1;overflow-y:auto;padding:14px}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stat-card{background:var(--s2);border-radius:var(--r8);padding:10px 12px;border:1px solid var(--bd)}
+.stat-val{font-size:22px;font-weight:600;font-family:'DM Mono',monospace;margin-top:3px}
+.stat-lbl{font-size:10px;color:var(--t3);font-weight:500}
+.card{border:1px solid var(--bd);border-radius:var(--r12);padding:12px 14px;margin-bottom:10px;background:var(--s)}
+.card-title{font-weight:600;font-size:12px;margin-bottom:8px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;color:var(--t2)}
+.ch-wrap{position:relative;height:130px;margin-bottom:6px}
+.stac-item{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bd);font-size:11px}
+.stac-item:last-child{border:none}
+
+/* ── RIGHT COLUMN ── */
+.rp-weather{padding:12px 14px;border-bottom:1px solid var(--bd);background:var(--bl);flex-shrink:0}
+.w-main{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.w-temp{font-size:26px;font-weight:300;color:var(--b);font-family:'DM Mono',monospace}
+.w-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.wc{background:rgba(20,71,160,.07);border-radius:var(--r8);padding:6px 9px}
+.wc-v{font-size:14px;font-weight:600;color:var(--b);font-family:'DM Mono',monospace}
+.wc-l{font-size:9px;color:var(--t3);margin-top:1px}
+.ai-head{padding:9px 13px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:7px;flex-shrink:0;flex-wrap:wrap}
+.ai-tag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px}
+.msgs{flex:1;overflow-y:auto;padding:9px 12px;display:flex;flex-direction:column;gap:6px;min-height:0}
+.msg{max-width:218px;padding:8px 11px;border-radius:12px;font-size:12px;line-height:1.55}
+.msg.ai{background:var(--s2);border-bottom-left-radius:2px;align-self:flex-start}
+.msg.user{background:var(--gm);color:#fff;border-bottom-right-radius:2px;align-self:flex-end}
+.msg.loading{background:var(--s2);align-self:flex-start}
+.dots span{width:4px;height:4px;border-radius:50%;background:var(--t3);display:inline-block;animation:dot .9s infinite}
+.dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
+@keyframes dot{0%,80%,100%{opacity:.2}40%{opacity:1}}
+.qbtns{padding:7px 10px;border-top:1px solid var(--bd);display:flex;flex-wrap:wrap;gap:4px;flex-shrink:0}
+.qbtn{padding:4px 9px;border-radius:14px;border:1px solid var(--bd);background:var(--s2);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--t2);transition:all .15s}
+.qbtn:hover{background:var(--gl);border-color:var(--gm);color:var(--g)}
+.ai-ir{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--bd);flex-shrink:0}
+.ai-in{flex:1;border:1.5px solid var(--bd);border-radius:var(--r8);padding:6px 10px;font-family:'DM Sans',sans-serif;font-size:12px;background:var(--s);color:var(--t);outline:none}
+.ai-in:focus{border-color:var(--gm)}
+.ai-go{padding:6px 12px;border-radius:var(--r8);border:none;background:var(--gm);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
+.ai-go:disabled{opacity:.4;cursor:default}
+
+/* Policy desktop view */
+.policy-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+
+/* ── MOBILE SCREENS ── */
+.screen{position:absolute;inset:0;overflow:hidden;display:none;flex-direction:column;background:var(--s2)}
 .screen.on{display:flex}
-#map{flex:1;min-height:0}
-.layer-pills{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;gap:6px;background:rgba(255,255,255,.93);border-radius:24px;padding:5px 8px;box-shadow:0 2px 12px rgba(0,0,0,.2);border:1px solid var(--border)}
-.layer-pill{padding:5px 12px;border-radius:18px;border:none;font-family:'Inter',sans-serif;font-size:12px;font-weight:500;cursor:pointer;background:transparent;color:var(--text2);transition:all .15s;white-space:nowrap}
-.layer-pill.on{background:var(--green);color:#fff}
-.map-coords{position:absolute;bottom:80px;right:10px;z-index:1000;background:rgba(255,255,255,.9);border-radius:6px;padding:4px 8px;font-size:10px;font-weight:500;font-family:'JetBrains Mono',monospace;box-shadow:0 1px 4px rgba(0,0,0,.15);border:0.5px solid var(--border)}
-.draw-hint{position:absolute;top:60px;left:50%;transform:translateX(-50%);z-index:1000;background:var(--green);color:#fff;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;display:none;box-shadow:0 2px 10px rgba(0,0,0,.25);white-space:nowrap}
-.map-actions{position:absolute;bottom:10px;left:0;right:0;z-index:1000;display:flex;gap:8px;padding:0 12px}
-.map-fab{flex:1;height:var(--touch);border-radius:var(--radius);border:none;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 3px 12px rgba(0,0,0,.2);transition:all .15s}
-.fab-primary{background:var(--green);color:#fff}
-.fab-primary:active{background:#0a5240}
-.fab-cancel{background:var(--red);color:#fff;max-width:120px}
-.parcels-header{padding:12px 14px 10px;flex-shrink:0;background:var(--surface);border-bottom:1.5px solid var(--border)}
-.parcels-title{font-size:16px;font-weight:700;margin-bottom:8px}
+@media(min-width:768px){.screen{display:none !important}}
+
+.parcels-head{padding:12px 14px 10px;flex-shrink:0;background:var(--s);border-bottom:1.5px solid var(--bd2)}
+.parcels-title{font-size:17px;font-weight:700;margin-bottom:9px}
 .lpis-row{display:flex;gap:8px}
-.lpis-input{flex:1;height:var(--touch);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:0 12px;font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--surface);color:var(--text);outline:none}
-.lpis-input:focus{border-color:var(--green-mid)}
-.lpis-load{height:var(--touch);padding:0 14px;border-radius:var(--radius-sm);border:none;background:var(--blue);color:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer}
-.parcels-list{flex:1;overflow-y:auto;padding:10px 12px}
-.parcel-card{background:var(--surface);border-radius:var(--radius);border:1.5px solid var(--border);margin-bottom:10px;overflow:hidden;cursor:pointer;transition:border-color .15s;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.parcel-card.on{border-color:var(--green-mid);box-shadow:0 2px 8px rgba(29,158,117,.15)}
+.lpis-in{flex:1;height:var(--touch);border:1.5px solid var(--bd2);border-radius:var(--r8);padding:0 12px;font-family:'DM Mono',monospace;font-size:13px;background:var(--s);color:var(--t);outline:none}
+.lpis-in:focus{border-color:var(--gm)}
+.lpis-load{height:var(--touch);padding:0 14px;border-radius:var(--r8);border:none;background:var(--b);color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer}
+.parcels-scroll{flex:1;overflow-y:auto;padding:10px 12px}
+
+.parcel-card{background:var(--s);border-radius:var(--r12);border:1.5px solid var(--bd);margin-bottom:10px;overflow:hidden;cursor:pointer;transition:border-color .15s;box-shadow:var(--shadow)}
+.parcel-card.on{border-color:var(--gm);box-shadow:0 2px 8px rgba(29,158,117,.15)}
 .pc-top{padding:12px 14px 10px;display:flex;align-items:flex-start;gap:10px}
-.pc-icon{width:42px;height:42px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
-.pc-name{font-size:14px;font-weight:700;color:var(--text)}
-.pc-meta{font-size:12px;color:var(--text2);margin-top:2px}
-.pc-del{margin-left:auto;width:32px;height:32px;border-radius:6px;border:none;background:transparent;color:var(--text3);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.pc-del:active{background:var(--red-light);color:var(--red)}
+.pc-icon{width:42px;height:42px;border-radius:var(--r8);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.pc-name{font-size:14px;font-weight:700}
+.pc-meta{font-size:11px;color:var(--t3);margin-top:2px;font-family:'DM Mono',monospace}
+.pc-del{margin-left:auto;width:32px;height:32px;border-radius:6px;border:none;background:transparent;color:var(--t3);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pc-del:active{background:var(--rl);color:var(--r)}
 .pc-badges{padding:0 14px 10px;display:flex;gap:5px;flex-wrap:wrap}
 .badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:12px;display:inline-block}
-.bg-green{background:var(--green-light);color:var(--green)}
-.bg-amber{background:var(--amber-light);color:var(--amber)}
-.bg-red{background:var(--red-light);color:var(--red)}
-.bg-blue{background:var(--blue-light);color:var(--blue)}
-.bg-purple{background:var(--purple-light);color:var(--purple)}
-.bg-gray{background:var(--surface2);color:var(--text2)}
-.empty-state{text-align:center;padding:40px 20px;color:var(--text3);font-size:14px;line-height:1.8}
-.empty-icon{font-size:48px;margin-bottom:12px}
-.analysis-header{padding:12px 14px 10px;flex-shrink:0;background:var(--surface);border-bottom:1.5px solid var(--border)}
+.bg-green{background:var(--gl);color:var(--g)}
+.bg-amber{background:var(--al);color:var(--a)}
+.bg-red{background:var(--rl);color:var(--r)}
+.bg-blue{background:var(--bl);color:var(--b)}
+.bg-purple{background:var(--pl);color:var(--p)}
+.bg-gray{background:var(--s3);color:var(--t2)}
+
+.an-head{padding:12px 14px 10px;flex-shrink:0;background:var(--s);border-bottom:1.5px solid var(--bd2)}
 .an-name{font-size:16px;font-weight:700}
-.an-meta{font-size:12px;color:var(--text2);margin-top:2px}
+.an-meta{font-size:12px;color:var(--t3);margin-top:2px;font-family:'DM Mono',monospace}
 .an-scroll{flex:1;overflow-y:auto;padding:12px}
-.sec-card{background:var(--surface);border-radius:var(--radius);border:1.5px solid var(--border);margin-bottom:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.sec-head{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
-.sec-title{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;flex:1}
+.sec-card{background:var(--s);border-radius:var(--r12);border:1.5px solid var(--bd);margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow)}
+.sec-head{padding:10px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px}
+.sec-title{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;flex:1}
 .sec-body{padding:12px 14px}
 .cls-result{display:flex;align-items:center;gap:12px;margin-bottom:8px}
-.cls-name{font-size:22px;font-weight:700;color:var(--text)}
-.cls-reason{font-size:13px;color:var(--text2);line-height:1.6}
-.cls-hint{margin-top:8px;padding:8px 12px;background:var(--blue-light);border-radius:var(--radius-sm);font-size:12px;color:var(--blue);font-weight:500}
-.cls-series{font-size:11px;color:var(--text3);margin-top:8px}
-.ec-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.cls-name{font-size:22px;font-weight:700}
+.cls-reason{font-size:13px;color:var(--t2);line-height:1.6}
+.cls-hint{margin-top:8px;padding:8px 12px;background:var(--bl);border-radius:var(--r8);font-size:12px;color:var(--b);font-weight:500}
+.cls-series{font-size:11px;color:var(--t3);margin-top:8px}
+.ec-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd)}
 .ec-row:last-child{border:none}
-.ec-yr{font-size:12px;font-weight:700;color:var(--text3);width:36px;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+.ec-yr{font-size:12px;font-weight:700;color:var(--t3);width:36px;flex-shrink:0;font-family:'DM Mono',monospace}
 .ec-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .ec-crop{font-size:14px;font-weight:500;flex:1}
-.ec-tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:8px;background:var(--amber-light);color:var(--amber)}
-.pred-box{background:var(--green-pale);border:1.5px solid var(--green-mid);border-radius:var(--radius);padding:12px 14px;margin-bottom:12px}
-.pred-lbl{font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.pred-txt{font-size:14px;line-height:1.65;color:var(--text)}
+.ec-tag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;background:var(--al);color:var(--a)}
+.pred-box{background:var(--gp);border:1.5px solid var(--gm);border-radius:var(--r12);padding:12px 14px;margin-bottom:12px}
+.pred-lbl{font-size:11px;font-weight:700;color:var(--g);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pred-txt{font-size:14px;line-height:1.65}
 .meteo-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.meteo-cell{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px}
-.meteo-val{font-size:20px;font-weight:700;color:var(--text);font-family:'JetBrains Mono',monospace}
-.meteo-lbl{font-size:11px;color:var(--text3);margin-top:2px}
-.chat-wrap{background:var(--surface);border-radius:var(--radius);border:1.5px solid var(--border);overflow:hidden;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.chat-quick{padding:8px 10px;border-bottom:1px solid var(--border);display:flex;gap:5px;flex-wrap:wrap;background:var(--surface2)}
-.qbtn{padding:6px 11px;border-radius:16px;border:1.5px solid var(--border);background:var(--surface);font-family:'Inter',sans-serif;font-size:12px;font-weight:500;cursor:pointer;color:var(--text2);transition:all .15s}
-.qbtn:active{background:var(--green-light);border-color:var(--green-mid);color:var(--green)}
-.msgs{height:180px;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:7px}
-.msg{max-width:85%;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.55}
-.msg.ai{background:var(--surface2);border-bottom-left-radius:3px;align-self:flex-start;color:var(--text)}
-.msg.user{background:var(--green-mid);color:#fff;border-bottom-right-radius:3px;align-self:flex-end}
-.msg.loading{background:var(--surface2);align-self:flex-start}
-.dots span{width:5px;height:5px;border-radius:50%;background:var(--text3);display:inline-block;animation:dot .9s infinite}
-.dots span:nth-child(2){animation-delay:.15s}
-.dots span:nth-child(3){animation-delay:.3s}
-@keyframes dot{0%,80%,100%{opacity:.2}40%{opacity:1}}
-.chat-ir{display:flex;gap:8px;padding:10px;border-top:1px solid var(--border)}
-.chat-in{flex:1;height:var(--touch);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:0 12px;font-family:'Inter',sans-serif;font-size:14px;background:var(--surface);color:var(--text);outline:none}
-.chat-in:focus{border-color:var(--green-mid)}
-.chat-go{width:var(--touch);height:var(--touch);border-radius:var(--radius-sm);border:none;background:var(--green-mid);color:#fff;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-.chat-go:disabled{opacity:.4}
+.meteo-cell{background:var(--s2);border-radius:var(--r8);padding:10px 12px}
+.meteo-val{font-size:20px;font-weight:700;font-family:'DM Mono',monospace}
+.meteo-lbl{font-size:11px;color:var(--t3);margin-top:2px}
+.chat-wrap{background:var(--s);border-radius:var(--r12);border:1.5px solid var(--bd);overflow:hidden;margin-bottom:12px;box-shadow:var(--shadow)}
+.chat-quick{padding:8px 10px;border-bottom:1px solid var(--bd);display:flex;gap:5px;flex-wrap:wrap;background:var(--s2)}
+.m-qbtn{padding:6px 11px;border-radius:16px;border:1.5px solid var(--bd);background:var(--s);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;color:var(--t2)}
+.m-qbtn:active{background:var(--gl);border-color:var(--gm);color:var(--g)}
+.m-msgs{height:180px;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+.m-msg{max-width:85%;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.55}
+.m-msg.ai{background:var(--s2);border-bottom-left-radius:3px;align-self:flex-start}
+.m-msg.user{background:var(--gm);color:#fff;border-bottom-right-radius:3px;align-self:flex-end}
+.m-msg.loading{background:var(--s2);align-self:flex-start}
+.m-ir{display:flex;gap:8px;padding:10px;border-top:1px solid var(--bd)}
+.m-in{flex:1;height:var(--touch);border:1.5px solid var(--bd2);border-radius:var(--r8);padding:0 12px;font-family:'DM Sans',sans-serif;font-size:14px;background:var(--s);color:var(--t);outline:none}
+.m-in:focus{border-color:var(--gm)}
+.m-go{width:var(--touch);height:var(--touch);border-radius:var(--r8);border:none;background:var(--gm);color:#fff;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.m-go:disabled{opacity:.4}
+
 .settings-scroll{flex:1;overflow-y:auto;padding:12px}
 .settings-sec{margin-bottom:20px}
-.settings-sec-title{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:0 4px;margin-bottom:8px}
-.settings-card{background:var(--surface);border-radius:var(--radius);border:1.5px solid var(--border);overflow:hidden}
-.settings-row{display:flex;align-items:center;gap:12px;padding:14px;border-bottom:1px solid var(--border)}
+.settings-sec-title{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;padding:0 4px;margin-bottom:8px}
+.settings-card{background:var(--s);border-radius:var(--r12);border:1.5px solid var(--bd);overflow:hidden}
+.settings-row{display:flex;align-items:center;gap:12px;padding:14px;border-bottom:1px solid var(--bd)}
 .settings-row:last-child{border:none}
 .s-icon{font-size:20px;flex-shrink:0}
 .s-label{flex:1;font-size:14px;font-weight:500}
-.s-value{font-size:13px;color:var(--text3)}
+.s-value{font-size:13px;color:var(--t3)}
 .st-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .st-live{background:#16a34a;animation:blink 2s infinite}
 .st-warn{background:#d97706}
+
+/* ── Bottom Nav ── */
+.bottomnav{display:flex;height:calc(60px + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);flex-shrink:0;background:var(--s);border-top:1.5px solid var(--bd2);box-shadow:0 -2px 12px rgba(0,0,0,.08);z-index:100}
+.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:transparent;color:var(--t3);font-family:'DM Sans',sans-serif;font-size:10px;font-weight:500;cursor:pointer;padding:6px 4px}
+.bnav-btn .icon{font-size:22px;line-height:1}
+.bnav-btn.on{color:var(--g)}
+.bnav-ind{width:22px;height:3px;border-radius:2px;margin-top:2px}
+.bnav-btn.on .bnav-ind{background:var(--g)}
+
+/* ── Modal ── */
 .modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:none;align-items:flex-end;justify-content:center}
 .modal-ov.show{display:flex}
-.modal{background:var(--surface);border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:480px;box-shadow:0 -4px 30px rgba(0,0,0,.2)}
-.modal-handle{width:36px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 16px}
+.modal{background:var(--s);border-radius:18px 18px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;box-shadow:0 -4px 30px rgba(0,0,0,.2)}
+.modal-handle{width:36px;height:4px;border-radius:2px;background:var(--bd2);margin:0 auto 16px}
 .modal-title{font-size:18px;font-weight:700;margin-bottom:16px}
 .mf{margin-bottom:14px}
-.ml{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
-.mi{width:100%;height:var(--touch);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:0 12px;font-family:'Inter',sans-serif;font-size:15px;background:var(--surface);color:var(--text);outline:none}
-.mi:focus{border-color:var(--green-mid)}
+.ml{font-size:11px;font-weight:700;color:var(--t2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.mi{width:100%;height:var(--touch);border:1.5px solid var(--bd2);border-radius:var(--r8);padding:0 12px;font-family:'DM Sans',sans-serif;font-size:15px;background:var(--s);color:var(--t);outline:none}
+.mi:focus{border-color:var(--gm)}
 .mbtns{display:flex;gap:10px;margin-top:18px}
-.mok{flex:1;height:var(--touch);border-radius:var(--radius);border:none;background:var(--green);color:#fff;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;cursor:pointer}
-.mcancel{height:var(--touch);padding:0 18px;border-radius:var(--radius);border:1.5px solid var(--border);background:var(--surface);font-family:'Inter',sans-serif;font-size:15px;cursor:pointer;color:var(--text)}
-.loading-card{padding:20px;text-align:center;color:var(--text3);font-size:13px}
+.mok{flex:1;height:var(--touch);border-radius:var(--r12);border:none;background:var(--g);color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer}
+.mcancel{height:var(--touch);padding:0 18px;border-radius:var(--r12);border:1.5px solid var(--bd2);background:var(--s2);font-family:'DM Sans',sans-serif;font-size:15px;cursor:pointer;color:var(--t)}
+.empty-state{text-align:center;padding:40px 20px;color:var(--t3);font-size:14px;line-height:1.8}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.loading-card{padding:20px;text-align:center;color:var(--t3);font-size:13px}
+
+/* ── Utils ── */
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--green-mid);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--bd2);border-top-color:var(--gm);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
 </style>
 </head>
 <body>
 <div class="app">
 
+<!-- ── TOPBAR ── -->
 <div class="topbar">
-  <div class="topbar-logo">AgroDecide <span>EU Pilot</span></div>
-  <div class="topbar-actions">
-    <button class="topbar-btn" onclick="startDraw()" title="Рисувай парцел">✏️</button>
+  <div class="t-logo">AgroDecide<sup>EU Pilot</sup></div>
+  <div class="t-live"><span class="dot"></span>LIVE</div>
+
+  <!-- Desktop tabs -->
+  <div class="t-tabs">
+    <button class="t-tab on" onclick="deskTab('farmer',this)">🌾 Фермер</button>
+    <button class="t-tab" onclick="deskTab('policy',this)">📊 Политик</button>
+    <button class="t-tab" onclick="deskTab('debug',this)">🔧 Debug</button>
+  </div>
+
+  <!-- Desktop status pills -->
+  <div class="t-pills">
+    <span class="pill p-warn" id="pl-backend"><span class="dot"></span>Backend</span>
+    <span class="pill p-warn" id="pl-cop"><span class="dot"></span>Copernicus</span>
+    <span class="pill p-warn" id="pl-meteo"><span class="dot"></span>OpenMeteo</span>
+    <span class="pill p-warn" id="pl-ai"><span class="dot"></span>Groq</span>
+  </div>
+
+  <!-- Mobile actions -->
+  <div class="t-actions">
+    <button class="t-btn" onclick="startDraw()">✏️</button>
   </div>
 </div>
 
+<!-- ── MAIN ── -->
 <div class="main">
 
-  <!-- MAP -->
-  <div class="screen on" id="screen-map">
-    <div id="map"></div>
-    <div class="layer-pills">
-      <button class="layer-pill on" onclick="setLayer('sentinel',this)">🛰 Satellite</button>
-      <button class="layer-pill" onclick="setLayer('ndvi',this)">🌿 NDVI</button>
-      <button class="layer-pill" onclick="setLayer('carto',this)">🗺 Карта</button>
-    </div>
-    <div class="map-coords" id="ml-coords">—</div>
-    <div class="draw-hint" id="draw-hint">✏️ Кликни за точки · Двоен клик за край</div>
-    <button id="btn-locate" onclick="locateMe()" style="position:absolute;bottom:70px;right:10px;z-index:1000;width:44px;height:44px;border-radius:10px;border:none;background:rgba(255,255,255,.95);box-shadow:0 2px 8px rgba(0,0,0,.2);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">📍</button>
-    <div class="map-actions">
-      <button class="map-fab fab-primary" id="fab-draw" onclick="startDraw()"><span>✏️</span> Рисувай парцел</button>
-      <button class="map-fab fab-cancel" id="fab-cancel" onclick="cancelDraw()" style="display:none">✕ Отказ</button>
-    </div>
-  </div>
-
-  <!-- PARCELS -->
-  <div class="screen" id="screen-parcels">
-    <div class="parcels-header">
-      <div class="parcels-title">Моите парцели</div>
-      <div class="lpis-row">
-        <input class="lpis-input" id="lpis-in" placeholder="LPIS номер напр. BG-12-3456">
-        <button class="lpis-load" onclick="loadLPIS()">Зареди</button>
+  <!-- ══ LEFT COLUMN (desktop) ══ -->
+  <div class="col-left">
+    <div class="col-left-head">
+      <div class="sbl">Парцели <span class="spin" id="spin-left" style="display:none"></span></div>
+      <div id="sb-parcel-list">
+        <div style="font-size:11px;color:var(--t3)">Зарежда...</div>
       </div>
     </div>
-    <div class="parcels-list" id="parcel-list">
-      <div class="empty-state"><div class="empty-icon">🌾</div>Все още няма парцели.<br>Отвори картата и нарисувай своята земя.</div>
+    <div class="col-left-scroll">
+      <div class="sbl">Индикатори</div>
+      <div class="irow"><span class="ilbl">NDVI</span><div class="ibar"><div class="ifill" id="bi-ndvi" style="width:0%;background:var(--gm)"></div></div><span class="ival" id="vi-ndvi">—</span></div>
+      <div class="irow"><span class="ilbl">Влажност</span><div class="ibar"><div class="ifill" id="bi-hum" style="width:0%;background:var(--b)"></div></div><span class="ival" id="vi-hum">—</span></div>
+      <div class="irow"><span class="ilbl">ET₀ мм/д</span><div class="ibar"><div class="ifill" id="bi-et" style="width:0%;background:var(--a)"></div></div><span class="ival" id="vi-et">—</span></div>
+      <div class="irow"><span class="ilbl">Суша</span><div class="ibar"><div class="ifill" id="bi-spi" style="width:0%;background:var(--r)"></div></div><span class="ival" id="vi-spi">—</span></div>
+
+      <div class="sbl" style="margin-top:14px">API Статус</div>
+      <div class="api-row"><div><div class="api-name">Backend</div><div class="api-sub">onrender.com · EU</div></div><span class="api-badge" id="ss-be" style="background:var(--al);color:var(--a)">Зарежда</span></div>
+      <div class="api-row"><div><div class="api-name">Copernicus</div><div class="api-sub">Sentinel-2 L2A</div></div><span class="api-badge" id="ss-cop" style="background:var(--al);color:var(--a)">Зарежда</span></div>
+      <div class="api-row"><div><div class="api-name">OpenMeteo</div><div class="api-sub">ET₀ · Прогноза</div></div><span class="api-badge" id="ss-meteo" style="background:var(--al);color:var(--a)">Зарежда</span></div>
+      <div class="api-row"><div><div class="api-name">Groq LLaMA 3.3</div><div class="api-sub">AI агроном</div></div><span class="api-badge" id="ss-ai" style="background:var(--al);color:var(--a)">Зарежда</span></div>
+      <div class="api-row"><div><div class="api-name">EuroCrops</div><div class="api-sub">Supabase PostGIS</div></div><span class="api-badge" style="background:var(--gl);color:var(--g)">791k точки</span></div>
     </div>
   </div>
 
-  <!-- ANALYSIS -->
-  <div class="screen" id="screen-analysis">
-    <div class="analysis-header">
-      <div class="an-name" id="an-name">Избери парцел</div>
-      <div class="an-meta" id="an-meta">—</div>
+  <!-- ══ CENTER COLUMN ══ -->
+  <div class="col-center">
+
+    <!-- Desktop center tabs -->
+    <div class="c-tabs" style="display:none" id="c-tabs-bar">
+      <button class="c-tab on" onclick="centerTab('map',this)">🗺 Карта</button>
+      <button class="c-tab" onclick="centerTab('overview',this)">📈 Преглед</button>
+      <button class="c-tab" onclick="centerTab('stac',this)">🛰 STAC</button>
+      <button class="c-tab" onclick="centerTab('meteo',this)">🌤 Метео</button>
+      <button class="c-tab" onclick="centerTab('ndvi',this)">🌿 NDVI</button>
     </div>
-    <div class="an-scroll">
-      <div id="an-empty" class="empty-state" style="padding-top:60px"><div class="empty-icon">📊</div>Избери парцел от списъка<br>за да видиш анализа.</div>
-      <div id="an-content" style="display:none">
 
-        <div class="sec-card">
-          <div class="sec-head"><span>🛰</span><span class="sec-title">NDVI Класификация · Sentinel-2</span><span class="spin" id="ndvi-cls-spin" style="display:none"></span></div>
-          <div class="sec-body" id="ndvi-cls-body"><div class="loading-card"><span class="spin"></span> Зарежда...</div></div>
+    <!-- MAP (always present) -->
+    <div id="screen-map" class="screen on" style="position:relative">
+      <div id="map"></div>
+      <div class="layer-pills">
+        <button class="layer-pill on" onclick="setLayer('sentinel',this)">🛰 Satellite</button>
+        <button class="layer-pill" onclick="setLayer('ndvi',this)">🌿 NDVI</button>
+        <button class="layer-pill" onclick="setLayer('carto',this)">🗺 Карта</button>
+      </div>
+      <div class="map-coords" id="ml-coords">—</div>
+      <div class="draw-hint" id="draw-hint">✏️ Кликни за точки · Двоен клик за край</div>
+      <button class="fab-locate" id="btn-locate" onclick="locateMe()" title="Моята позиция">📍</button>
+      <div class="map-fab-wrap">
+        <button class="map-fab fab-primary" id="fab-draw" onclick="startDraw()"><span>✏️</span> Рисувай парцел</button>
+        <button class="map-fab fab-cancel" id="fab-cancel" onclick="cancelDraw()" style="display:none">✕ Отказ</button>
+      </div>
+    </div>
+
+    <!-- Desktop: Overview tab -->
+    <div class="desk-view" id="dv-overview" style="overflow-y:auto;padding:14px">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-lbl">NDVI</div><div class="stat-val" id="ov-ndvi" style="color:var(--gm)">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">Температура</div><div class="stat-val" id="ov-temp" style="color:var(--a)">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">ET₀ мм/д</div><div class="stat-val" id="ov-et" style="color:var(--b)">—</div></div>
+      </div>
+      <!-- NDVI Classification card -->
+      <div class="card">
+        <div class="card-title">🛰 NDVI Класификация · Sentinel-2 <span class="spin" id="d-ndvi-cls-spin" style="display:none"></span></div>
+        <div id="d-ndvi-cls-body"><div style="font-size:11px;color:var(--t3)">Избери парцел...</div></div>
+      </div>
+      <!-- EuroCrops -->
+      <div class="card">
+        <div class="card-title">📅 EuroCrops · Сеитбообращение <span class="spin" id="d-ec-spin" style="display:none"></span></div>
+        <div id="d-ec-content"><div style="font-size:11px;color:var(--t3)">Избери парцел...</div></div>
+      </div>
+      <!-- Forecast chart -->
+      <div class="card">
+        <div class="card-title">OpenMeteo — 14-дневна прогноза <span class="badge" id="meteo-badge" style="background:var(--al);color:var(--a)">Зарежда...</span></div>
+        <div class="ch-wrap"><canvas id="c-forecast"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Desktop: STAC tab -->
+    <div class="desk-view" id="dv-stac" style="overflow-y:auto;padding:14px">
+      <div class="card">
+        <div class="card-title">Copernicus Data Space · Sentinel-2 L2A <span class="badge" id="stac-badge" style="background:var(--al);color:var(--a)">Зарежда...</span></div>
+        <div id="stac-list" style="font-size:11px;color:var(--t3)">Избери парцел...</div>
+      </div>
+    </div>
+
+    <!-- Desktop: Meteo tab -->
+    <div class="desk-view" id="dv-meteo" style="overflow-y:auto;padding:14px">
+      <div class="card"><div class="card-title">Температура Макс/Мин — 14 дни</div><div class="ch-wrap"><canvas id="c-temp14"></canvas></div></div>
+      <div class="card"><div class="card-title">ET₀ Евапотранспирация — 14 дни</div><div class="ch-wrap"><canvas id="c-et14"></canvas></div></div>
+      <div class="card"><div class="card-title">Воден баланс мм</div><div class="ch-wrap"><canvas id="c-wb"></canvas></div></div>
+    </div>
+
+    <!-- Desktop: NDVI tab -->
+    <div class="desk-view" id="dv-ndvi" style="overflow-y:auto;padding:14px">
+      <div class="card">
+        <div class="card-title">NDVI история — 90 дни</div>
+        <div class="ch-wrap"><canvas id="c-ndvi90"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Mobile screens -->
+    <div class="screen" id="screen-parcels" style="top:0">
+      <div class="parcels-head">
+        <div class="parcels-title">Моите парцели</div>
+        <div class="lpis-row">
+          <input class="lpis-in" id="lpis-in" placeholder="LPIS номер напр. BG-12-3456">
+          <button class="lpis-load" onclick="loadLPIS()">Зареди</button>
         </div>
+      </div>
+      <div class="parcels-scroll" id="parcel-list">
+        <div class="empty-state"><div class="empty-icon">🌾</div>Все още няма парцели.<br>Отвори картата и нарисувай своята земя.</div>
+      </div>
+    </div>
 
-        <div class="pred-box">
-          <div class="pred-lbl">🤖 AI Предикция 2026 <span class="badge bg-purple" style="font-size:10px">Groq LLaMA 3.3</span></div>
-          <div class="pred-txt" id="pred-text">Анализирам...</div>
-        </div>
-
-        <div class="sec-card">
-          <div class="sec-head"><span>📅</span><span class="sec-title">EuroCrops · Сеитбообращение 2018–2024</span><span class="spin" id="ec-spin" style="display:none"></span></div>
-          <div class="sec-body"><div id="ec-content"><div class="loading-card"><span class="spin"></span></div></div></div>
-        </div>
-
-        <div class="sec-card">
-          <div class="sec-head"><span>🌤</span><span class="sec-title">Live Метео · OpenMeteo</span></div>
-          <div class="sec-body">
-            <div class="meteo-grid">
-              <div class="meteo-cell"><div class="meteo-val" id="m-temp">—</div><div class="meteo-lbl">Температура</div></div>
-              <div class="meteo-cell"><div class="meteo-val" id="m-hum">—</div><div class="meteo-lbl">Влажност</div></div>
-              <div class="meteo-cell"><div class="meteo-val" id="m-et">—</div><div class="meteo-lbl">ET₀ мм/д</div></div>
-              <div class="meteo-cell"><div class="meteo-val" id="m-rain">—</div><div class="meteo-lbl">Валежи 7д</div></div>
+    <div class="screen" id="screen-analysis" style="top:0">
+      <div class="an-head">
+        <div class="an-name" id="an-name">Избери парцел</div>
+        <div class="an-meta" id="an-meta">—</div>
+      </div>
+      <div class="an-scroll">
+        <div id="an-empty" class="empty-state" style="padding-top:60px"><div class="empty-icon">📊</div>Избери парцел от списъка<br>за да видиш анализа.</div>
+        <div id="an-content" style="display:none">
+          <div class="sec-card">
+            <div class="sec-head"><span>🛰</span><span class="sec-title">NDVI Класификация</span><span class="spin" id="ndvi-cls-spin" style="display:none"></span></div>
+            <div class="sec-body" id="ndvi-cls-body"><div class="loading-card"><span class="spin"></span></div></div>
+          </div>
+          <div class="pred-box">
+            <div class="pred-lbl">🤖 AI Предикция 2026 <span class="badge bg-purple" style="font-size:10px">Groq LLaMA 3.3</span></div>
+            <div class="pred-txt" id="pred-text">Анализирам...</div>
+          </div>
+          <div class="sec-card">
+            <div class="sec-head"><span>📅</span><span class="sec-title">EuroCrops · Сеитбообращение</span><span class="spin" id="ec-spin" style="display:none"></span></div>
+            <div class="sec-body"><div id="ec-content"><div class="loading-card"><span class="spin"></span></div></div></div>
+          </div>
+          <div class="sec-card">
+            <div class="sec-head"><span>🌤</span><span class="sec-title">Live Метео · OpenMeteo</span></div>
+            <div class="sec-body">
+              <div class="meteo-grid">
+                <div class="meteo-cell"><div class="meteo-val" id="m-temp">—</div><div class="meteo-lbl">Температура</div></div>
+                <div class="meteo-cell"><div class="meteo-val" id="m-hum">—</div><div class="meteo-lbl">Влажност</div></div>
+                <div class="meteo-cell"><div class="meteo-val" id="m-et">—</div><div class="meteo-lbl">ET₀ мм/д</div></div>
+                <div class="meteo-cell"><div class="meteo-val" id="m-rain">—</div><div class="meteo-lbl">Валежи 7д</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="chat-wrap">
+            <div class="chat-quick">
+              <button class="m-qbtn" onclick="qa('Какво да сея следващата година?')">🌱 Сеитба</button>
+              <button class="m-qbtn" onclick="qa('Предвиди добива')">📊 Добив</button>
+              <button class="m-qbtn" onclick="qa('Риск от болести?')">🔬 Болести</button>
+              <button class="m-qbtn" onclick="qa('Оптимално торене?')">💊 Торене</button>
+            </div>
+            <div class="m-msgs" id="m-chat"></div>
+            <div class="m-ir">
+              <input class="m-in" id="m-ai-in" placeholder="Въпрос към AI агронома..." onkeydown="if(event.key==='Enter')mSend()">
+              <button class="m-go" id="m-ai-go" onclick="mSend()">→</button>
             </div>
           </div>
         </div>
+      </div>
+    </div>
 
-        <div class="chat-wrap">
-          <div class="chat-quick">
-            <button class="qbtn" onclick="qa('Какво да сея следващата година?')">🌱 Сеитба</button>
-            <button class="qbtn" onclick="qa('Предвиди добива за тази година')">📊 Добив</button>
-            <button class="qbtn" onclick="qa('Риск от болести?')">🔬 Болести</button>
-            <button class="qbtn" onclick="qa('Оптимално торене?')">💊 Торене</button>
-          </div>
-          <div class="msgs" id="chat"></div>
-          <div class="chat-ir">
-            <input class="chat-in" id="ai-in" placeholder="Въпрос към AI агронома..." onkeydown="if(event.key==='Enter')send()">
-            <button class="chat-go" id="ai-go" onclick="send()">→</button>
+    <div class="screen" id="screen-settings" style="top:0">
+      <div class="settings-scroll">
+        <div class="settings-sec">
+          <div class="settings-sec-title">API Статус</div>
+          <div class="settings-card">
+            <div class="settings-row"><span class="s-icon">🛰</span><span class="s-label">Copernicus Sentinel-2</span><div class="st-dot st-live"></div><span class="s-value">Live</span></div>
+            <div class="settings-row"><span class="s-icon">🌤</span><span class="s-label">OpenMeteo</span><div class="st-dot st-live"></div><span class="s-value">Live</span></div>
+            <div class="settings-row"><span class="s-icon">🤖</span><span class="s-label">Groq LLaMA 3.3</span><div class="st-dot st-live"></div><span class="s-value">Live</span></div>
+            <div class="settings-row"><span class="s-icon">🗄</span><span class="s-label">EuroCrops PostGIS</span><div class="st-dot st-live"></div><span class="s-value">791k точки · 16 EU</span></div>
+            <div class="settings-row"><span class="s-icon">⚡</span><span class="s-label">Backend</span><div class="st-dot st-live" id="m-st-be"></div><span class="s-value" id="m-stv-be">Render EU</span></div>
           </div>
         </div>
+        <div class="settings-sec">
+          <div class="settings-sec-title">За приложението</div>
+          <div class="settings-card">
+            <div class="settings-row"><span class="s-icon">🌍</span><span class="s-label">Покритие</span><span class="s-value">16 EU държави</span></div>
+            <div class="settings-row"><span class="s-icon">📡</span><span class="s-label">Данни</span><span class="s-value">Copernicus · EuroCrops v11</span></div>
+            <div class="settings-row"><span class="s-icon">📦</span><span class="s-label">Версия</span><span class="s-value">Фаза 3 · EU Pilot</span></div>
+          </div>
+        </div>
+        <div class="settings-sec">
+          <div class="settings-sec-title">Данни</div>
+          <div class="settings-card">
+            <div class="settings-row" onclick="clearParcels()" style="cursor:pointer"><span class="s-icon">🗑</span><span class="s-label" style="color:var(--r)">Изчисти всички парцели</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
+  </div><!-- col-center -->
+
+  <!-- ══ RIGHT COLUMN (desktop) ══ -->
+  <div class="col-right">
+    <!-- Policy view (desktop) -->
+    <div id="dv-policy" style="display:none;flex:1;overflow-y:auto;padding:14px">
+      <div class="policy-grid">
+        <div class="stat-card"><div class="stat-lbl">Регион NDVI</div><div class="stat-val" id="p-ndvi" style="color:var(--gm)">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">Температура</div><div class="stat-val" id="p-temp" style="color:var(--a)">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">ET₀ мм/д</div><div class="stat-val" id="p-et" style="color:var(--b)">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">Валежи 7д</div><div class="stat-val" id="p-rain" style="color:var(--b)">—</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">NDVI по общини — Добрич</div>
+        <div id="p-rbars"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Климатичен тренд ERA5</div>
+        <div class="ch-wrap"><canvas id="p-climate"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Debug view (desktop) -->
+    <div id="dv-debug" style="display:none;flex:1;overflow-y:auto;padding:14px">
+      <pre id="debug-out" style="background:var(--s2);border-radius:var(--r8);padding:10px;font-size:9px;line-height:1.6;white-space:pre-wrap;font-family:'DM Mono',monospace;border:1px solid var(--bd2)">Зарежда...</pre>
+    </div>
+
+    <!-- Farmer right panel (weather + AI) -->
+    <div id="dv-farmer-right" style="display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0">
+      <div class="rp-weather">
+        <div class="sbl">OpenMeteo · Live</div>
+        <div class="w-main">
+          <div style="font-size:22px" id="w-ico">⛅</div>
+          <div><div class="w-temp" id="w-tmp">—</div><div style="font-size:10px;color:var(--t3)" id="w-dsc">Зарежда...</div></div>
+        </div>
+        <div class="w-grid">
+          <div class="wc"><div class="wc-v" id="w-wnd">—</div><div class="wc-l">Вятър км/ч</div></div>
+          <div class="wc"><div class="wc-v" id="w-hum">—</div><div class="wc-l">Влажност %</div></div>
+          <div class="wc"><div class="wc-v" id="w-et">—</div><div class="wc-l">ET₀ мм/д</div></div>
+          <div class="wc"><div class="wc-v" id="w-rn">—</div><div class="wc-l">Валежи 7д мм</div></div>
+        </div>
+        <div style="font-size:9px;color:var(--t3);margin-top:5px" id="w-upd">—</div>
+      </div>
+      <div class="ai-head">
+        <span style="font-size:12px;font-weight:600">AI Агроном</span>
+        <span class="ai-tag" style="background:var(--pl);color:var(--p)">Groq · LLaMA 3.3</span>
+        <span class="ai-tag" style="background:var(--gl);color:var(--g)" id="ctx-tag">—</span>
+      </div>
+      <div class="msgs" id="d-chat">
+        <div class="msg ai">Избери парцел за анализ...</div>
+      </div>
+      <div class="qbtns">
+        <button class="qbtn" onclick="dqa('Анализирай данните и препоръчай действие за днес')">📡 Анализ</button>
+        <button class="qbtn" onclick="dqa('Риск от суша следващите 10 дни?')">💧 Суша</button>
+        <button class="qbtn" onclick="dqa('Кога е оптимално да торя?')">🌱 Торене</button>
+        <button class="qbtn" onclick="dqa('Прогноза за добив?')">🌾 Добив</button>
+      </div>
+      <div class="ai-ir">
+        <input class="ai-in" id="d-ai-in" placeholder="Въпрос..." onkeydown="if(event.key==='Enter')dSend()">
+        <button class="ai-go" id="d-ai-go" onclick="dSend()">→</button>
       </div>
     </div>
   </div>
 
-  <!-- SETTINGS -->
-  <div class="screen" id="screen-settings">
-    <div class="settings-scroll">
-      <div class="settings-sec">
-        <div class="settings-sec-title">API Статус</div>
-        <div class="settings-card">
-          <div class="settings-row"><span class="s-icon">🛰</span><span class="s-label">Copernicus Sentinel-2</span><div class="st-dot st-live"></div><span class="s-value">Live</span></div>
-          <div class="settings-row"><span class="s-icon">🌤</span><span class="s-label">OpenMeteo</span><div class="st-dot st-live"></div><span class="s-value">Live</span></div>
-          <div class="settings-row"><span class="s-icon">🤖</span><span class="s-label">Groq LLaMA 3.3</span><div class="st-dot st-live"></div><span class="s-value">Live</span></div>
-          <div class="settings-row"><span class="s-icon">⚡</span><span class="s-label">Backend</span><div class="st-dot st-live" id="st-be"></div><span class="s-value" id="stv-be">Render EU</span></div>
-        </div>
-      </div>
-      <div class="settings-sec">
-        <div class="settings-sec-title">За приложението</div>
-        <div class="settings-card">
-          <div class="settings-row"><span class="s-icon">🌍</span><span class="s-label">Покритие</span><span class="s-value">16 EU държави</span></div>
-          <div class="settings-row"><span class="s-icon">📡</span><span class="s-label">Данни</span><span class="s-value">Copernicus · EuroCrops</span></div>
-          <div class="settings-row"><span class="s-icon">🔓</span><span class="s-label">Лиценз</span><span class="s-value">Open Source · MIT</span></div>
-          <div class="settings-row"><span class="s-icon">📦</span><span class="s-label">Версия</span><span class="s-value">Фаза 3 · EU Pilot</span></div>
-          <div class="settings-row"><span class="s-icon">🗄</span><span class="s-label">База данни</span><span class="s-value" id="stv-db">Supabase PostGIS</span></div>
-        </div>
-      </div>
-      <div class="settings-sec">
-        <div class="settings-sec-title">Данни</div>
-        <div class="settings-card">
-          <div class="settings-row" onclick="clearParcels()" style="cursor:pointer"><span class="s-icon">🗑</span><span class="s-label" style="color:var(--red)">Изчисти всички парцели</span></div>
-        </div>
-      </div>
-    </div>
-  </div>
+</div><!-- main -->
 
-</div>
-
+<!-- ── BOTTOM NAV (mobile) ── -->
 <nav class="bottomnav">
   <button class="bnav-btn on" onclick="navSwitch('map',this)"><span class="icon">🗺</span><span>Карта</span><div class="bnav-ind"></div></button>
   <button class="bnav-btn" onclick="navSwitch('parcels',this)"><span class="icon">📋</span><span>Парцели</span><div class="bnav-ind"></div></button>
@@ -290,13 +598,14 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);font-fa
   <button class="bnav-btn" onclick="navSwitch('settings',this)"><span class="icon">⚙️</span><span>Настройки</span><div class="bnav-ind"></div></button>
 </nav>
 
-</div>
+</div><!-- app -->
 
+<!-- Modal -->
 <div class="modal-ov" id="modal">
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">Запази парцела</div>
-    <div class="mf"><div class="ml">Име</div><input class="mi" id="m-name" placeholder="напр. Северно поле А-12"></div>
+    <div class="mf"><div class="ml">Ime</div><input class="mi" id="m-name" placeholder="напр. Северно поле А-12"></div>
     <div class="mf"><div class="ml">Планирана култура <span style="font-weight:400;text-transform:none;opacity:.7">(незадължително)</span></div>
       <select class="mi" id="m-crop" style="cursor:pointer">
         <option value="unknown">🤔 Не знам / Искам съвет</option>
@@ -307,35 +616,45 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);font-fa
         <option>Захарно цвекло</option><option>Люцерна</option><option>Лозе</option>
         <option>Овошки</option><option>Зеленчуци</option><option>Друго</option>
         <option disabled>── Неземеделски ──</option>
-        <option value="forest">🌲 Гора / Дървесна растителност</option>
-        <option value="water">💧 Водоем / Напоителен канал</option>
-        <option value="built">🏗 Застроена площ / Инфраструктура</option>
+        <option value="forest">🌲 Гора</option>
+        <option value="water">💧 Водоем</option>
+        <option value="built">🏗 Застроена площ</option>
         <option value="pasture">🐄 Пасище / Ливада</option>
       </select>
     </div>
-    <div class="mf"><div class="ml">Площ</div><div class="mi" id="m-area" style="display:flex;align-items:center;background:var(--surface2);cursor:default">— ха</div></div>
+    <div class="mf"><div class="ml">Площ</div><div class="mi" id="m-area" style="display:flex;align-items:center;background:var(--s2);cursor:default">— ха</div></div>
     <div class="mbtns"><button class="mcancel" onclick="closeModal(false)">Откажи</button><button class="mok" onclick="closeModal(true)">✓ Запази</button></div>
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 <script>
 const BACKEND='https://agrodecide-backend.onrender.com';
 const WMS_BACKEND=`${BACKEND}/api/wms`;
+
 const CROP_COLORS={'Пшеница':'#D4A800','Слънчоглед':'#E07010','Рапица':'#5A9A30','Царевица':'#E07030','Ечемик':'#A08040','Угар':'#A0A090','Соя':'#408060','Люцерна':'#206040','Друго':'#808080'};
+const CROP_LABELS={unknown:'🤔 Не знам',none:'🌱 Незасято',forest:'🌲 Гора',water:'💧 Водоем',built:'🏗 Застроено',pasture:'🐄 Пасище'};
+const NON_AGRI=['forest','water','built','pasture'];
+
+function translateCrop(eng){
+  if(!eng)return'—';
+  const t={'Common wheat':'Пшеница','Soft wheat':'Пшеница','Winter wheat':'Пшеница','Spring wheat':'Пшеница яра','Durum wheat':'Твърда пшеница','Wheat':'Пшеница','Barley':'Ечемик','Winter barley':'Ечемик зимен','Spring barley':'Ечемик ярен','Maize':'Царевица','Grain maize':'Царевица','Silage maize':'Царевица за силаж','Rye':'Ръж','Oats':'Овес','Triticale':'Тритикале','Rice':'Ориз','Sunflower':'Слънчоглед','Rapeseed':'Рапица','Rape':'Рапица','Winter rapeseed':'Рапица зимна','Soybean':'Соя','Soybeans':'Соя','Sugar beet':'Захарно цвекло','Potatoes':'Картофи','Lucerne':'Люцерна','Alfalfa':'Люцерна','Clover':'Детелина','Field peas':'Грах','Peas':'Грах','Beans':'Боб','Soybean':'Соя','Lentils':'Леща','Vegetables':'Зеленчуци','Fruit':'Овошки','Orchards':'Овошки','Vineyard':'Лозе','Vineyards':'Лозе','Olive':'Маслини','Temporary grassland':'Временна ливада','Permanent grassland':'Постоянна ливада','Grassland':'Ливада','Meadow':'Ливада','Pasture':'Пасище','Fallow':'Угар','Set-aside':'Угар','Arable land':'Обработваема земя','Mixed crops':'Смесени','Forest':'Гора'};
+  if(t[eng])return t[eng];
+  const lower=eng.toLowerCase();
+  for(const[k,v]of Object.entries(t)){if(k.toLowerCase()===lower)return v;}
+  for(const[k,v]of Object.entries(t)){if(lower.includes(k.toLowerCase()))return v;}
+  return eng;
+}
 
 function getEuroCropsHistory(lat,lon){
   const seed=Math.abs(Math.sin(lat*1000)*Math.cos(lon*1000)*10000)%4;
-  const r=[
-    [{y:'2018',c:'Пшеница'},{y:'2019',c:'Слънчоглед'},{y:'2020',c:'Пшеница'},{y:'2021',c:'Рапица'},{y:'2022',c:'Пшеница'},{y:'2023',c:'Слънчоглед'},{y:'2024',c:'Пшеница'}],
-    [{y:'2018',c:'Слънчоглед'},{y:'2019',c:'Пшеница'},{y:'2020',c:'Царевица'},{y:'2021',c:'Пшеница'},{y:'2022',c:'Слънчоглед'},{y:'2023',c:'Рапица'},{y:'2024',c:'Пшеница'}],
-    [{y:'2018',c:'Рапица'},{y:'2019',c:'Пшеница'},{y:'2020',c:'Слънчоглед'},{y:'2021',c:'Пшеница'},{y:'2022',c:'Царевица'},{y:'2023',c:'Пшеница'},{y:'2024',c:'Слънчоглед'}],
-    [{y:'2018',c:'Пшеница'},{y:'2019',c:'Ечемик'},{y:'2020',c:'Слънчоглед'},{y:'2021',c:'Пшеница'},{y:'2022',c:'Рапица'},{y:'2023',c:'Пшеница'},{y:'2024',c:'Царевица'}],
-  ];
+  const r=[[{y:'2018',c:'Пшеница'},{y:'2019',c:'Слънчоглед'},{y:'2020',c:'Пшеница'},{y:'2021',c:'Рапица'},{y:'2022',c:'Пшеница'},{y:'2023',c:'Слънчоглед'},{y:'2024',c:'Пшеница'}],[{y:'2018',c:'Слънчоглед'},{y:'2019',c:'Пшеница'},{y:'2020',c:'Царевица'},{y:'2021',c:'Пшеница'},{y:'2022',c:'Слънчоглед'},{y:'2023',c:'Рапица'},{y:'2024',c:'Пшеница'}],[{y:'2018',c:'Рапица'},{y:'2019',c:'Пшеница'},{y:'2020',c:'Слънчоглед'},{y:'2021',c:'Пшеница'},{y:'2022',c:'Царевица'},{y:'2023',c:'Пшеница'},{y:'2024',c:'Слънчоглед'}],[{y:'2018',c:'Пшеница'},{y:'2019',c:'Ечемик'},{y:'2020',c:'Слънчоглед'},{y:'2021',c:'Пшеница'},{y:'2022',c:'Рапица'},{y:'2023',c:'Пшеница'},{y:'2024',c:'Царевица'}]];
   return r[Math.floor(seed)];
 }
 
+// ── Map ──
 const map=L.map('map',{center:[43.577,27.828],zoom:13,zoomControl:true});
 const TL={
   sentinel:L.tileLayer.wms(WMS_BACKEND,{layers:'TRUE_COLOR',format:'image/jpeg',version:'1.3.0',tileSize:512,attribution:'© Copernicus/ESA'}),
@@ -357,14 +676,21 @@ const drawnItems=new L.FeatureGroup().addTo(map);
 const drawCtrl=new L.Draw.Polygon(map,{shapeOptions:{color:'#1D9E75',weight:2.5,fillColor:'#1D9E75',fillOpacity:.2}});
 
 let parcels=[];try{parcels=JSON.parse(localStorage.getItem('agd_v4')||'[]');}catch(e){}
-let pendingLayer=null,pendingArea=0,activeIdx=-1,isDrawing=false,chatH=[],meteoData={};
+let pendingLayer=null,pendingArea=0,activeIdx=-1,isDrawing=false;
+let dChatH=[],mChatH=[],meteoData={},ndviResult=null,charts={};
 
 function calcArea(lls){let a=0;const n=lls.length;for(let i=0;i<n;i++){const j=(i+1)%n;const xi=lls[i].lng*Math.PI/180*Math.cos(lls[i].lat*Math.PI/180)*6371000;const yi=lls[i].lat*Math.PI/180*6371000;const xj=lls[j].lng*Math.PI/180*Math.cos(lls[j].lat*Math.PI/180)*6371000;const yj=lls[j].lat*Math.PI/180*6371000;a+=xi*yj-xj*yi;}return Math.abs(a/2)/10000;}
 
 function startDraw(){isDrawing=true;drawCtrl.enable();document.getElementById('fab-draw').style.display='none';document.getElementById('fab-cancel').style.display='flex';document.getElementById('draw-hint').style.display='block';navSwitch('map',document.querySelectorAll('.bnav-btn')[0]);}
 function cancelDraw(){isDrawing=false;drawCtrl.disable();document.getElementById('fab-draw').style.display='flex';document.getElementById('fab-cancel').style.display='none';document.getElementById('draw-hint').style.display='none';}
 
-map.on(L.Draw.Event.CREATED,function(e){pendingLayer=e.layer;pendingArea=calcArea(pendingLayer.getLatLngs()[0]);document.getElementById('m-area').textContent=pendingArea.toFixed(2)+' ха';document.getElementById('m-name').value='Парцел '+(parcels.length+1);cancelDraw();document.getElementById('modal').classList.add('show');setTimeout(()=>document.getElementById('m-name').focus(),300);});
+map.on(L.Draw.Event.CREATED,function(e){
+  pendingLayer=e.layer;pendingArea=calcArea(pendingLayer.getLatLngs()[0]);
+  document.getElementById('m-area').textContent=pendingArea.toFixed(2)+' ха';
+  document.getElementById('m-name').value='Парцел '+(parcels.length+1);
+  cancelDraw();document.getElementById('modal').classList.add('show');
+  setTimeout(()=>document.getElementById('m-name').focus(),300);
+});
 
 function closeModal(save){
   document.getElementById('modal').classList.remove('show');
@@ -374,14 +700,15 @@ function closeModal(save){
     const lls=pendingLayer.getLatLngs()[0];
     const center=pendingLayer.getBounds().getCenter();
     const p={id:Date.now(),name,crop,area:pendingArea,lat:center.lat,lon:center.lng,coords:lls.map(ll=>[ll.lat,ll.lng]),source:'drawn'};
-    parcels.push(p);saveP();drawnItems.addLayer(pendingLayer);bindPop(pendingLayer,p);renderList();selectParcel(parcels.length-1);
+    parcels.push(p);saveP();drawnItems.addLayer(pendingLayer);bindPop(pendingLayer,p);
+    renderList();selectParcel(parcels.length-1);
     saveParcelsToSupabase(p);
     navSwitch('analysis',document.querySelectorAll('.bnav-btn')[2]);
   }
   pendingLayer=null;
 }
 
-function bindPop(layer,p){layer.bindPopup(`<div style="font-family:'Inter',sans-serif;padding:4px"><div style="font-weight:700;font-size:14px;margin-bottom:4px">${p.name}</div><div style="font-size:12px;color:#555">${p.crop} · ${p.area.toFixed(2)} ха</div><div style="font-size:11px;color:#888;margin-top:3px;font-family:monospace">${p.lat.toFixed(4)}°N · ${p.lon.toFixed(4)}°E</div></div>`);}
+function bindPop(layer,p){layer.bindPopup(`<div style="font-family:'DM Sans',sans-serif;padding:4px"><div style="font-weight:700;font-size:14px;margin-bottom:4px">${p.name}</div><div style="font-size:12px;color:#555">${CROP_LABELS[p.crop]||p.crop} · ${p.area.toFixed(2)} ха</div><div style="font-size:10px;color:#888;margin-top:3px;font-family:'DM Mono',monospace">${p.lat.toFixed(4)}°N · ${p.lon.toFixed(4)}°E</div></div>`);}
 
 function loadLPIS(){
   const num=document.getElementById('lpis-in').value.trim();if(!num)return;
@@ -398,359 +725,393 @@ function loadLPIS(){
 }
 
 function renderList(){
-  const el=document.getElementById('parcel-list');if(!el)return;
-  if(!parcels.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🌾</div>Все още няма парцели.<br>Отвори картата и нарисувай своята земя.</div>';return;}
-  el.innerHTML=parcels.map((p,i)=>{
+  const mobileEl=document.getElementById('parcel-list');
+  const desktopEl=document.getElementById('sb-parcel-list');
+
+  const emptyHTML='<div class="empty-state"><div class="empty-icon">🌾</div>Все още няма парцели.<br>Рисувай върху картата.</div>';
+  const emptySB='<div style="font-size:11px;color:var(--t3)">Няма парцели</div>';
+
+  if(!parcels.length){
+    if(mobileEl)mobileEl.innerHTML=emptyHTML;
+    if(desktopEl)desktopEl.innerHTML=emptySB;
+    return;
+  }
+
+  const mHtml=parcels.map((p,i)=>{
     const ndvi=(0.45+Math.sin(p.id*.001)*.2).toFixed(2);
-    const ndviCls=ndvi>=0.6?'bg-green':ndvi>=0.4?'bg-amber':'bg-red';
+    const nc=ndvi>=0.6?'bg-green':ndvi>=0.4?'bg-amber':'bg-red';
+    const label=CROP_LABELS[p.crop]||p.crop;
     return `<div class="parcel-card ${activeIdx===i?'on':''}" onclick="selectParcel(${i});navSwitch('analysis',document.querySelectorAll('.bnav-btn')[2])">
       <div class="pc-top">
         <div class="pc-icon" style="background:${CROP_COLORS[p.crop]||'#808080'}22">🌾</div>
-        <div style="flex:1;min-width:0"><div class="pc-name">${p.name}</div><div class="pc-meta">${p.crop} · ${p.area.toFixed(1)} ха</div></div>
+        <div style="flex:1;min-width:0"><div class="pc-name">${p.name}</div><div class="pc-meta">${label} · ${p.area.toFixed(1)} ха</div></div>
         <button class="pc-del" onclick="event.stopPropagation();delParcel(${i})">×</button>
       </div>
       <div class="pc-badges">
-        <span class="badge ${ndviCls}">NDVI ${ndvi}</span>
-        <span class="badge bg-purple">EuroCrops ✓</span>
+        <span class="badge ${nc}">NDVI ${ndvi}</span>
+        <span class="badge bg-purple">EuroCrops</span>
         ${p.source==='lpis'?'<span class="badge bg-blue">LPIS</span>':''}
       </div>
     </div>`;
   }).join('');
+
+  const sbHtml=parcels.map((p,i)=>`
+    <div class="sb-parcel ${activeIdx===i?'on':''}" onclick="selectParcel(${i})">
+      <div class="sb-p-name">${p.name}<span onclick="event.stopPropagation();delParcel(${i})" style="font-size:12px;cursor:pointer;color:var(--t3)">×</span></div>
+      <div class="sb-p-meta">${(CROP_LABELS[p.crop]||p.crop).replace(/[🤔🌱🌲💧🏗🐄]/g,'').trim()} · ${p.area.toFixed(1)} ха</div>
+    </div>`).join('');
+
+  if(mobileEl)mobileEl.innerHTML=mHtml;
+  if(desktopEl)desktopEl.innerHTML=sbHtml;
 }
 
-function delParcel(i){if(!confirm(`Изтрий "${parcels[i].name}"?`))return;parcels.splice(i,1);saveP();drawnItems.clearLayers();reloadLayers();activeIdx=-1;renderList();document.getElementById('an-empty').style.display='block';document.getElementById('an-content').style.display='none';document.getElementById('an-name').textContent='Избери парцел';document.getElementById('an-meta').textContent='—';}
-function clearParcels(){if(!confirm('Изтрий всички парцели?'))return;parcels=[];saveP();drawnItems.clearLayers();renderList();}
-function reloadLayers(){parcels.forEach(p=>{const layer=L.polygon(p.coords,{color:p.source==='lpis'?'#1447A0':'#1D9E75',weight:2.5,fillOpacity:.2});drawnItems.addLayer(layer);bindPop(layer,p);});}
-function saveP(){
-  try{localStorage.setItem('agd_v4',JSON.stringify(parcels));}catch(e){}
+function delParcel(i){
+  if(!confirm(`Изтрий "${parcels[i].name}"?`))return;
+  parcels.splice(i,1);saveP();drawnItems.clearLayers();reloadLayers();
+  activeIdx=-1;renderList();
+  document.getElementById('an-empty').style.display='block';
+  document.getElementById('an-content').style.display='none';
+  document.getElementById('an-name').textContent='Избери парцел';
+  document.getElementById('an-meta').textContent='—';
 }
+function clearParcels(){if(!confirm('Изтрий всички парцели?'))return;parcels=[];saveP();drawnItems.clearLayers();renderList();}
+function reloadLayers(){parcels.forEach(p=>{const l=L.polygon(p.coords,{color:p.source==='lpis'?'#1447A0':'#1D9E75',weight:2.5,fillOpacity:.2});drawnItems.addLayer(l);bindPop(l,p);});}
+function saveP(){try{localStorage.setItem('agd_v4',JSON.stringify(parcels));}catch(e){}}
 
 async function saveParcelsToSupabase(p){
   try{
-    const body={name:p.name,crop:p.crop,area:p.area,source:p.source,lpis_id:p.lpis_id,coords:p.coords};
-    const r=await fetch(`${BACKEND}/api/parcels`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(r.ok){const data=await r.json();if(data[0]?.id){p.supabase_id=data[0].id;saveP();}
-      // Save EuroCrops history
-      const history=getEuroCropsHistory(p.lat,p.lon);
-      await fetch(`${BACKEND}/api/parcels/${data[0].id}/eucrops`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({history})});
-    }
-  }catch(e){console.warn('Supabase save error:',e);}
+    const r=await fetch(`${BACKEND}/api/parcels`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:p.name,crop:p.crop,area:p.area,source:p.source,lpis_id:p.lpis_id,coords:p.coords})});
+    if(r.ok){const d=await r.json();if(d[0]?.id){p.supabase_id=d[0].id;saveP();const hist=getEuroCropsHistory(p.lat,p.lon);await fetch(`${BACKEND}/api/parcels/${d[0].id}/eucrops`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({history:hist})});}}
+  }catch(e){console.warn('Supabase:',e);}
 }
 
+// ── NDVI Classification ──
 async function loadNDVIClassification(p){
-  const body=document.getElementById('ndvi-cls-body');
-  const spin=document.getElementById('ndvi-cls-spin');
-  if(!body) return null;
-  spin.style.display='inline-block';
-  body.innerHTML='<div class="loading-card"><span class="spin"></span> Анализирам Sentinel-2 времева серия...</div>';
+  // Mobile
+  const mbody=document.getElementById('ndvi-cls-body');
+  const mspin=document.getElementById('ndvi-cls-spin');
+  // Desktop
+  const dbody=document.getElementById('d-ndvi-cls-body');
+  const dspin=document.getElementById('d-ndvi-cls-spin');
+
+  [mspin,dspin].forEach(s=>{if(s)s.style.display='inline-block';});
+  const loadingHTML='<div class="loading-card"><span class="spin"></span> Анализирам Sentinel-2...</div>';
+  if(mbody)mbody.innerHTML=loadingHTML;
+  if(dbody)dbody.innerHTML=loadingHTML;
+
   try{
     const r=await fetch(`${BACKEND}/api/ndvi/classify?lat=${p.lat}&lon=${p.lon}&days=180`);
     const data=await r.json();
     const cls=data.classification;
     const conf=cls.confidence||0;
     const confCls=conf>=70?'bg-green':conf>=50?'bg-amber':'bg-red';
-    body.innerHTML=`<div class="cls-result"><div class="cls-name">${cls.crop||'—'}</div><span class="badge ${confCls}">${conf}%</span></div><div class="cls-reason">${cls.reasoning||''}</div>${cls.rotation_hint?`<div class="cls-hint">💡 ${cls.rotation_hint}</div>`:''}<div class="cls-series">${data.series_summary||''}</div>`;
-    spin.style.display='none';
-    return {crop: cls.crop, confidence: conf, reasoning: cls.reasoning};
+    const html=`<div class="cls-result"><div class="cls-name">${cls.crop||'—'}</div><span class="badge ${confCls}">${conf}%</span></div><div class="cls-reason">${cls.reasoning||''}</div>${cls.rotation_hint?`<div class="cls-hint">💡 ${cls.rotation_hint}</div>`:''}<div class="cls-series">${data.series_summary||''}</div>`;
+    if(mbody)mbody.innerHTML=html;
+    if(dbody)dbody.innerHTML=html;
+    [mspin,dspin].forEach(s=>{if(s)s.style.display='none';});
+    return {crop:cls.crop,confidence:conf,reasoning:cls.reasoning};
   }catch(e){
-    body.innerHTML=`<div style="color:var(--red);font-size:13px">Грешка: ${e.message}</div>`;
-    spin.style.display='none';
+    const err=`<div style="color:var(--r);font-size:12px">Грешка: ${e.message}</div>`;
+    if(mbody)mbody.innerHTML=err;if(dbody)dbody.innerHTML=err;
+    [mspin,dspin].forEach(s=>{if(s)s.style.display='none';});
     return null;
   }
 }
 
+// ── EuroCrops ──
+async function loadRealCropHistory(p){
+  [document.getElementById('ec-spin'),document.getElementById('d-ec-spin')].forEach(s=>{if(s)s.style.display='inline-block';});
+  const loadHTML='<div style="font-size:11px;color:var(--t3)"><span class="spin"></span> Зарежда EuroCrops...</div>';
+  [document.getElementById('ec-content'),document.getElementById('d-ec-content')].forEach(el=>{if(el)el.innerHTML=loadHTML;});
+  try{
+    const r=await fetch(`${BACKEND}/api/crop-history?lat=${p.lat}&lon=${p.lon}&radius_km=10`);
+    const data=await r.json();
+    if(data.found&&data.history.length>0){
+      const rows=data.history.map(h=>{const c=translateCrop(h.crop);return`<div class="ec-row"><span class="ec-yr">${h.year}</span><div class="ec-dot" style="background:${CROP_COLORS[c]||'#aaa'}"></div><span class="ec-crop">${c}</span></div>`;}).join('');
+      const footer=`<div style="font-size:10px;color:var(--t3);margin-top:8px;padding-top:8px;border-top:1px solid var(--bd)">Източник: ${data.source} · ${data.points_found} точки · CC-BY 4.0</div>`;
+      [document.getElementById('ec-content'),document.getElementById('d-ec-content')].forEach(el=>{if(el)el.innerHTML=rows+footer;});
+      [document.getElementById('ec-spin'),document.getElementById('d-ec-spin')].forEach(s=>{if(s)s.style.display='none';});
+      return data.history.map(h=>({y:h.year,c:translateCrop(h.crop)}));
+    }else{renderSimulatedHistory(getEuroCropsHistory(p.lat,p.lon));return null;}
+  }catch(e){renderSimulatedHistory(getEuroCropsHistory(p.lat,p.lon));return null;}
+}
+
+function renderSimulatedHistory(history){
+  const rows=history.map(h=>`<div class="ec-row"><span class="ec-yr">${h.y}</span><div class="ec-dot" style="background:${CROP_COLORS[h.c]||'#aaa'}"></div><span class="ec-crop">${h.c}</span><span style="font-size:9px;color:var(--t3);margin-left:4px">~</span></div>`).join('');
+  const footer='<div style="font-size:10px;color:var(--t3);margin-top:8px;padding-top:8px;border-top:1px solid var(--bd)">Симулирано · Добави реални данни чрез ДФЗ</div>';
+  [document.getElementById('ec-content'),document.getElementById('d-ec-content')].forEach(el=>{if(el)el.innerHTML=rows+footer;});
+  [document.getElementById('ec-spin'),document.getElementById('d-ec-spin')].forEach(s=>{if(s)s.style.display='none';});
+}
+
+// ── Select parcel ──
 async function selectParcel(i){
-  activeIdx=i;renderList();const p=parcels[i];
-  map.setView([p.lat,p.lon],14);chatH=[];document.getElementById('chat').innerHTML='';
+  activeIdx=i;renderList();
+  const p=parcels[i];
+  map.setView([p.lat,p.lon],14);
+  dChatH=[];mChatH=[];
+  document.getElementById('d-chat').innerHTML='<div class="msg ai">Анализирам парцела...</div>';
+  document.getElementById('m-chat').innerHTML='';
+  meteoData={};ndviResult=null;
+
+  // Mobile header
+  const label=CROP_LABELS[p.crop]||p.crop;
   document.getElementById('an-name').textContent=p.name;
-  const cropLabels = {unknown:'🤔 Не знам / Искам съвет',none:'🌱 Незасято / Угар',forest:'🌲 Гора',water:'💧 Водоем',built:'🏗 Застроена площ',pasture:'🐄 Пасище'};
-  const cropLabel = cropLabels[p.crop] || p.crop;
-  document.getElementById('an-meta').textContent=`${cropLabel} · ${p.area.toFixed(2)} ха · ${p.lat.toFixed(4)}°N`;
+  document.getElementById('an-meta').textContent=`${label} · ${p.area.toFixed(2)} ха · ${p.lat.toFixed(4)}°N`;
   document.getElementById('an-empty').style.display='none';
   document.getElementById('an-content').style.display='block';
-  let history=getEuroCropsHistory(p.lat,p.lon);
-  renderSimulatedHistory(history);
 
-  // Run NDVI classification and crop history in parallel
-  Promise.all([
+  // Run parallel
+  const [ndviRes, realHist]=await Promise.all([
     loadNDVIClassification(p),
     loadRealCropHistory(p)
-  ]).then(([ndviResult, realHist])=>{
-    if(realHist&&realHist.length>0) history=realHist;
-    generatePrediction(p, history, ndviResult);
-  });
+  ]);
+  ndviResult=ndviRes;
+  const history=realHist||getEuroCropsHistory(p.lat,p.lon);
+
+  // Meteo
   try{
     const m=await fetch(`${BACKEND}/api/meteo?lat=${p.lat}&lon=${p.lon}`).then(r=>r.json());
     const cur=m.current;
     const et0=(m.hourly?.et0_fao_evapotranspiration||[]).slice(0,24).reduce((a,b)=>a+b,0)/24||3.5;
     const rain7=(m.daily?.precipitation_sum||[]).slice(0,7).reduce((a,b)=>a+(b||0),0);
-    const ndvi=Math.min(0.95,Math.max(0.05,0.62+(rain7-et0*7)/28*.15));
-    meteoData={temp:cur.temperature_2m,hum:cur.relative_humidity_2m,et0,rain7,ndvi};
+    const ndviDerived=Math.min(0.95,Math.max(0.05,0.62+(rain7-et0*7)/28*.15));
+    meteoData={temp:cur.temperature_2m,hum:cur.relative_humidity_2m,et0,rain7,ndvi:ndviDerived,wind:cur.wind_speed_10m,code:cur.weather_code,daily:m.daily};
+
+    // Mobile meteo
     document.getElementById('m-temp').textContent=cur.temperature_2m?.toFixed(1)+'°C';
     document.getElementById('m-hum').textContent=cur.relative_humidity_2m?.toFixed(0)+'%';
     document.getElementById('m-et').textContent=et0.toFixed(1)+' мм';
     document.getElementById('m-rain').textContent=rain7.toFixed(1)+' мм';
-  }catch(e){console.warn(e);}
-  // prediction generated after crop history loads
-}
 
-async function loadRealCropHistory(p){
-  const el=document.getElementById('ec-content');
-  const spin=document.getElementById('ec-spin');
-  spin.style.display='inline-block';
-  el.innerHTML='<div style="padding:12px;color:var(--text3);font-size:13px"><span class="spin"></span> Зарежда реални данни...</div>';
-  try{
-    const r=await fetch(`${BACKEND}/api/crop-history?lat=${p.lat}&lon=${p.lon}&radius_km=10`);
-    const data=await r.json();
-    if(data.found && data.history.length>0){
-      const rows=data.history.map(h=>{
-        const cropBG=translateCrop(h.crop);
-        const color=CROP_COLORS[cropBG]||'#808080';
-        return `<div class="ec-row"><span class="ec-yr">${h.year}</span><div class="ec-dot" style="background:${color}"></div><span class="ec-crop">${cropBG}</span></div>`;
-      }).join('');
-      el.innerHTML=rows+`<div style="font-size:11px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">Източник: ${data.source} · ${data.points_found} точки · CC-BY 4.0</div>`;
-      return data.history.map(h=>({y:h.year,c:translateCrop(h.crop)}));
-    } else {
-      // Fallback to simulated
-      const hist=getEuroCropsHistory(p.lat,p.lon);
-      renderSimulatedHistory(hist);
-      return hist;
-    }
+    // Desktop weather
+    document.getElementById('w-tmp').textContent=(cur.temperature_2m?.toFixed(1)||'—')+'°C';
+    document.getElementById('w-ico').textContent=wmoIco(cur.weather_code||0);
+    document.getElementById('w-dsc').textContent=wmoDesc(cur.weather_code||0);
+    document.getElementById('w-wnd').textContent=cur.wind_speed_10m?.toFixed(0)||'—';
+    document.getElementById('w-hum').textContent=cur.relative_humidity_2m?.toFixed(0)||'—';
+    document.getElementById('w-et').textContent=et0.toFixed(1);
+    document.getElementById('w-rn').textContent=rain7.toFixed(1);
+    document.getElementById('w-upd').textContent='OpenMeteo via backend · '+new Date().toLocaleTimeString('bg-BG');
+
+    // Desktop indicators
+    setBar('bi-ndvi','vi-ndvi',ndviDerived*100,ndviDerived.toFixed(3));
+    setBar('bi-hum','vi-hum',cur.relative_humidity_2m,cur.relative_humidity_2m?.toFixed(0)+'%');
+    setBar('bi-et','vi-et',Math.min(100,et0/7*100),et0.toFixed(1));
+    const spi=Math.max(0,Math.min(100,100-rain7/0.85));
+    setBar('bi-spi','vi-spi',spi,spi>60?'Висок':spi>35?'Умерен':'Нисък');
+
+    // Desktop stat cards
+    document.getElementById('ov-ndvi').textContent=ndviDerived.toFixed(2);
+    document.getElementById('ov-temp').textContent=cur.temperature_2m?.toFixed(1)+'°C';
+    document.getElementById('ov-et').textContent=et0.toFixed(1);
+    document.getElementById('ctx-tag').textContent=`NDVI ${ndviDerived.toFixed(2)} · ET₀ ${et0.toFixed(1)}`;
+
+    // Policy
+    document.getElementById('p-ndvi').textContent=ndviDerived.toFixed(2);
+    document.getElementById('p-temp').textContent=cur.temperature_2m?.toFixed(1)+'°C';
+    document.getElementById('p-et').textContent=et0.toFixed(1);
+    document.getElementById('p-rain').textContent=rain7.toFixed(0);
+
+    // Charts
+    if(m.daily)drawForecast(m.daily);
+
+    // API badges
+    setPill('pl-meteo','pill p-live','OpenMeteo ✓');
+    setSrc('ss-meteo','var(--gl)','var(--g)','Live');
+    const mb=document.getElementById('meteo-badge');
+    if(mb){mb.textContent=m._cache==='hit'?'cache hit':'live';mb.style.background='var(--gl)';mb.style.color='var(--g)';}
   }catch(e){
-    const hist=getEuroCropsHistory(p.lat,p.lon);
-    renderSimulatedHistory(hist);
-    return hist;
-  }finally{
-    spin.style.display='none';
+    setPill('pl-meteo','pill p-warn','OpenMeteo !');
+    console.warn('Meteo:',e);
   }
+
+  // STAC
+  try{
+    const stac=await fetch(`${BACKEND}/api/stac?lat=${p.lat}&lon=${p.lon}&days=60`).then(r=>r.json());
+    const items=stac.features||[];
+    renderSTAC(items,stac._cache);
+    setPill('pl-cop','pill p-live','Copernicus ✓');
+    setSrc('ss-cop','var(--gl)','var(--g)','Live');
+  }catch(e){setPill('pl-cop','pill p-warn','Copernicus !');}
+
+  // AI prediction
+  await generatePrediction(p,history,ndviResult);
 }
 
-function renderSimulatedHistory(history){
-  const el=document.getElementById('ec-content');
-  const rows=history.map(h=>`<div class="ec-row"><span class="ec-yr">${h.y}</span><div class="ec-dot" style="background:${CROP_COLORS[h.c]||'#aaa'}"></div><span class="ec-crop">${h.c}</span><span style="font-size:9px;color:var(--text3);margin-left:4px">~</span></div>`).join('');
-  el.innerHTML=rows+`<div style="font-size:11px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">Симулирано · Добави реални данни чрез ДФЗ партньорство</div>`;
+function setBar(bi,vi,pct,val){const b=document.getElementById(bi);const v=document.getElementById(vi);if(b)b.style.width=Math.min(100,Math.max(0,pct||0))+'%';if(v)v.textContent=val||'—';}
+function wmoIco(c){if(c<=1)return'☀️';if(c<=3)return'⛅';if(c<=49)return'🌫️';if(c<=69)return'🌧️';return'⛈️';}
+function wmoDesc(c){if(c===0)return'Ясно';if(c<=2)return'Частично облачно';if(c<=3)return'Облачно';if(c<=67)return'Дъжд';return'Буря';}
+function setPill(id,cls,txt){const e=document.getElementById(id);if(e){e.className=cls;e.innerHTML=`<span class="dot"></span>${txt}`;}}
+function setSrc(id,bg,col,txt){const e=document.getElementById(id);if(e){e.style.background=bg;e.style.color=col;e.textContent=txt;}}
+
+function renderSTAC(items,cache){
+  const el=document.getElementById('stac-list');
+  if(!el)return;
+  const b=document.getElementById('stac-badge');
+  if(b){b.textContent=`${items.length} сцени · ${cache}`;b.style.background='var(--gl)';b.style.color='var(--g)';}
+  if(!items.length){el.textContent='Няма сцени.';return;}
+  el.innerHTML=items.slice(0,8).map(it=>{
+    const dt=it.properties?.datetime?.slice(0,10)||'—';
+    const cloud=it.properties?.['eo:cloud_cover'];
+    const cc=cloud!=null?(cloud<20?'var(--gl);color:var(--g)':cloud<50?'var(--al);color:var(--a)':'var(--rl);color:var(--r)'):'var(--s3);color:var(--t3)';
+    return`<div class="stac-item"><div><div style="font-weight:500">Sentinel-2 L2A · ${dt}</div><div style="font-size:9px;color:var(--t3);font-family:'DM Mono',monospace">${(it.id||'').slice(0,50)}</div></div><span style="font-size:10px;padding:2px 7px;border-radius:10px;background:${cc}">☁ ${cloud!=null?cloud.toFixed(0):'—'}%</span></div>`;
+  }).join('');
 }
 
-function translateCrop(eng){
-  if(!eng) return '—';
-  const t={
-    // Зърнени
-    'Common wheat':'Пшеница','Soft wheat':'Пшеница','Winter wheat':'Пшеница','Spring wheat':'Пшеница яра',
-    'Durum wheat':'Твърда пшеница','Wheat':'Пшеница',
-    'Barley':'Ечемик','Winter barley':'Ечемик зимен','Spring barley':'Ечемик ярен',
-    'Maize':'Царевица','Grain maize':'Царевица за зърно','Silage maize':'Царевица за силаж',
-    'Rye':'Ръж','Winter rye':'Ръж зимна','Oats':'Овес','Triticale':'Тритикале',
-    'Rice':'Ориз','Millet':'Просо','Sorghum':'Сорго',
-    // Маслодайни
-    'Sunflower':'Слънчоглед','Rapeseed':'Рапица','Rape':'Рапица',
-    'Winter rapeseed':'Рапица зимна','Spring rapeseed':'Рапица яра',
-    'Soybean':'Соя','Soybeans':'Соя','Linseed':'Лен',
-    // Кореноплодни
-    'Sugar beet':'Захарно цвекло','Potatoes':'Картофи','Potato':'Картофи',
-    // Протеинови
-    'Lucerne':'Люцерна','Alfalfa':'Люцерна','Clover':'Детелина',
-    'Field peas':'Грах','Peas':'Грах','Beans':'Боб','Broad beans':'Боб',
-    'Lentils':'Леща','Chickpeas':'Нахут','Lupins':'Лупина',
-    // Зеленчуци и плодове
-    'Vegetables':'Зеленчуци','Tomatoes':'Домати','Onions':'Лук',
-    'Fruit':'Овошки','Orchards':'Овошки','Apple':'Ябълки',
-    // Трайни насаждения
-    'Vineyard':'Лозе','Vineyards':'Лозе','Olive':'Маслини','Olives':'Маслини',
-    // Фуражни
-    'Temporary grassland':'Временна ливада','Permanent grassland':'Постоянна ливада',
-    'Grassland':'Ливада','Meadow':'Ливада','Pasture':'Пасище',
-    'Fodder crops':'Фуражни култури','Grass':'Трева',
-    // Специални
-    'Fallow':'Угар','Set-aside':'Угар','Bare soil':'Угар',
-    'Arable land':'Обработваема земя','Mixed crops':'Смесени',
-    'Hemp':'Коноп','Tobacco':'Тютюн','Cotton':'Памук',
-    'Flowers':'Цветя','Ornamental':'Декоративни',
-    // Неземеделски
-    'Forest':'Гора','Woodland':'Гора','Shrubland':'Храсти',
-    'Water':'Вода','Wetland':'Влажна зона',
-    'Urban':'Застроено','Built-up':'Застроено',
-  };
-  // Exact match
-  if(t[eng]) return t[eng];
-  // Case-insensitive match
-  const lower = eng.toLowerCase();
-  for(const [k,v] of Object.entries(t)){
-    if(k.toLowerCase()===lower) return v;
-  }
-  // Partial match
-  for(const [k,v] of Object.entries(t)){
-    if(lower.includes(k.toLowerCase())) return v;
-  }
-  return eng;
+let dc_=id=>{if(charts[id]){charts[id].destroy();delete charts[id];}};
+function drawForecast(daily){
+  if(!daily?.time)return;dc_('c-forecast');
+  const ctx=document.getElementById('c-forecast')?.getContext('2d');if(!ctx)return;
+  charts['c-forecast']=new Chart(ctx,{type:'bar',data:{labels:daily.time.map(d=>d.slice(5)),datasets:[{label:'Макс °C',data:daily.temperature_2m_max,type:'line',borderColor:'#E8593C',backgroundColor:'transparent',borderWidth:1.5,tension:.3,pointRadius:1,yAxisID:'y'},{label:'Валежи мм',data:daily.precipitation_sum,backgroundColor:'rgba(20,71,160,.4)',borderRadius:2,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:9},boxWidth:8}}},scales:{y:{position:'left',ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},y1:{position:'right',ticks:{font:{size:9}},grid:{display:false}},x:{ticks:{font:{size:9},maxTicksLimit:12},grid:{display:false}}}}});
 }
 
-function renderEuroCrops(history,parcel){
-  // Legacy — used as fallback
-  renderSimulatedHistory(history);
+function renderRegionBars(){
+  const el=document.getElementById('p-rbars');if(!el||el.children.length)return;
+  const ndvi=meteoData.ndvi||0.60;
+  [{n:'Добрич-град',f:1.0},{n:'Балчик',f:0.72},{n:'Каварна',f:1.12},{n:'Шабла',f:0.58},{n:'Тервел',f:0.95},{n:'Крушари',f:0.82}].forEach(r=>{
+    const v=Math.min(0.95,Math.max(0.05,ndvi*r.f));const pct=Math.round(v*100);const col=pct>=60?'#1D9E75':pct>=45?'#BA7517':'#A32D2D';
+    el.innerHTML+=`<div style="position:relative;height:24px;background:var(--s2);border-radius:6px;margin-bottom:6px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${col};opacity:.7;border-radius:6px;transition:width .7s"></div><span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:11px">${r.n}</span><span style="position:absolute;right:9px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:600">${v.toFixed(2)}</span></div>`;
+  });
 }
 
-async function generatePrediction(parcel, history, ndviResult){
+// ── AI ──
+async function generatePrediction(parcel,history,ndviRes){
   document.getElementById('pred-text').textContent='Анализирам...';
-  const histStr = history.map(h=>`${h.y||h.year}: ${h.c||h.crop}`).join(', ');
-
-  // Build fusion context
-  let ndviContext = '';
-  let conflictNote = '';
-  if(ndviResult && ndviResult.crop){
-    ndviContext = `NDVI КЛАСИФИКАЦИЯ (Sentinel-2, тази година): ${ndviResult.crop} · Сигурност: ${ndviResult.confidence}%`;
-    // Detect conflict between NDVI and historical data
-    const lastHistCrop = history.length>0 ? (history[history.length-1].c||history[history.length-1].crop||'') : '';
-    if(ndviResult.confidence>=70 && lastHistCrop && !lastHistCrop.toLowerCase().includes(ndviResult.crop.toLowerCase())){
-      conflictNote = `ВАЖНО: NDVI показва "${ndviResult.crop}" тази година но историята показва "${lastHistCrop}" за последната година. При ≥70% сигурност NDVI е по-надеждно (реални спътникови данни за текущата година).`;
-    }
+  const histStr=history.map(h=>`${h.y||h.year}: ${h.c||h.crop}`).join(', ');
+  let ndviCtx='',conflictNote='';
+  if(ndviRes?.crop){
+    ndviCtx=`NDVI КЛАСИФИКАЦИЯ (Sentinel-2, тази година): ${ndviRes.crop} · Сигурност: ${ndviRes.confidence}%`;
+    const lastCrop=history.length>0?(history[history.length-1].c||history[history.length-1].crop||''):'';
+    if(ndviRes.confidence>=70&&lastCrop&&!lastCrop.toLowerCase().includes(ndviRes.crop.toLowerCase()))
+      conflictNote=`ВАЖНО: NDVI показва "${ndviRes.crop}" тази година но историята показва "${lastCrop}". При ≥70% NDVI е по-надеждно.`;
   }
-
-  const q = ndviResult
-    ? `Анализирай следните данни за парцела и дай агрономска прогноза за 2026:
-
-${ndviContext}
-ИСТОРИЧЕСКИ ДАННИ: ${histStr}
-${conflictNote}
-
-Дай: 1) Потвърди или коригирай текущата култура въз основа на NDVI, 2) Препоръчай оптималната следваща култура за ротацията, 3) Очакван добив, 4) Основен риск. До 4 изречения. Ако има конфликт между NDVI и историята — обясни.`
-    : `Въз основа на сеитбообращението (${histStr}) и метео данните, дай прогноза за 2026: 1) оптимална култура, 2) очакван добив, 3) основен риск. До 3 изречения.`;
-
-  chatH.push({role:'user', parts:[{text:q}]});
-  try{
-    const r=await fetch(`${BACKEND}/api/ai`,{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({system:buildSys(parcel,histStr,ndviResult),contents:chatH})
-    }).then(r=>r.json());
-    document.getElementById('pred-text').textContent=r.text||'—';
-    chatH.push({role:'model',parts:[{text:r.text}]});
-  }catch(e){
-    document.getElementById('pred-text').textContent='Грешка при AI връзка.';
-  }
-}
-
-function buildSys(p, histStr, ndviResult){
-  const ndviLine = ndviResult
-    ? `NDVI КЛАСИФИКАЦИЯ (Sentinel-2, текуща година): ${ndviResult.crop} · ${ndviResult.confidence}% сигурност`
-    : 'NDVI: няма данни';
-  const priorityRule = ndviResult && ndviResult.confidence>=70
-    ? 'ПРАВИЛО: NDVI ≥70% сигурност → приоритизирай спътниковите данни над историческите.'
-    : 'ПРАВИЛО: NDVI <70% сигурност → ползвай историческите данни като основен сигнал.';
-
-  const cropStatus = (!p?.crop || p?.crop==='unknown' || p?.crop==='none')
-    ? `ЗАЯВЕНА КУЛТУРА: Фермерът не е посочил култура — използвай NDVI и историята за определяне.`
-    : `ЗАЯВЕНА КУЛТУРА ОТ ФЕРМЕРА: ${p.crop}`;
-
-  const nonAgri = ['forest','water','built','pasture'];
-  const taskLine = (!p?.crop || p?.crop==='unknown')
-    ? 'ЗАДАЧА: 1) Определи текущата култура от NDVI, 2) Препоръчай следваща за ротацията, 3) Очакван добив, 4) Основен риск.'
-    : p?.crop==='none'
-    ? 'ЗАДАЧА: Парцелът е незасят/угар. 1) Препоръчай оптималната начална култура за тази почва и климат, 2) Предложи 3-годишно сеитбообращение, 3) Основен риск при старт.'
-    : nonAgri.includes(p?.crop)
-    ? 'ЗАДАЧА: Парцелът е маркиран като неземеделски. Информирай фермера: 1) Потвърди от NDVI дали е наистина неземеделски, 2) Ако NDVI показва растителност — провери дали може да се преведе към земеделска употреба, 3) Какви са регулаторните ограничения в ЕС за този тип земя.'
-    : 'ЗАДАЧА: 1) Потвърди или коментирай избраната от фермера култура спрямо NDVI, 2) Препоръчай следваща за ротацията, 3) Очакван добив, 4) Основен риск.';
-
-  return `Ти си AI агроном за AgroDecide. Отговаряй кратко и конкретно на БЪЛГАРСКИ.
-ПАРЦЕЛ: ${p?.name||'—'} · ${p?.area?.toFixed(2)||'—'}ха · ${p?.lat?.toFixed(4)||'—'}°N
+  const nonAgri=['forest','water','built','pasture'];
+  const cropStatus=(!parcel?.crop||parcel?.crop==='unknown'||parcel?.crop==='none')?`Фермерът не е посочил култура.`:`Заявена от фермера: ${parcel.crop}`;
+  const taskLine=(!parcel?.crop||parcel?.crop==='unknown')?'Задача: 1) Определи текущата от NDVI, 2) Препоръчай следваща, 3) Добив, 4) Риск.':parcel?.crop==='none'?'Задача: Парцелът е угар. Препоръчай оптимална начална култура и 3-годишна ротация.':nonAgri.includes(parcel?.crop)?'Задача: Неземеделски парцел. Потвърди от NDVI и информирай за регулации.':'Задача: 1) Потвърди/коментирай избраната от фермера, 2) Следваща в ротацията, 3) Добив, 4) Риск.';
+  const sys=`Ти си AI агроном за AgroDecide. Отговаряй кратко и конкретно на БЪЛГАРСКИ.
+ПАРЦЕЛ: ${parcel?.name||'—'} · ${parcel?.area?.toFixed(2)||'—'}ха · ${parcel?.lat?.toFixed(4)||'—'}°N
 ${cropStatus}
-${ndviLine}
-EUROCROPS/LUCAS ИСТОРИЯ: ${histStr}
-МЕТЕО LIVE: темп ${meteoData.temp?.toFixed(1)||'—'}°C, ET₀ ${meteoData.et0?.toFixed(2)||'—'} мм/д, валежи 7д ${meteoData.rain7?.toFixed(1)||'—'} мм
-${priorityRule}
+${ndviCtx}
+EUROCROPS/LUCAS: ${histStr}
+МЕТЕО: темп ${meteoData.temp?.toFixed(1)||'—'}°C, ET₀ ${meteoData.et0?.toFixed(2)||'—'} мм/д, валежи 7д ${meteoData.rain7?.toFixed(1)||'—'} мм
+${ndviRes?.confidence>=70?'ПРАВИЛО: NDVI ≥70% → приоритизирай спътниковите данни.':'ПРАВИЛО: NDVI <70% → разчитай на историята.'}
 ${taskLine}
-ДАТА: ${new Date().toLocaleDateString('bg-BG')}
-При конфликт между NDVI и историческите данни — обясни разликата накратко.`;
+${conflictNote}
+ДАТА: ${new Date().toLocaleDateString('bg-BG')}`;
+
+  const q=ndviRes?`Анализирай парцела. ${conflictNote?'Има конфликт между NDVI и историята — обясни.':''} Дай прогноза за 2026 в 3-4 изречения.`:`Въз основа на историята (${histStr}) дай прогноза за 2026 в 3 изречения.`;
+  dChatH=[{role:'user',parts:[{text:q}]}];
+  try{
+    const r=await fetch(`${BACKEND}/api/ai`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:sys,contents:dChatH})}).then(r=>r.json());
+    document.getElementById('pred-text').textContent=r.text||'—';
+    dChatH.push({role:'model',parts:[{text:r.text}]});
+    document.getElementById('d-chat').innerHTML='';
+    addDMsg('ai',r.text);
+  }catch(e){document.getElementById('pred-text').textContent='Грешка при AI връзка.';}
 }
 
-function addMsg(cont,role,txt){const d=document.createElement('div');d.className='msg '+role;d.textContent=txt;cont.appendChild(d);cont.scrollTop=cont.scrollHeight;return d;}
-function addLoad(cont){const d=document.createElement('div');d.className='msg loading';d.innerHTML='<div class="dots"><span></span><span></span><span></span></div>';cont.appendChild(d);cont.scrollTop=cont.scrollHeight;return d;}
+function addDMsg(role,txt){const cont=document.getElementById('d-chat');const d=document.createElement('div');d.className='msg '+role;d.textContent=txt;cont.appendChild(d);cont.scrollTop=cont.scrollHeight;return d;}
+function addDLoad(){const cont=document.getElementById('d-chat');const d=document.createElement('div');d.className='msg loading';d.innerHTML='<div class="dots"><span></span><span></span><span></span></div>';cont.appendChild(d);cont.scrollTop=cont.scrollHeight;return d;}
+function addMMsg(role,txt){const cont=document.getElementById('m-chat');const d=document.createElement('div');d.className='m-msg '+role;d.textContent=txt;cont.appendChild(d);cont.scrollTop=cont.scrollHeight;return d;}
+function addMLoad(){const cont=document.getElementById('m-chat');const d=document.createElement('div');d.className='m-msg loading';d.innerHTML='<div class="dots"><span></span><span></span><span></span></div>';cont.appendChild(d);cont.scrollTop=cont.scrollHeight;return d;}
 
-async function send(){
-  const inp=document.getElementById('ai-in');const txt=inp.value.trim();if(!txt)return;
-  const chat=document.getElementById('chat');const btn=document.getElementById('ai-go');
-  inp.value='';btn.disabled=true;addMsg(chat,'user',txt);chatH.push({role:'user',parts:[{text:txt}]});
-  const loader=addLoad(chat);
+function getSys(){
   const p=activeIdx>=0?parcels[activeIdx]:null;
   const hist=p?getEuroCropsHistory(p.lat,p.lon).map(h=>`${h.y}:${h.c}`).join(', '):'—';
-  try{const r=await fetch(`${BACKEND}/api/ai`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:buildSys(p,hist),contents:chatH})}).then(r=>r.json());loader.remove();addMsg(chat,'ai',r.text);chatH.push({role:'model',parts:[{text:r.text}]});}
-  catch(e){loader.remove();addMsg(chat,'ai','Грешка: '+e.message);}
+  return `Ти си AI агроном. Отговаряй кратко на БЪЛГАРСКИ.\nПАРЦЕЛ: ${p?.name||'—'} · ${p?.area?.toFixed(2)||'—'}ха\nNDVI: ${ndviResult?.crop||'—'} ${ndviResult?.confidence||'—'}%\nМЕТЕО: ${meteoData.temp?.toFixed(1)||'—'}°C, ET₀ ${meteoData.et0?.toFixed(1)||'—'} мм/д\nЕVROCROPS: ${hist}`;
+}
+
+async function dSend(){
+  const inp=document.getElementById('d-ai-in');const txt=inp.value.trim();if(!txt)return;
+  const btn=document.getElementById('d-ai-go');inp.value='';btn.disabled=true;
+  addDMsg('user',txt);dChatH.push({role:'user',parts:[{text:txt}]});
+  const loader=addDLoad();
+  try{const r=await fetch(`${BACKEND}/api/ai`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:getSys(),contents:dChatH})}).then(r=>r.json());loader.remove();addDMsg('ai',r.text);dChatH.push({role:'model',parts:[{text:r.text}]});}
+  catch(e){loader.remove();addDMsg('ai','Грешка: '+e.message);}
   btn.disabled=false;
 }
-function qa(q){document.getElementById('ai-in').value=q;send();}
+async function mSend(){
+  const inp=document.getElementById('m-ai-in');const txt=inp.value.trim();if(!txt)return;
+  const btn=document.getElementById('m-ai-go');inp.value='';btn.disabled=true;
+  addMMsg('user',txt);mChatH.push({role:'user',parts:[{text:txt}]});
+  const loader=addMLoad();
+  try{const r=await fetch(`${BACKEND}/api/ai`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:getSys(),contents:mChatH})}).then(r=>r.json());loader.remove();addMMsg('ai',r.text);mChatH.push({role:'model',parts:[{text:r.text}]});}
+  catch(e){loader.remove();addMMsg('ai','Грешка: '+e.message);}
+  btn.disabled=false;
+}
+function qa(q){document.getElementById('m-ai-in').value=q;mSend();}
+function dqa(q){document.getElementById('d-ai-in').value=q;dSend();}
 
-function locateMe(){
-  const btn=document.getElementById('btn-locate');
-  if(!navigator.geolocation){alert('Браузърът не поддържа геолокация.');return;}
-  
-  btn.textContent='⏳';
-  btn.title='Търси GPS позиция...';
-  let found=false;
-
-  function showPos(pos){
-    if(found)return; found=true;
-    btn.textContent='📍'; btn.title='Моята позиция';
-    const lat=pos.coords.latitude,lon=pos.coords.longitude,acc=pos.coords.accuracy;
-    const latlng=L.latLng(lat,lon);
-    map.setView(latlng,15);
-    if(window._locMarker)map.removeLayer(window._locMarker);
-    if(window._locCircle)map.removeLayer(window._locCircle);
-    window._locCircle=L.circle(latlng,{radius:acc,color:'#1D9E75',fillColor:'#1D9E75',fillOpacity:.1,weight:1}).addTo(map);
-    window._locMarker=L.circleMarker(latlng,{radius:8,color:'#0F6E56',fillColor:'#1D9E75',fillOpacity:.9,weight:2.5})
-      .addTo(map).bindPopup('📍 Вие сте тук<br><small>±'+Math.round(acc)+' м</small>').openPopup();
+// ── Desktop tabs ──
+function deskTab(name,btn){
+  document.querySelectorAll('.t-tab').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+  // Show/hide right panel content
+  document.getElementById('dv-farmer-right').style.display=name==='farmer'?'flex':'none';
+  document.getElementById('dv-policy').style.display=name==='policy'?'block':'none';
+  document.getElementById('dv-debug').style.display=name==='debug'?'block':'none';
+  // Show/hide center tabs
+  document.getElementById('c-tabs-bar').style.display=name==='farmer'?'flex':'none';
+  if(name==='farmer'){centerTab('map',document.querySelector('#c-tabs-bar .c-tab'));}
+  else{
+    // Hide all desk views, show map
+    document.querySelectorAll('.desk-view').forEach(v=>v.classList.remove('on'));
+    document.getElementById('screen-map').style.position='relative';
+    document.getElementById('screen-map').style.flex='1';
+    if(name==='policy'){renderRegionBars();}
   }
-
-  function onErr(err){
-    if(found)return;
-    btn.textContent='📍';
-    if(err.code===1)alert('Разрешете достъп до местоположение в настройките на браузъра.');
-    else if(err.code===3)alert('GPS не намери сигнал. Излезте на открито и опитайте отново.');
-    else alert('Грешка при геолокация.');
-  }
-
-  // Опит 1: Без GPS (мрежа/WiFi) — бързо
-  navigator.geolocation.getCurrentPosition(showPos, ()=>{},
-    {enableHighAccuracy:false, timeout:5000, maximumAge:60000});
-
-  // Опит 2: С GPS — чака до 60 секунди
-  navigator.geolocation.getCurrentPosition(showPos, onErr,
-    {enableHighAccuracy:true, timeout:60000, maximumAge:0});
 }
 
+function centerTab(name,btn){
+  document.querySelectorAll('#c-tabs-bar .c-tab').forEach(t=>t.classList.remove('on'));
+  if(btn)btn.classList.add('on');
+  document.querySelectorAll('.desk-view').forEach(v=>v.classList.remove('on'));
+  if(name==='map'){
+    // Map fills center
+  }else{
+    const dv=document.getElementById('dv-'+name);if(dv)dv.classList.add('on');
+  }
+  if(name==='map')setTimeout(()=>map.invalidateSize(),50);
+}
+
+// ── Mobile nav ──
 function navSwitch(name,btn){
   document.querySelectorAll('.bnav-btn').forEach(b=>{b.classList.remove('on');b.querySelector('.bnav-ind').style.background='';});
-  if(btn){btn.classList.add('on');btn.querySelector('.bnav-ind').style.background='var(--green)';}
+  if(btn){btn.classList.add('on');btn.querySelector('.bnav-ind').style.background='var(--g)';}
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
   const scr=document.getElementById('screen-'+name);if(scr)scr.classList.add('on');
   if(name==='map')setTimeout(()=>map.invalidateSize(),50);
 }
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&isDrawing)cancelDraw();});
+// ── Geolocation ──
+function locateMe(){
+  const btn=document.getElementById('btn-locate');btn.textContent='⏳';
+  if(!navigator.geolocation){alert('Браузърът не поддържа геолокация.');btn.textContent='📍';return;}
+  function showPos(pos){
+    if(btn.textContent!=='⏳')return;btn.textContent='📍';
+    const lat=pos.coords.latitude,lon=pos.coords.longitude,acc=pos.coords.accuracy;
+    const ll=L.latLng(lat,lon);map.setView(ll,15);
+    if(window._locM)map.removeLayer(window._locM);if(window._locC)map.removeLayer(window._locC);
+    window._locC=L.circle(ll,{radius:acc,color:'#1D9E75',fillColor:'#1D9E75',fillOpacity:.1,weight:1}).addTo(map);
+    window._locM=L.circleMarker(ll,{radius:8,color:'#0F6E56',fillColor:'#1D9E75',fillOpacity:.9,weight:2.5}).addTo(map).bindPopup(`📍 Вие сте тук<br><small>±${Math.round(acc)} м</small>`).openPopup();
+  }
+  navigator.geolocation.getCurrentPosition(showPos,()=>{},{enableHighAccuracy:false,timeout:5000,maximumAge:60000});
+  navigator.geolocation.getCurrentPosition(showPos,()=>{btn.textContent='📍';},{enableHighAccuracy:true,timeout:60000,maximumAge:0});
+}
 
-// Load parcels from Supabase on startup
-async function loadParcelsFromSupabase(){
+// ── Load from Supabase ──
+async function loadFromSupabase(){
   try{
-    const r=await fetch(`${BACKEND}/api/parcels`);
-    if(!r.ok) throw new Error(r.status);
-    const data=await r.json();
-    if(!data || !data.length) return;
+    const r=await fetch(`${BACKEND}/api/parcels`);if(!r.ok)return;
+    const data=await r.json();if(!data?.length)return;
     let changed=false;
     data.forEach(sb=>{
-      // Skip if already in local list (matched by supabase_id)
-      if(parcels.find(lp=>lp.supabase_id===sb.id)) return;
-      // Only add if has coords stored (coords_json field)
-      if(!sb.coords_json) return;
+      if(parcels.find(lp=>lp.supabase_id===sb.id))return;
+      if(!sb.coords_json)return;
       try{
-        const coords=JSON.parse(sb.coords_json);
-        if(!coords || !coords.length) return;
+        const coords=JSON.parse(sb.coords_json);if(!coords?.length)return;
         const center=coords.reduce((a,c)=>[a[0]+c[0]/coords.length,a[1]+c[1]/coords.length],[0,0]);
-        parcels.push({
-          id:Date.now()+'_sb',
-          supabase_id:sb.id,
-          name:sb.name, crop:sb.crop,
-          area:sb.area_ha,
-          lat:center[0], lon:center[1],
-          coords, source:sb.source||'drawn',
-          lpis_id:sb.lpis_id
-        });
+        parcels.push({id:Date.now()+'_sb',supabase_id:sb.id,name:sb.name,crop:sb.crop,area:sb.area_ha,lat:center[0],lon:center[1],coords,source:sb.source||'drawn',lpis_id:sb.lpis_id});
         changed=true;
       }catch(e){}
     });
@@ -758,19 +1119,26 @@ async function loadParcelsFromSupabase(){
   }catch(e){console.warn('Supabase load:',e);}
 }
 
-// Backend health check
-fetch(`${BACKEND}/health`).then(r=>r.json()).then(d=>{
-  if(d.status==='healthy'){document.getElementById('stv-be').textContent='OK · '+d.cache_keys+' кеша';}
-}).catch(()=>{
-  document.getElementById('st-be').className='st-dot st-warn';
-  document.getElementById('stv-be').textContent='Офлайн';
-});
+// ── Init ──
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&isDrawing)cancelDraw();});
 
-// Init — load from localStorage first (instant), then sync with Supabase
+// Backend health
+fetch(`${BACKEND}/health`).then(r=>r.json()).then(d=>{
+  if(d.status==='healthy'){
+    setPill('pl-backend','pill p-live','Backend ✓');
+    setSrc('ss-be','var(--gl)','var(--g)',`Live · ${d.cache_keys} кеша`);
+    document.getElementById('m-stv-be').textContent=`OK · ${d.cache_keys} кеша`;
+  }
+}).catch(()=>{setPill('pl-backend','pill p-err','Backend ✗');});
+
+// Groq test
+fetch(`${BACKEND}/api/ai`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:'Отговори: готов',contents:[{role:'user',parts:[{text:'тест'}]}]})})
+.then(r=>r.json()).then(d=>{if(d.text){setPill('pl-ai','pill p-live','Groq ✓');setSrc('ss-ai','var(--gl)','var(--g)','Live');}})
+.catch(()=>{setPill('pl-ai','pill p-err','Groq ✗');setSrc('ss-ai','var(--rl)','var(--r)','Грешка');});
+
 renderList();reloadLayers();
-if(parcels.length>0 && parcels[0].coords && parcels[0].coords.length>0)
-  map.setView([parcels[0].lat,parcels[0].lon],13);
-loadParcelsFromSupabase();
+if(parcels.length>0&&parcels[0].coords?.length>0)map.setView([parcels[0].lat,parcels[0].lon],13);
+loadFromSupabase();
 </script>
 </body>
 </html>
