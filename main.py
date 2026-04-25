@@ -131,9 +131,15 @@ async def meteo(lat: float, lon: float):
         f"&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,et0_fao_evapotranspiration"
         f"&forecast_days=14&timezone=Europe%2FSofia"
     )
+    import asyncio as _aio
     async with make_client(False) as client:
-        r = await client.get(url)
-        r.raise_for_status()
+        for _attempt in range(3):
+            r = await client.get(url)
+            if r.status_code == 429:
+                await _aio.sleep(2 ** _attempt)
+                continue
+            r.raise_for_status()
+            break
         data = r.json()
 
     cache_set(key, data, 15 * 60)
