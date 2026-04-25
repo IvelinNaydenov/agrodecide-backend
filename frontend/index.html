@@ -269,6 +269,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--bg);font-fa
           <div class="settings-row"><span class="s-icon">📡</span><span class="s-label">Данни</span><span class="s-value">Copernicus · EuroCrops</span></div>
           <div class="settings-row"><span class="s-icon">🔓</span><span class="s-label">Лиценз</span><span class="s-value">Open Source · MIT</span></div>
           <div class="settings-row"><span class="s-icon">📦</span><span class="s-label">Версия</span><span class="s-value">Фаза 3 · EU Pilot</span></div>
+          <div class="settings-row"><span class="s-icon">🗄</span><span class="s-label">База данни</span><span class="s-value" id="stv-db">Supabase PostGIS</span></div>
         </div>
       </div>
       <div class="settings-sec">
@@ -366,6 +367,7 @@ function closeModal(save){
     const center=pendingLayer.getBounds().getCenter();
     const p={id:Date.now(),name,crop,area:pendingArea,lat:center.lat,lon:center.lng,coords:lls.map(ll=>[ll.lat,ll.lng]),source:'drawn'};
     parcels.push(p);saveP();drawnItems.addLayer(pendingLayer);bindPop(pendingLayer,p);renderList();selectParcel(parcels.length-1);
+    saveParcelsToSupabase(p);
     navSwitch('analysis',document.querySelectorAll('.bnav-btn')[2]);
   }
   pendingLayer=null;
@@ -382,6 +384,7 @@ function loadLPIS(){
   const layer=L.polygon(coords,{color:'#1447A0',weight:2.5,fillColor:'#1447A0',fillOpacity:.2});
   drawnItems.addLayer(layer);bindPop(layer,p);map.fitBounds(layer.getBounds(),{padding:[40,40]});
   parcels.push(p);saveP();renderList();selectParcel(parcels.length-1);
+  saveParcelsToSupabase(p);
   document.getElementById('lpis-in').value='';
   navSwitch('analysis',document.querySelectorAll('.bnav-btn')[2]);
 }
@@ -410,7 +413,21 @@ function renderList(){
 function delParcel(i){if(!confirm(`Изтрий "${parcels[i].name}"?`))return;parcels.splice(i,1);saveP();drawnItems.clearLayers();reloadLayers();activeIdx=-1;renderList();document.getElementById('an-empty').style.display='block';document.getElementById('an-content').style.display='none';document.getElementById('an-name').textContent='Избери парцел';document.getElementById('an-meta').textContent='—';}
 function clearParcels(){if(!confirm('Изтрий всички парцели?'))return;parcels=[];saveP();drawnItems.clearLayers();renderList();}
 function reloadLayers(){parcels.forEach(p=>{const layer=L.polygon(p.coords,{color:p.source==='lpis'?'#1447A0':'#1D9E75',weight:2.5,fillOpacity:.2});drawnItems.addLayer(layer);bindPop(layer,p);});}
-function saveP(){try{localStorage.setItem('agd_v4',JSON.stringify(parcels));}catch(e){}}
+function saveP(){
+  try{localStorage.setItem('agd_v4',JSON.stringify(parcels));}catch(e){}
+}
+
+async function saveParcelsToSupabase(p){
+  try{
+    const body={name:p.name,crop:p.crop,area:p.area,source:p.source,lpis_id:p.lpis_id,coords:p.coords};
+    const r=await fetch(`${BACKEND}/api/parcels`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(r.ok){const data=await r.json();if(data[0]?.id){p.supabase_id=data[0].id;saveP();}
+      // Save EuroCrops history
+      const history=getEuroCropsHistory(p.lat,p.lon);
+      await fetch(`${BACKEND}/api/parcels/${data[0].id}/eucrops`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({history})});
+    }
+  }catch(e){console.warn('Supabase save error:',e);}
+}
 
 async function loadNDVIClassification(p){
   const body=document.getElementById('ndvi-cls-body');
