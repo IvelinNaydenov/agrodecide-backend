@@ -532,11 +532,56 @@ function renderSimulatedHistory(history){
 }
 
 function translateCrop(eng){
-  const t={'Common wheat':'Пшеница','Soft wheat':'Пшеница','Winter wheat':'Пшеница озима',
-    'Sunflower':'Слънчоглед','Rapeseed':'Рапица','Maize':'Царевица','Barley':'Ечемик',
-    'Sugar beet':'Захарно цвекло','Soybean':'Соя','Lucerne':'Люцерна',
-    'Fallow':'Угар','Vineyard':'Лозе','Fruit':'Овошки','Vegetables':'Зеленчуци'};
-  return t[eng]||eng;
+  if(!eng) return '—';
+  const t={
+    // Зърнени
+    'Common wheat':'Пшеница','Soft wheat':'Пшеница','Winter wheat':'Пшеница','Spring wheat':'Пшеница яра',
+    'Durum wheat':'Твърда пшеница','Wheat':'Пшеница',
+    'Barley':'Ечемик','Winter barley':'Ечемик зимен','Spring barley':'Ечемик ярен',
+    'Maize':'Царевица','Grain maize':'Царевица за зърно','Silage maize':'Царевица за силаж',
+    'Rye':'Ръж','Winter rye':'Ръж зимна','Oats':'Овес','Triticale':'Тритикале',
+    'Rice':'Ориз','Millet':'Просо','Sorghum':'Сорго',
+    // Маслодайни
+    'Sunflower':'Слънчоглед','Rapeseed':'Рапица','Rape':'Рапица',
+    'Winter rapeseed':'Рапица зимна','Spring rapeseed':'Рапица яра',
+    'Soybean':'Соя','Soybeans':'Соя','Linseed':'Лен',
+    // Кореноплодни
+    'Sugar beet':'Захарно цвекло','Potatoes':'Картофи','Potato':'Картофи',
+    // Протеинови
+    'Lucerne':'Люцерна','Alfalfa':'Люцерна','Clover':'Детелина',
+    'Field peas':'Грах','Peas':'Грах','Beans':'Боб','Broad beans':'Боб',
+    'Lentils':'Леща','Chickpeas':'Нахут','Lupins':'Лупина',
+    // Зеленчуци и плодове
+    'Vegetables':'Зеленчуци','Tomatoes':'Домати','Onions':'Лук',
+    'Fruit':'Овошки','Orchards':'Овошки','Apple':'Ябълки',
+    // Трайни насаждения
+    'Vineyard':'Лозе','Vineyards':'Лозе','Olive':'Маслини','Olives':'Маслини',
+    // Фуражни
+    'Temporary grassland':'Временна ливада','Permanent grassland':'Постоянна ливада',
+    'Grassland':'Ливада','Meadow':'Ливада','Pasture':'Пасище',
+    'Fodder crops':'Фуражни култури','Grass':'Трева',
+    // Специални
+    'Fallow':'Угар','Set-aside':'Угар','Bare soil':'Угар',
+    'Arable land':'Обработваема земя','Mixed crops':'Смесени',
+    'Hemp':'Коноп','Tobacco':'Тютюн','Cotton':'Памук',
+    'Flowers':'Цветя','Ornamental':'Декоративни',
+    // Неземеделски
+    'Forest':'Гора','Woodland':'Гора','Shrubland':'Храсти',
+    'Water':'Вода','Wetland':'Влажна зона',
+    'Urban':'Застроено','Built-up':'Застроено',
+  };
+  // Exact match
+  if(t[eng]) return t[eng];
+  // Case-insensitive match
+  const lower = eng.toLowerCase();
+  for(const [k,v] of Object.entries(t)){
+    if(k.toLowerCase()===lower) return v;
+  }
+  // Partial match
+  for(const [k,v] of Object.entries(t)){
+    if(lower.includes(k.toLowerCase())) return v;
+  }
+  return eng;
 }
 
 function renderEuroCrops(history,parcel){
