@@ -471,3 +471,68 @@ async def get_eucrops(parcel_id: str):
         )
         r.raise_for_status()
         return r.json()
+
+@app.get("/api/crop-history")
+async def crop_history(lat: float, lon: float, radius_km: float = 10):
+    """
+    Get crop history for a location from eucrops_reference table.
+    Uses spatial proximity — finds points within radius_km kilometers.
+    Sources: LUCAS (Bulgaria), EuroCrops (other EU countries).
+    """
+    cache_key = f"crophistory:{lat:.3f}:{lon:.3f}:{radius_km}"
+    cached = cache_get(cache_key)
+    if cached:
+        return {**cached, "_cache": "hit"}
+
+    # Query Supabase — filter by lat/lon bounding box (fast, no PostGIS needed)
+    # 1 degree lat ≈ 111km, 1 degree lon ≈ 111km * cos(lat)
+    import math
+    lat_delta = radius_km / 111.0
+    lon_delta = radius_km / (111.0 * math.cos(math.radians(lat)))
+
+    url = (
+        f"{SUPABASE_URL}/rest/v1/eucrops_reference"
+        f"?lat=gte.{lat - lat_delta}&lat=lte.{lat + lat_delta}"
+        f"&lon=gte.{lon - lon_delta}&lon=lte.{lon + lon_delta}"
+        f"&select=crop_name,crop_code,year,country,nuts3,data_source"
+        f"&order=year.asc"
+    )
+
+    async with make_client(False) as client:
+        r = await client.get(url, headers=supa_headers())
+        r.raise_for_status()
+        points = r.json()
+
+    if not points:
+        return {"found": False, "history": [], "source": "none",
+                "message": "Няма данни за този район. Използва се AI предикция."}
+
+    # Aggregate by year — most common crop per year
+    from collections import Counter
+    by_year = {}
+    for p in points:
+        y = str(p.get("year", ""))
+        c = p.get("crop_name", "Unknown")
+        if y not in by_year:
+            by_year[y] = []
+        by_year[y].append(c)
+
+    history = []
+    for year in sorted(by_year.keys()):
+        most_common = Counter(by_year[year]).most_common(1)[0][0]
+        history.append({"year": year, "crop": most_common})
+
+    # Determine source
+    sources = list(set(p.get("data_source", "") for p in points))
+    source_label = "LUCAS 2022 (Eurostat)" if "lucas_2022" in sources else "EuroCrops v11"
+
+    result = {
+        "found": True,
+        "history": history,
+        "points_found": len(points),
+        "source": source_label,
+        "sources": sources,
+        "_cache": "miss"
+    }
+    cache_set(cache_key, result, 24 * 3600)  # Cache 24h — historical data doesn't change
+    return result
