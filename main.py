@@ -378,3 +378,95 @@ Respond ONLY in JSON format: {"crop": "name_in_Bulgarian", "confidence": 0-100, 
 
     cache_set(cache_key, result, 6 * 3600)
     return result
+
+# ── Supabase integration ───────────────────────────────
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://jmqwasmthyxdppbcpwis.supabase.co")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptcXdhc210aHl4ZHBwYmNwd2lzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMTkyNTAsImV4cCI6MjA5MjY5NTI1MH0.1NTo3BfnlflQ6f2uo1InNxug9hl1MoPcMsQ_5QLEFDk")
+
+def supa_headers():
+    return {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation"
+    }
+
+@app.post("/api/parcels")
+async def save_parcel(body: dict):
+    """Save parcel to Supabase"""
+    payload = {
+        "name": body.get("name"),
+        "crop": body.get("crop"),
+        "area_ha": body.get("area"),
+        "source": body.get("source", "drawn"),
+        "lpis_id": body.get("lpis_id"),
+    }
+    # Convert coords to WKT polygon for PostGIS
+    coords = body.get("coords", [])
+    if coords:
+        pts = ", ".join(f"{c[1]} {c[0]}" for c in coords)
+        # Close the ring
+        first = f"{coords[0][1]} {coords[0][0]}"
+        payload["geom"] = f"SRID=4326;POLYGON(({pts}, {first}))"
+
+    async with make_client(False) as client:
+        r = await client.post(
+            f"{SUPABASE_URL}/rest/v1/parcels",
+            headers=supa_headers(),
+            json=payload
+        )
+        if r.status_code not in (200, 201):
+            raise HTTPException(r.status_code, f"Supabase error: {r.text}")
+        return r.json()
+
+@app.get("/api/parcels")
+async def get_parcels():
+    """Get all parcels from Supabase"""
+    async with make_client(False) as client:
+        r = await client.get(
+            f"{SUPABASE_URL}/rest/v1/parcels?select=*&order=created_at.desc",
+            headers=supa_headers()
+        )
+        r.raise_for_status()
+        return r.json()
+
+@app.delete("/api/parcels/{parcel_id}")
+async def delete_parcel(parcel_id: str):
+    """Delete parcel from Supabase"""
+    async with make_client(False) as client:
+        r = await client.delete(
+            f"{SUPABASE_URL}/rest/v1/parcels?id=eq.{parcel_id}",
+            headers=supa_headers()
+        )
+        r.raise_for_status()
+        return {"deleted": parcel_id}
+
+@app.post("/api/parcels/{parcel_id}/eucrops")
+async def save_eucrops(parcel_id: str, body: dict):
+    """Save EuroCrops history for a parcel"""
+    rows = [
+        {"parcel_id": parcel_id, "year": h["y"], "crop": h["c"],
+         "source": "eucrops_v11", "country_code": "BG"}
+        for h in body.get("history", [])
+    ]
+    if not rows:
+        return {"saved": 0}
+    async with make_client(False) as client:
+        r = await client.post(
+            f"{SUPABASE_URL}/rest/v1/eucrops_history",
+            headers={**supa_headers(), "Prefer": "return=minimal"},
+            json=rows
+        )
+        r.raise_for_status()
+        return {"saved": len(rows)}
+
+@app.get("/api/parcels/{parcel_id}/eucrops")
+async def get_eucrops(parcel_id: str):
+    """Get EuroCrops history for a parcel"""
+    async with make_client(False) as client:
+        r = await client.get(
+            f"{SUPABASE_URL}/rest/v1/eucrops_history?parcel_id=eq.{parcel_id}&order=year.asc",
+            headers=supa_headers()
+        )
+        r.raise_for_status()
+        return r.json()
