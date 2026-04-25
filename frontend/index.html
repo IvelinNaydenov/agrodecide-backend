@@ -432,15 +432,23 @@ async function saveParcelsToSupabase(p){
 async function loadNDVIClassification(p){
   const body=document.getElementById('ndvi-cls-body');
   const spin=document.getElementById('ndvi-cls-spin');
-  if(!body)return;spin.style.display='inline-block';
+  if(!body) return null;
+  spin.style.display='inline-block';
   body.innerHTML='<div class="loading-card"><span class="spin"></span> Анализирам Sentinel-2 времева серия...</div>';
   try{
     const r=await fetch(`${BACKEND}/api/ndvi/classify?lat=${p.lat}&lon=${p.lon}&days=180`);
-    const data=await r.json();const cls=data.classification;
-    const conf=cls.confidence||0;const confCls=conf>=70?'bg-green':conf>=50?'bg-amber':'bg-red';
+    const data=await r.json();
+    const cls=data.classification;
+    const conf=cls.confidence||0;
+    const confCls=conf>=70?'bg-green':conf>=50?'bg-amber':'bg-red';
     body.innerHTML=`<div class="cls-result"><div class="cls-name">${cls.crop||'—'}</div><span class="badge ${confCls}">${conf}%</span></div><div class="cls-reason">${cls.reasoning||''}</div>${cls.rotation_hint?`<div class="cls-hint">💡 ${cls.rotation_hint}</div>`:''}<div class="cls-series">${data.series_summary||''}</div>`;
-  }catch(e){body.innerHTML=`<div style="color:var(--red);font-size:13px">Грешка: ${e.message}</div>`;}
-  spin.style.display='none';
+    spin.style.display='none';
+    return {crop: cls.crop, confidence: conf, reasoning: cls.reasoning};
+  }catch(e){
+    body.innerHTML=`<div style="color:var(--red);font-size:13px">Грешка: ${e.message}</div>`;
+    spin.style.display='none';
+    return null;
+  }
 }
 
 async function selectParcel(i){
@@ -451,14 +459,16 @@ async function selectParcel(i){
   document.getElementById('an-empty').style.display='none';
   document.getElementById('an-content').style.display='block';
   let history=getEuroCropsHistory(p.lat,p.lon);
-  loadNDVIClassification(p);
-  // Load real crop history async
-  loadRealCropHistory(p).then(realHist=>{
-    if(realHist&&realHist.length>0)history=realHist;
-    generatePrediction(p,history);
-  });
-  // Show simulated while loading
   renderSimulatedHistory(history);
+
+  // Run NDVI classification and crop history in parallel
+  Promise.all([
+    loadNDVIClassification(p),
+    loadRealCropHistory(p)
+  ]).then(([ndviResult, realHist])=>{
+    if(realHist&&realHist.length>0) history=realHist;
+    generatePrediction(p, history, ndviResult);
+  });
   try{
     const m=await fetch(`${BACKEND}/api/meteo?lat=${p.lat}&lon=${p.lon}`).then(r=>r.json());
     const cur=m.current;
@@ -524,19 +534,61 @@ function renderEuroCrops(history,parcel){
   renderSimulatedHistory(history);
 }
 
-async function generatePrediction(parcel,history){
+async function generatePrediction(parcel, history, ndviResult){
   document.getElementById('pred-text').textContent='Анализирам...';
-  const histStr=history.map(h=>`${h.y}: ${h.c}`).join(', ');
-  const q=`Въз основа на сеитбообращението (${histStr}) и метео данните, дай прогноза за 2026: 1) оптимална култура, 2) очакван добив, 3) основен риск. До 3 изречения.`;
-  chatH.push({role:'user',parts:[{text:q}]});
+  const histStr = history.map(h=>`${h.y||h.year}: ${h.c||h.crop}`).join(', ');
+
+  // Build fusion context
+  let ndviContext = '';
+  let conflictNote = '';
+  if(ndviResult && ndviResult.crop){
+    ndviContext = `NDVI КЛАСИФИКАЦИЯ (Sentinel-2, тази година): ${ndviResult.crop} · Сигурност: ${ndviResult.confidence}%`;
+    // Detect conflict between NDVI and historical data
+    const lastHistCrop = history.length>0 ? (history[history.length-1].c||history[history.length-1].crop||'') : '';
+    if(ndviResult.confidence>=70 && lastHistCrop && !lastHistCrop.toLowerCase().includes(ndviResult.crop.toLowerCase())){
+      conflictNote = `ВАЖНО: NDVI показва "${ndviResult.crop}" тази година но историята показва "${lastHistCrop}" за последната година. При ≥70% сигурност NDVI е по-надеждно (реални спътникови данни за текущата година).`;
+    }
+  }
+
+  const q = ndviResult
+    ? `Анализирай следните данни за парцела и дай агрономска прогноза за 2026:
+
+${ndviContext}
+ИСТОРИЧЕСКИ ДАННИ: ${histStr}
+${conflictNote}
+
+Дай: 1) Потвърди или коригирай текущата култура въз основа на NDVI, 2) Препоръчай оптималната следваща култура за ротацията, 3) Очакван добив, 4) Основен риск. До 4 изречения. Ако има конфликт между NDVI и историята — обясни.`
+    : `Въз основа на сеитбообращението (${histStr}) и метео данните, дай прогноза за 2026: 1) оптимална култура, 2) очакван добив, 3) основен риск. До 3 изречения.`;
+
+  chatH.push({role:'user', parts:[{text:q}]});
   try{
-    const r=await fetch(`${BACKEND}/api/ai`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:buildSys(parcel,histStr),contents:chatH})}).then(r=>r.json());
+    const r=await fetch(`${BACKEND}/api/ai`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({system:buildSys(parcel,histStr,ndviResult),contents:chatH})
+    }).then(r=>r.json());
     document.getElementById('pred-text').textContent=r.text||'—';
     chatH.push({role:'model',parts:[{text:r.text}]});
-  }catch(e){document.getElementById('pred-text').textContent='Грешка при AI връзка.';}
+  }catch(e){
+    document.getElementById('pred-text').textContent='Грешка при AI връзка.';
+  }
 }
 
-function buildSys(p,histStr){return `Ти си AI агроном за AgroDecide. Отговаряй кратко и конкретно на БЪЛГАРСКИ.\nПАРЦЕЛ: ${p?.name||'—'} · ${p?.crop||'—'} · ${p?.area?.toFixed(2)||'—'}ха\nEURОCROPS: ${histStr}\nМЕТЕО: темп ${meteoData.temp?.toFixed(1)||'—'}°C, ET₀ ${meteoData.et0?.toFixed(2)||'—'} мм/д, валежи 7д ${meteoData.rain7?.toFixed(1)||'—'} мм\nДАТА: ${new Date().toLocaleDateString('bg-BG')}`;}
+function buildSys(p, histStr, ndviResult){
+  const ndviLine = ndviResult
+    ? `NDVI КЛАСИФИКАЦИЯ (Sentinel-2, текуща година): ${ndviResult.crop} · ${ndviResult.confidence}% сигурност`
+    : 'NDVI: няма данни';
+  const priorityRule = ndviResult && ndviResult.confidence>=70
+    ? 'ПРАВИЛО: NDVI ≥70% сигурност → приоритизирай спътниковите данни над историческите.'
+    : 'ПРАВИЛО: NDVI <70% сигурност → ползвай историческите данни като основен сигнал.';
+  return `Ти си AI агроном за AgroDecide. Отговаряй кратко и конкретно на БЪЛГАРСКИ.
+ПАРЦЕЛ: ${p?.name||'—'} · ${p?.crop||'—'} · ${p?.area?.toFixed(2)||'—'}ха · ${p?.lat?.toFixed(4)||'—'}°N
+${ndviLine}
+EUROCROPS/LUCAS ИСТОРИЯ: ${histStr}
+МЕТЕО LIVE: темп ${meteoData.temp?.toFixed(1)||'—'}°C, ET₀ ${meteoData.et0?.toFixed(2)||'—'} мм/д, валежи 7д ${meteoData.rain7?.toFixed(1)||'—'} мм
+${priorityRule}
+ДАТА: ${new Date().toLocaleDateString('bg-BG')}
+При конфликт между NDVI и историческите данни — обясни разликата накратко.`;
+}
 
 function addMsg(cont,role,txt){const d=document.createElement('div');d.className='msg '+role;d.textContent=txt;cont.appendChild(d);cont.scrollTop=cont.scrollHeight;return d;}
 function addLoad(cont){const d=document.createElement('div');d.className='msg loading';d.innerHTML='<div class="dots"><span></span><span></span><span></span></div>';cont.appendChild(d);cont.scrollTop=cont.scrollHeight;return d;}
