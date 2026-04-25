@@ -69,7 +69,7 @@ html,body{height:100%;font-family:'Space Grotesk',sans-serif;background:#f0ede6;
 .draw-hint{position:absolute;bottom:10px;left:10px;z-index:1000;background:rgba(29,158,117,.93);color:white;border-radius:9px;padding:7px 12px;font-size:10px;font-weight:500;display:none;box-shadow:0 2px 8px rgba(0,0,0,.15)}
 
 /* Right analysis panel */
-.rp{width:310px;flex-shrink:0;border-left:0.5px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;min-height:0;background:var(--s)}
+.rp{width:275px;flex-shrink:0;border-left:0.5px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;min-height:0;background:var(--s)}
 .rp-head{padding:10px 13px;border-bottom:0.5px solid var(--bd);flex-shrink:0}
 .rp-scroll{flex:1;overflow-y:auto;padding:10px 12px;min-height:0}
 .ec-year{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--bd)}
@@ -128,7 +128,7 @@ html,body{height:100%;font-family:'Space Grotesk',sans-serif;background:#f0ede6;
     <button class="ntab on" onclick="switchView('map',this)">Карта</button>
     <button class="ntab" onclick="switchView('analysis',this)">Анализ</button>
   </div>
-  <span class="nav-tag" style="background:var(--bl);color:var(--b);margin-left:6px">Sentinel-2 NDVI · Groq AI</span>
+  <span class="nav-tag" style="background:var(--pl);color:var(--p);margin-left:6px">Sentinel-2 · Groq AI</span>
 </div>
 
 <div class="body">
@@ -179,27 +179,6 @@ html,body{height:100%;font-family:'Space Grotesk',sans-serif;background:#f0ede6;
     </div>
     <div class="rp-scroll">
       <div id="pred-section" style="display:none">
-        <!-- NDVI Classification Card -->
-        <div class="pred-card" id="ndvi-class-card" style="background:var(--bl);border-color:var(--b);margin-bottom:8px;display:none">
-          <div class="pred-title" style="color:var(--b)">🛰 NDVI класификация <span style="font-size:9px;background:var(--b);color:#fff;padding:1px 6px;border-radius:6px;font-weight:500">Sentinel-2 Statistical API</span></div>
-          <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
-            <span id="ndvi-crop" style="font-size:16px;font-weight:600;color:var(--t)">—</span>
-            <span id="ndvi-conf" style="font-size:11px;color:var(--t2)">—</span>
-          </div>
-          <div id="ndvi-scores" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px"></div>
-          <div id="ndvi-status" style="font-size:10px;color:var(--t2)"></div>
-        </div>
-
-        <!-- NDVI Chart -->
-        <div style="margin-bottom:8px;border:0.5px solid var(--bd);border-radius:9px;padding:8px;background:var(--s)">
-          <div class="sbl" style="margin-bottom:6px;display:flex;align-items:center;gap:5px">
-            NDVI времева серия · 180 дни <span class="spin" id="ndvi-spin" style="display:none"></span>
-          </div>
-          <canvas id="ndvi-chart" style="width:100%;height:120px"></canvas>
-          <div id="ndvi-nodata" style="font-size:10px;color:var(--t2);text-align:center;padding:10px 0;display:none">Зареждане на NDVI данни от Sentinel-2...</div>
-        </div>
-
-        <!-- AI Prediction -->
         <div class="pred-card">
           <div class="pred-title">🤖 AI Предикция <span style="font-size:9px;background:var(--p);color:#fff;padding:1px 6px;border-radius:6px;font-weight:500">Groq LLaMA 3.3</span></div>
           <div class="pred-text" id="pred-text">—</div>
@@ -210,7 +189,7 @@ html,body{height:100%;font-family:'Space Grotesk',sans-serif;background:#f0ede6;
           <div class="metric-row"><span>ET₀ мм/д</span><span class="metric-val" id="m-et">—</span></div>
           <div class="metric-row"><span>Влажност</span><span class="metric-val" id="m-hum">—</span></div>
           <div class="metric-row"><span>Валежи 7д мм</span><span class="metric-val" id="m-rain">—</span></div>
-          <div class="metric-row"><span>NDVI (реален)</span><span class="metric-val" id="m-ndvi">—</span></div>
+          <div class="metric-row"><span>NDVI</span><span class="metric-val" id="m-ndvi">—</span></div>
         </div>
       </div>
     </div>
@@ -253,7 +232,6 @@ html,body{height:100%;font-family:'Space Grotesk',sans-serif;background:#f0ede6;
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
 const BACKEND = 'https://agrodecide-backend.onrender.com';
 const WMS_BACKEND = `${BACKEND}/api/wms`;
@@ -465,167 +443,19 @@ async function selectParcel(i) {
   renderEuroCrops(history,p);
   document.getElementById('ec-spin').style.display='none';
 
-  // Fetch meteo
   try {
     const m = await fetch(`${BACKEND}/api/meteo?lat=${p.lat}&lon=${p.lon}`).then(r=>r.json());
     const cur=m.current;
     const et0=(m.hourly?.et0_fao_evapotranspiration||[]).slice(0,24).reduce((a,b)=>a+b,0)/24||3.5;
     const rain7=(m.daily?.precipitation_sum||[]).slice(0,7).reduce((a,b)=>a+(b||0),0);
-    meteoData={temp:cur.temperature_2m,hum:cur.relative_humidity_2m,et0,rain7,ndvi:0};
+    const ndvi=Math.min(0.95,Math.max(0.05,0.62+(rain7-et0*7)/28*.15));
+    meteoData={temp:cur.temperature_2m,hum:cur.relative_humidity_2m,et0,rain7,ndvi};
     document.getElementById('m-temp').textContent=cur.temperature_2m?.toFixed(1)+'°C';
     document.getElementById('m-et').textContent=et0.toFixed(1);
     document.getElementById('m-hum').textContent=cur.relative_humidity_2m?.toFixed(0)+'%';
     document.getElementById('m-rain').textContent=rain7.toFixed(1)+' мм';
-  } catch(e) { console.warn('Meteo error:',e); }
-
-  // Fetch REAL NDVI from Sentinel-2 Statistical API
-  loadNDVI(p, history);
-
-  await generatePrediction(p, history);
-}
-
-let ndviChart = null;
-async function loadNDVI(p, history) {
-  const spin = document.getElementById('ndvi-spin');
-  const nodata = document.getElementById('ndvi-nodata');
-  const classCard = document.getElementById('ndvi-class-card');
-  spin.style.display='inline-block';
-  nodata.style.display='block';
-  nodata.textContent='Зареждане на NDVI данни от Sentinel-2 Statistical API...';
-  classCard.style.display='none';
-
-  try {
-    const r = await fetch(`${BACKEND}/api/ndvi/timeseries`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({lat:p.lat, lon:p.lon, days:180, bbox_size:0.01})
-    });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const data = await r.json();
-    const ts = data.timeseries || [];
-
-    if (ts.length === 0) {
-      nodata.textContent='Няма NDVI данни за този период. Опитайте с по-голям bbox.';
-      spin.style.display='none';
-      return;
-    }
-
-    nodata.style.display='none';
-
-    // Update the NDVI metric with latest real value
-    const latestNDVI = ts[ts.length-1]?.mean;
-    if (latestNDVI !== undefined) {
-      meteoData.ndvi = latestNDVI;
-      document.getElementById('m-ndvi').textContent = latestNDVI.toFixed(3);
-      document.getElementById('m-ndvi').style.color =
-        latestNDVI >= 0.6 ? 'var(--gd)' : latestNDVI >= 0.3 ? 'var(--a)' : 'var(--r)';
-    }
-
-    // Render NDVI chart
-    renderNDVIChart(ts);
-
-    // Show classification
-    const cls = data.classification || {};
-    if (cls.crop && cls.crop !== 'Недостатъчно данни') {
-      classCard.style.display='block';
-      document.getElementById('ndvi-crop').textContent = cls.crop;
-      document.getElementById('ndvi-conf').textContent = `${cls.confidence}% увереност`;
-
-      // Top 3 scores as pills
-      const scoresEl = document.getElementById('ndvi-scores');
-      const topScores = Object.entries(cls.scores || {}).slice(0, 4);
-      scoresEl.innerHTML = topScores.map(([crop, pct]) => {
-        const bg = crop === cls.crop ? 'var(--gl);color:var(--gd);font-weight:600' : 'var(--s2);color:var(--t2)';
-        return `<span style="font-size:9px;padding:2px 7px;border-radius:8px;background:${bg}">${crop} ${pct}%</span>`;
-      }).join('');
-
-      document.getElementById('ndvi-status').textContent =
-        `${ts.length} точки · ${data.period?.from} — ${data.period?.to} · Sentinel-2 L2A`;
-    }
-
-  } catch(e) {
-    console.warn('NDVI error:', e);
-    nodata.textContent = 'Грешка при зареждане на NDVI: ' + e.message;
-    nodata.style.display = 'block';
-  }
-  spin.style.display='none';
-}
-
-function renderNDVIChart(ts) {
-  const ctx = document.getElementById('ndvi-chart');
-  if (ndviChart) { ndviChart.destroy(); }
-
-  const labels = ts.map(t => t.date.slice(5)); // MM-DD
-  const means = ts.map(t => t.mean);
-  const mins = ts.map(t => t.min);
-  const maxs = ts.map(t => t.max);
-
-  ndviChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: 'NDVI макс.',
-          data: maxs,
-          borderColor: 'rgba(29,158,117,0.2)',
-          backgroundColor: 'rgba(29,158,117,0.06)',
-          fill: '+1',
-          pointRadius: 0,
-          borderWidth: 1,
-          tension: 0.3
-        },
-        {
-          label: 'NDVI средно',
-          data: means,
-          borderColor: '#1D9E75',
-          backgroundColor: 'rgba(29,158,117,0.15)',
-          fill: false,
-          pointRadius: 2,
-          pointBackgroundColor: '#1D9E75',
-          borderWidth: 2,
-          tension: 0.3
-        },
-        {
-          label: 'NDVI мин.',
-          data: mins,
-          borderColor: 'rgba(29,158,117,0.2)',
-          backgroundColor: 'transparent',
-          fill: false,
-          pointRadius: 0,
-          borderWidth: 1,
-          tension: 0.3
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          titleFont: { family: 'Space Grotesk', size: 10 },
-          bodyFont: { family: 'JetBrains Mono', size: 10 },
-          callbacks: {
-            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(3)}`
-          }
-        }
-      },
-      scales: {
-        x: {
-          ticks: { font: { family: 'JetBrains Mono', size: 8 }, maxRotation: 45, maxTicksLimit: 10 },
-          grid: { display: false }
-        },
-        y: {
-          min: -0.1, max: 1,
-          ticks: { font: { family: 'JetBrains Mono', size: 9 }, stepSize: 0.2 },
-          grid: { color: 'rgba(0,0,0,0.05)' }
-        }
-      }
-    }
-  });
-}
+    document.getElementById('m-ndvi').textContent=ndvi.toFixed(3);
+  } catch(e) { console.warn(e); }
 
   await generatePrediction(p, history);
 }
@@ -663,13 +493,10 @@ async function generatePrediction(parcel, history) {
 }
 
 function buildSys(p, histStr) {
-  const ndviInfo = meteoData.ndvi ? `NDVI (Sentinel-2 реален): ${meteoData.ndvi?.toFixed(3)||'—'}` : 'NDVI: изчаква се';
   return `Ти си AI агроном за AgroDecide. Отговаряй кратко и конкретно на БЪЛГАРСКИ.
 ПАРЦЕЛ: ${p?.name||'—'} · ${p?.crop||'—'} · ${p?.area?.toFixed(2)||'—'}ха · ${p?.lat?.toFixed(4)||'—'}°N ${p?.lon?.toFixed(4)||'—'}°E
 EUРОCROPS ИСТОРИЯ: ${histStr}
-МЕТЕО LIVE (OpenMeteo): темп ${meteoData.temp?.toFixed(1)||'—'}°C, ET₀ ${meteoData.et0?.toFixed(2)||'—'} мм/д, валежи 7д ${meteoData.rain7?.toFixed(1)||'—'} мм
-${ndviInfo}
-NDVI класификация на културата е направена от Sentinel-2 Statistical API (реални спътникови данни, не симулация).
+МЕТЕО LIVE (OpenMeteo): темп ${meteoData.temp?.toFixed(1)||'—'}°C, ET₀ ${meteoData.et0?.toFixed(2)||'—'} мм/д, валежи 7д ${meteoData.rain7?.toFixed(1)||'—'} мм, NDVI ${meteoData.ndvi?.toFixed(3)||'—'}
 ДАТА: ${new Date().toLocaleDateString('bg-BG')}`;
 }
 
