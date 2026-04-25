@@ -488,15 +488,26 @@ function qa(q){document.getElementById('ai-in').value=q;send();}
 function locateMe(){
   const btn=document.getElementById('btn-locate');
   btn.textContent='⏳';
-  map.locate({setView:true,maxZoom:15,enableHighAccuracy:true});
-  map.once('locationfound',function(e){
-    btn.textContent='📍';
-    L.circleMarker(e.latlng,{radius:8,color:'#0F6E56',fillColor:'#1D9E75',fillOpacity:.8,weight:2}).addTo(map).bindPopup('Вие сте тук<br>±'+Math.round(e.accuracy)+'м').openPopup();
-  });
-  map.once('locationerror',function(){
-    btn.textContent='📍';
-    alert('Геолокацията не е разрешена или недостъпна.');
-  });
+  if(!navigator.geolocation){alert('Геолокацията не се поддържа от браузъра.');btn.textContent='📍';return;}
+  navigator.geolocation.getCurrentPosition(
+    function(pos){
+      btn.textContent='📍';
+      const lat=pos.coords.latitude, lon=pos.coords.longitude, acc=pos.coords.accuracy;
+      const latlng=L.latLng(lat,lon);
+      map.setView(latlng,15);
+      // Remove previous location marker if exists
+      if(window._locMarker) map.removeLayer(window._locMarker);
+      if(window._locCircle) map.removeLayer(window._locCircle);
+      window._locCircle=L.circle(latlng,{radius:acc,color:'#1D9E75',fillColor:'#1D9E75',fillOpacity:.1,weight:1}).addTo(map);
+      window._locMarker=L.circleMarker(latlng,{radius:8,color:'#0F6E56',fillColor:'#1D9E75',fillOpacity:.9,weight:2.5}).addTo(map).bindPopup('📍 Вие сте тук<br><small>±'+Math.round(acc)+' м точност</small>').openPopup();
+    },
+    function(err){
+      btn.textContent='📍';
+      const msgs={1:'Разрешете достъп до местоположение в настройките на браузъра.',2:'Местоположението е недостъпно.',3:'Заявката отне твърде дълго.'};
+      alert(msgs[err.code]||'Грешка при геолокация.');
+    },
+    {enableHighAccuracy:true,timeout:10000,maximumAge:30000}
+  );
 }
 
 function navSwitch(name,btn){
