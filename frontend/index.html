@@ -450,8 +450,15 @@ async function selectParcel(i){
   document.getElementById('an-meta').textContent=`${p.crop} · ${p.area.toFixed(2)} ха · ${p.lat.toFixed(4)}°N`;
   document.getElementById('an-empty').style.display='none';
   document.getElementById('an-content').style.display='block';
-  const history=getEuroCropsHistory(p.lat,p.lon);
-  renderEuroCrops(history,p);loadNDVIClassification(p);
+  let history=getEuroCropsHistory(p.lat,p.lon);
+  loadNDVIClassification(p);
+  // Load real crop history async
+  loadRealCropHistory(p).then(realHist=>{
+    if(realHist&&realHist.length>0)history=realHist;
+    generatePrediction(p,history);
+  });
+  // Show simulated while loading
+  renderSimulatedHistory(history);
   try{
     const m=await fetch(`${BACKEND}/api/meteo?lat=${p.lat}&lon=${p.lon}`).then(r=>r.json());
     const cur=m.current;
@@ -464,12 +471,57 @@ async function selectParcel(i){
     document.getElementById('m-et').textContent=et0.toFixed(1)+' мм';
     document.getElementById('m-rain').textContent=rain7.toFixed(1)+' мм';
   }catch(e){console.warn(e);}
-  await generatePrediction(p,history);
+  // prediction generated after crop history loads
+}
+
+async function loadRealCropHistory(p){
+  const el=document.getElementById('ec-content');
+  const spin=document.getElementById('ec-spin');
+  spin.style.display='inline-block';
+  el.innerHTML='<div style="padding:12px;color:var(--text3);font-size:13px"><span class="spin"></span> Зарежда реални данни...</div>';
+  try{
+    const r=await fetch(`${BACKEND}/api/crop-history?lat=${p.lat}&lon=${p.lon}&radius_km=10`);
+    const data=await r.json();
+    if(data.found && data.history.length>0){
+      const rows=data.history.map(h=>{
+        const cropBG=translateCrop(h.crop);
+        const color=CROP_COLORS[cropBG]||'#808080';
+        return `<div class="ec-row"><span class="ec-yr">${h.year}</span><div class="ec-dot" style="background:${color}"></div><span class="ec-crop">${cropBG}</span></div>`;
+      }).join('');
+      el.innerHTML=rows+`<div style="font-size:11px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">Източник: ${data.source} · ${data.points_found} точки · CC-BY 4.0</div>`;
+      return data.history.map(h=>({y:h.year,c:translateCrop(h.crop)}));
+    } else {
+      // Fallback to simulated
+      const hist=getEuroCropsHistory(p.lat,p.lon);
+      renderSimulatedHistory(hist);
+      return hist;
+    }
+  }catch(e){
+    const hist=getEuroCropsHistory(p.lat,p.lon);
+    renderSimulatedHistory(hist);
+    return hist;
+  }finally{
+    spin.style.display='none';
+  }
+}
+
+function renderSimulatedHistory(history){
+  const el=document.getElementById('ec-content');
+  const rows=history.map(h=>`<div class="ec-row"><span class="ec-yr">${h.y}</span><div class="ec-dot" style="background:${CROP_COLORS[h.c]||'#aaa'}"></div><span class="ec-crop">${h.c}</span><span style="font-size:9px;color:var(--text3);margin-left:4px">~</span></div>`).join('');
+  el.innerHTML=rows+`<div style="font-size:11px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">Симулирано · Добави реални данни чрез ДФЗ партньорство</div>`;
+}
+
+function translateCrop(eng){
+  const t={'Common wheat':'Пшеница','Soft wheat':'Пшеница','Winter wheat':'Пшеница озима',
+    'Sunflower':'Слънчоглед','Rapeseed':'Рапица','Maize':'Царевица','Barley':'Ечемик',
+    'Sugar beet':'Захарно цвекло','Soybean':'Соя','Lucerne':'Люцерна',
+    'Fallow':'Угар','Vineyard':'Лозе','Fruit':'Овошки','Vegetables':'Зеленчуци'};
+  return t[eng]||eng;
 }
 
 function renderEuroCrops(history,parcel){
-  const rows=history.map(h=>`<div class="ec-row"><span class="ec-yr">${h.y}</span><div class="ec-dot" style="background:${CROP_COLORS[h.c]||'#aaa'}"></div><span class="ec-crop">${h.c}</span>${h.y==='2024'?'<span class="ec-tag">EuroCrops</span>':''}</div>`).join('');
-  document.getElementById('ec-content').innerHTML=rows+`<div style="font-size:11px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">Източник: EuroCrops (DLR/BMWK) · CC-BY 4.0</div>`;
+  // Legacy — used as fallback
+  renderSimulatedHistory(history);
 }
 
 async function generatePrediction(parcel,history){
