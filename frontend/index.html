@@ -289,7 +289,7 @@ html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans'
       <div class="desk-view" id="cv-stac">
         <div class="card">
           <div class="card-title">Copernicus Data Space · Sentinel-2 L2A <span class="badge" id="stac-badge" style="background:var(--al);color:var(--a)">—</span></div>
-          <div id="stac-list"><div style="font-size:11px;color:var(--t3)">Избери парцел, след което кликни таба.</div></div>
+          <div id="stac-list"><div style="font-size:11px;color:var(--t3)">Кликни таба след като избереш парцел.</div></div>
         </div>
       </div>
 
@@ -611,6 +611,13 @@ async function selectParcel(i){
   document.getElementById('d-chat').innerHTML='<div class="msg ai">Анализирам парцела...</div>';
   document.getElementById('d-pred-text').textContent='Анализирам...';
   document.getElementById('ctx-tag').textContent='—';
+  // Reset indicators
+  ['bi-ndvi','bi-hum','bi-et','bi-spi'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.width='0%';});
+  ['vi-ndvi','vi-hum','vi-et','vi-spi','ov-ndvi','ov-temp','ov-et','w-tmp','w-wnd','w-hum','w-et','w-rn'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='—';});
+  document.getElementById('w-dsc').textContent='Зарежда...';
+  document.getElementById('w-ico').textContent='⛅';
+  // Store current parcel for STAC lazy load
+  window._stacP=p;
 
   // Parallel: NDVI + EuroCrops
   const[ndviRes,history]=await Promise.all([loadNDVI(p),loadEuroCrops(p)]);
@@ -652,13 +659,28 @@ async function selectParcel(i){
       setSrc('ss-meteo','var(--gl)','var(--g)','Live');
       if(m.daily)drawForecast(m.daily);
       if(m.daily)drawMeteoCharts(m.daily);
-      // NDVI 90-day history
-      try{
-        const hist=await fetch(`${BACKEND}/api/meteo/history?lat=${p.lat}&lon=${p.lon}&days=90`).then(r=>r.json());
-        if(hist.daily?.time)drawNDVI90(hist,p.crop);
-      }catch(e){};
     }
   }catch(e){setPill('pl-meteo','pill p-warn','OpenMeteo !');}
+
+  // Real NDVI from Sentinel-2 Statistical API
+  try{
+    const rn=await fetch(`${BACKEND}/api/ndvi/real?lat=${p.lat}&lon=${p.lon}&days=90`).then(r=>r.json());
+    if(rn.current_ndvi!=null){
+      setBar('bi-ndvi','vi-ndvi',rn.current_ndvi*100,rn.current_ndvi.toFixed(3));
+      document.getElementById('ov-ndvi').textContent=rn.current_ndvi.toFixed(3);
+      document.getElementById('ctx-tag').textContent=`NDVI ${rn.current_ndvi.toFixed(3)} · ET₀ ${meteoData.et0?.toFixed(1)||'—'}`;
+      setPill('pl-cop','pill p-live','Copernicus ✓');
+      setSrc('ss-cop','var(--gl)','var(--g)',`Live · ${rn.series_count} сцени`);
+    }
+    if(rn.series?.length>0)drawNDVI90Real(rn.series);
+    else throw new Error('no series');
+  }catch(e){
+    // Fallback — meteo-derived NDVI
+    try{
+      const hist=await fetch(`${BACKEND}/api/meteo/history?lat=${p.lat}&lon=${p.lon}&days=90`).then(r=>r.json());
+      if(hist.daily?.time)drawNDVI90(hist,p.crop);
+    }catch(e2){}
+  }
 
   // AI prediction
   await generatePrediction(p,history||getSimHistory(p.lat,p.lon),ndviResult);
@@ -684,7 +706,15 @@ function drawNDVI90(hist,crop){
   charts['c-ndvi90']=new Chart(ctx,{type:'line',data:{labels:dates.map(d=>d.slice(5)),datasets:[{label:'NDVI',data:series,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.08)',borderWidth:1.5,tension:.3,pointRadius:0,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:0,max:1,ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9},maxTicksLimit:12},grid:{display:false}}}}});
 }
 
-let dc_=id=>{if(charts[id]){charts[id].destroy();delete charts[id];}};
+function drawNDVI90Real(series){
+  dc_('c-ndvi90');
+  const ctx=document.getElementById('c-ndvi90')?.getContext('2d');if(!ctx)return;
+  const labels=series.map(s=>s.date.slice(5));
+  const values=series.map(s=>s.ndvi);
+  charts['c-ndvi90']=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'NDVI (Sentinel-2)',data:values,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.1)',borderWidth:2,tension:.3,pointRadius:3,pointBackgroundColor:'#1D9E75',fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:9},boxWidth:8}},tooltip:{callbacks:{label:ctx=>`NDVI: ${ctx.parsed.y.toFixed(4)}`}}},scales:{y:{min:0,max:1,ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9},maxTicksLimit:10},grid:{display:false}}}}});
+}
+
+let dc_=id=>{if(charts[id]){charts[id].destroy();delete charts[id];}};;
 
 function drawForecast(daily){
   if(!daily?.time)return;dc_('c-forecast');
