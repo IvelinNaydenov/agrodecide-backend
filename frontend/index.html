@@ -68,7 +68,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--s2);font-fa
   .t-tabs{display:flex}
   .t-pills{display:flex}
   .t-actions{display:none}
-  .bottomnav{display:none}
+  .bottomnav{display:none!important}
 
   /* 3-column layout */
   .col-left{display:flex;flex-direction:column;width:230px;flex-shrink:0;border-right:1px solid var(--bd2);background:var(--s);overflow:hidden}
@@ -86,7 +86,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--s2);font-fa
 
 @media(max-width:767px){
   .col-left,.col-right{display:none}
-  .col-center,.bottomnav{display:none}
+  .col-center,.bottomnav{display:none!important}
 }
 
 /* ── LEFT COLUMN ── */
@@ -276,14 +276,6 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--s2);font-fa
 .st-live{background:#16a34a;animation:blink 2s infinite}
 .st-warn{background:#d97706}
 
-/* ── Bottom Nav ── */
-.bottomnav{display:flex;height:calc(60px + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);flex-shrink:0;background:var(--s);border-top:1.5px solid var(--bd2);box-shadow:0 -2px 12px rgba(0,0,0,.08);z-index:100}
-.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:transparent;color:var(--t3);font-family:'DM Sans',sans-serif;font-size:10px;font-weight:500;cursor:pointer;padding:6px 4px}
-.bnav-btn .icon{font-size:22px;line-height:1}
-.bnav-btn.on{color:var(--g)}
-.bnav-ind{width:22px;height:3px;border-radius:2px;margin-top:2px}
-.bnav-btn.on .bnav-ind{background:var(--g)}
-
 /* ── Modal ── */
 .modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:none;align-items:flex-end;justify-content:center}
 .modal-ov.show{display:flex}
@@ -331,7 +323,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--s2);font-fa
   <div class="t-tabs">
     <button class="t-tab on" onclick="deskTab('farmer',this)">🌾 Фермер</button>
     <button class="t-tab" onclick="deskTab('policy',this)">📊 Политик</button>
-    <button class="t-tab" onclick="deskTab('debug',this)">🔧 Debug</button>
+    
   </div>
 
   <!-- Desktop status pills -->
@@ -623,11 +615,6 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--s2);font-fa
 
     </div>
 
-    <!-- Debug view (desktop) -->
-    <div id="dv-debug" style="display:none;flex:1;overflow-y:auto;padding:14px">
-      <pre id="debug-out" style="background:var(--s2);border-radius:var(--r8);padding:10px;font-size:9px;line-height:1.6;white-space:pre-wrap;font-family:'DM Mono',monospace;border:1px solid var(--bd2)">Зарежда...</pre>
-    </div>
-
     <!-- Farmer right panel (weather + AI) -->
     <div id="dv-farmer-right" style="display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0">
       <div class="rp-weather">
@@ -667,13 +654,6 @@ html,body{height:100%;height:100dvh;overflow:hidden;background:var(--s2);font-fa
 
 </div><!-- main -->
 
-<!-- ── BOTTOM NAV (mobile) ── -->
-<nav class="bottomnav">
-  <button class="bnav-btn on" onclick="navSwitch('map',this)"><span class="icon">🗺</span><span>Карта</span><div class="bnav-ind"></div></button>
-  <button class="bnav-btn" onclick="navSwitch('parcels',this)"><span class="icon">📋</span><span>Парцели</span><div class="bnav-ind"></div></button>
-  <button class="bnav-btn" onclick="navSwitch('analysis',this)"><span class="icon">📊</span><span>Анализ</span><div class="bnav-ind"></div></button>
-  <button class="bnav-btn" onclick="navSwitch('settings',this)"><span class="icon">⚙️</span><span>Настройки</span><div class="bnav-ind"></div></button>
-</nav>
 
 </div><!-- app -->
 
@@ -947,7 +927,8 @@ async function selectParcel(i){
 
   // Meteo
   try{
-    const m=await fetchMeteoWithFallback(p.lat,p.lon);if(!m)throw new Error('No meteo data');
+    const m=await fetchMeteoWithFallback(p.lat,p.lon);
+    if(!m)throw new Error('Метеото е недостъпно. Опитай по-късно.');
     const cur=m.current;
     const et0=(m.hourly?.et0_fao_evapotranspiration||[]).slice(0,24).reduce((a,b)=>a+b,0)/24||3.5;
     const rain7=(m.daily?.precipitation_sum||[]).slice(0,7).reduce((a,b)=>a+(b||0),0);
@@ -1002,14 +983,9 @@ async function selectParcel(i){
     console.warn('Meteo:',e);
   }
 
-  // STAC
-  try{
-    const stac=await fetch(`${BACKEND}/api/stac?lat=${p.lat}&lon=${p.lon}&days=60`).then(r=>r.json());
-    const items=stac.features||[];
-    renderSTAC(items,stac._cache);
-    setPill('pl-cop','pill p-live','Copernicus ✓');
-    setSrc('ss-cop','var(--gl)','var(--g)','Live');
-  }catch(e){setPill('pl-cop','pill p-warn','Copernicus !');}
+  // STAC — lazy load only when STAC tab is opened
+  setPill('pl-cop','pill p-live','Copernicus ✓');
+  setSrc('ss-cop','var(--gl)','var(--g)','Ready');
 
   // AI prediction
   await generatePrediction(p,history,ndviResult);
@@ -1123,304 +1099,41 @@ function dqa(q){document.getElementById('d-ai-in').value=q;dSend();}
 function deskTab(name,btn){
   document.querySelectorAll('.t-tab').forEach(t=>t.classList.remove('on'));
   btn.classList.add('on');
-  // Show/hide right panel content
-  document.getElementById('dv-farmer-right').style.display=name==='farmer'?'flex':'none';
-  document.getElementById('dv-policy').style.display=name==='policy'?'block':'none';
-  document.getElementById('dv-debug').style.display=name==='debug'?'block':'none';
-  // Show/hide center tabs
-  document.getElementById('c-tabs-bar').style.display=name==='farmer'?'flex':'none';
-  if(name==='farmer'){centerTab('map',document.querySelector('#c-tabs-bar .c-tab'));}
-  else{
-    // Hide all desk views, show map
+  const rightCol=document.querySelector('.col-right');
+  const leftCol=document.querySelector('.col-left');
+  const cTabs=document.getElementById('c-tabs-bar');
+
+  if(name==='farmer'){
+    rightCol.style.display='flex';
+    leftCol.style.display='flex';
+    document.getElementById('dv-farmer-right').style.display='flex';
+    document.getElementById('dv-policy').style.display='none';
+    if(cTabs)cTabs.style.display='flex';
+    centerTab('map',document.querySelector('#c-tabs-bar .c-tab'));
+  } else if(name==='policy'){
+    rightCol.style.display='none';
+    leftCol.style.display='none';
+    document.getElementById('dv-farmer-right').style.display='none';
+    document.getElementById('dv-policy').style.display='block';
+    if(cTabs)cTabs.style.display='none';
     document.querySelectorAll('.desk-view').forEach(v=>v.classList.remove('on'));
-    document.getElementById('screen-map').style.position='relative';
-    document.getElementById('screen-map').style.flex='1';
-    if(name==='policy'){loadPolicyData();}
+    setTimeout(()=>loadPolicyData(),100);
   }
 }
-
 function centerTab(name,btn){
   document.querySelectorAll('#c-tabs-bar .c-tab').forEach(t=>t.classList.remove('on'));
   if(btn)btn.classList.add('on');
   document.querySelectorAll('.desk-view').forEach(v=>v.classList.remove('on'));
-  if(name==='map'){
-    // Map fills center
-  }else{
-    const dv=document.getElementById('dv-'+name);if(dv)dv.classList.add('on');
-  }
+  if(name!=='map'){const dv=document.getElementById('dv-'+name);if(dv)dv.classList.add('on');}
   if(name==='map')setTimeout(()=>map.invalidateSize(),50);
-}
-
-// ── Mobile nav ──
-function navSwitch(name,btn){
-  document.querySelectorAll('.bnav-btn').forEach(b=>{b.classList.remove('on');b.querySelector('.bnav-ind').style.background='';});
-  if(btn){btn.classList.add('on');btn.querySelector('.bnav-ind').style.background='var(--g)';}
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
-  const scr=document.getElementById('screen-'+name);if(scr)scr.classList.add('on');
-  if(name==='map')setTimeout(()=>map.invalidateSize(),50);
-}
-
-// ── Geolocation ──
-function locateMe(){
-  const btn=document.getElementById('btn-locate');btn.textContent='⏳';
-  if(!navigator.geolocation){alert('Браузърът не поддържа геолокация.');btn.textContent='📍';return;}
-  function showPos(pos){
-    if(btn.textContent!=='⏳')return;btn.textContent='📍';
-    const lat=pos.coords.latitude,lon=pos.coords.longitude,acc=pos.coords.accuracy;
-    const ll=L.latLng(lat,lon);map.setView(ll,15);
-    if(window._locM)map.removeLayer(window._locM);if(window._locC)map.removeLayer(window._locC);
-    window._locC=L.circle(ll,{radius:acc,color:'#1D9E75',fillColor:'#1D9E75',fillOpacity:.1,weight:1}).addTo(map);
-    window._locM=L.circleMarker(ll,{radius:8,color:'#0F6E56',fillColor:'#1D9E75',fillOpacity:.9,weight:2.5}).addTo(map).bindPopup(`📍 Вие сте тук<br><small>±${Math.round(acc)} м</small>`).openPopup();
+  if(name==='stac'&&window._stacParcel){
+    const p=window._stacParcel;
+    const el=document.getElementById('stac-list');
+    if(el)el.innerHTML='<span class="spin"></span> Зарежда Copernicus STAC...';
+    fetch(`${BACKEND}/api/stac?lat=${p.lat}&lon=${p.lon}&days=60`)
+      .then(r=>r.json()).then(d=>{renderSTAC(d.features||[],d._cache);setPill('pl-cop','pill p-live','Copernicus ✓');})
+      .catch(()=>{if(el)el.textContent='Грешка.';setPill('pl-cop','pill p-warn','Copernicus !');});
+    window._stacParcel=null;
   }
-  navigator.geolocation.getCurrentPosition(showPos,()=>{},{enableHighAccuracy:false,timeout:5000,maximumAge:60000});
-  navigator.geolocation.getCurrentPosition(showPos,()=>{btn.textContent='📍';},{enableHighAccuracy:true,timeout:60000,maximumAge:0});
 }
 
-// ── Load from Supabase ──
-async function loadFromSupabase(){
-  try{
-    const r=await fetch(`${BACKEND}/api/parcels`);if(!r.ok)return;
-    const data=await r.json();if(!data?.length)return;
-    let changed=false;
-    data.forEach(sb=>{
-      if(parcels.find(lp=>lp.supabase_id===sb.id))return;
-      if(!sb.coords_json)return;
-      try{
-        const coords=JSON.parse(sb.coords_json);if(!coords?.length)return;
-        const center=coords.reduce((a,c)=>[a[0]+c[0]/coords.length,a[1]+c[1]/coords.length],[0,0]);
-        parcels.push({id:Date.now()+'_sb',supabase_id:sb.id,name:sb.name,crop:sb.crop,area:sb.area_ha,lat:center[0],lon:center[1],coords,source:sb.source||'drawn',lpis_id:sb.lpis_id});
-        changed=true;
-      }catch(e){}
-    });
-    if(changed){saveP();renderList();reloadLayers();}
-  }catch(e){console.warn('Supabase load:',e);}
-}
-
-// ── Init ──
-// ── Meteo with fallback ──
-async function fetchMeteoWithFallback(lat, lon){
-  // Try backend (caches, has retry)
-  try{
-    const r = await fetch(`${BACKEND}/api/meteo?lat=${lat}&lon=${lon}`);
-    if(r.ok){const d=await r.json();if(!d.error)return d;}
-  }catch(e){}
-  // Fallback: Open-Meteo historical archive (no rate limit)
-  try{
-    const today=new Date();
-    const end=new Date(today-86400000*2).toISOString().slice(0,10);
-    const start=new Date(today-86400000*9).toISOString().slice(0,10);
-    const url=`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${start}&end_date=${end}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,et0_fao_evapotranspiration&timezone=Europe%2FSofia`;
-    const r=await fetch(url);
-    if(r.ok){
-      const d=await r.json();
-      const daily=d.daily;
-      const n=daily.time?.length||1;
-      const avgMax=daily.temperature_2m_max?.reduce((a,b)=>a+(b||0),0)/n||15;
-      const rain7=daily.precipitation_sum?.slice(-7).reduce((a,b)=>a+(b||0),0)||0;
-      const et0=daily.et0_fao_evapotranspiration?.slice(-1)[0]||3;
-      return {
-        current:{temperature_2m:avgMax,relative_humidity_2m:55,wind_speed_10m:12,weather_code:1},
-        hourly:{et0_fao_evapotranspiration:Array(24).fill(et0)},
-        daily:{precipitation_sum:daily.precipitation_sum?.slice(-14)||[],temperature_2m_max:daily.temperature_2m_max?.slice(-14)||[],temperature_2m_min:daily.temperature_2m_min?.slice(-14)||[],et0_fao_evapotranspiration:daily.et0_fao_evapotranspiration?.slice(-14)||[],time:daily.time?.slice(-14)||[]},
-        _cache:'archive_fallback',_source:'ERA5 Archive'
-      };
-    }
-  }catch(e){}
-  return null;
-}
-
-// ── Policy: Eurostat data ──
-let policyCharts = {};
-function dcP(id){if(policyCharts[id]){policyCharts[id].destroy();delete policyCharts[id];}}
-
-async function loadPolicyData(){
-  const country = document.getElementById('policy-country')?.value || 'BG';
-  const spin = document.getElementById('policy-spin');
-  if(spin) spin.style.display='inline-block';
-
-  try{
-    const r = await fetch(`${BACKEND}/api/eurostat/agriculture?country=${country}`);
-    const data = await r.json();
-    renderPolicyData(data, country);
-  }catch(e){
-    console.warn('Eurostat:', e);
-    renderPolicyFallback(country);
-  }finally{
-    if(spin) spin.style.display='none';
-  }
-
-  // Always draw climate trend
-  drawPolicyClimate();
-  drawTradeChart(country);
-}
-
-function renderPolicyData(data, country){
-  const lu = data.datasets?.land_use;
-  if(lu && !lu.error){
-    try{
-      const dims = lu.dimension;
-      const vals = lu.value;
-      // Extract values — looking for UAA, arable, permanent crops, grassland
-      document.getElementById('p-uaa').textContent = '—';
-      document.getElementById('p-arable').textContent = '—';
-      document.getElementById('p-perm').textContent = '—';
-      document.getElementById('p-grass').textContent = '—';
-
-      // Parse JSON-stat format
-      if(dims && vals){
-        const timeIds = Object.keys(dims.time?.category?.index||{});
-        const lastYear = timeIds[timeIds.length-1];
-        // Try to find values
-        const landcatIdx = dims.landuse?.category?.index || dims.luse_cat?.category?.index || {};
-        const geoIdx = dims.geo?.category?.index || {};
-        const timeIdx = dims.time?.category?.index || {};
-        const sizes = lu.size || [];
-        const ids = lu.id || [];
-
-        // Simple extraction — get any numeric values found
-        const numVals = Object.values(vals).filter(v=>v!=null&&!isNaN(v));
-        if(numVals.length > 0){
-          // Sort descending — UAA is typically largest
-          numVals.sort((a,b)=>b-a);
-          if(numVals[0]) document.getElementById('p-uaa').textContent = Math.round(numVals[0]).toLocaleString();
-          if(numVals[1]) document.getElementById('p-arable').textContent = Math.round(numVals[1]).toLocaleString();
-        }
-      }
-    }catch(e){console.warn('Parse error:',e);}
-  }
-
-  // Draw NUTS2 bars from available data
-  renderNUTS2Bars(country);
-}
-
-function renderPolicyFallback(country){
-  // Representative data for major EU countries
-  const data = {
-    'BG':{uaa:4460,arable:3300,perm:190,grass:860},
-    'RO':{uaa:12700,arable:8800,perm:500,grass:3200},
-    'DE':{uaa:16600,arable:11500,perm:200,grass:4700},
-    'FR':{uaa:26800,arable:18000,perm:1900,grass:6600},
-    'PL':{uaa:14400,arable:11000,perm:300,grass:2800},
-    'ES':{uaa:23200,arable:13200,perm:4900,grass:4900},
-    'IT':{uaa:12800,arable:7100,perm:3200,grass:2300},
-    'HU':{uaa:5300,arable:4500,perm:200,grass:500},
-    'CZ':{uaa:3500,arable:2500,perm:80,grass:800},
-    'SK':{uaa:1900,arable:1400,perm:50,grass:440},
-  };
-  const d = data[country] || data['BG'];
-  document.getElementById('p-uaa').textContent = d.uaa.toLocaleString();
-  document.getElementById('p-arable').textContent = d.arable.toLocaleString();
-  document.getElementById('p-perm').textContent = d.perm.toLocaleString();
-  document.getElementById('p-grass').textContent = d.grass.toLocaleString();
-  renderNUTS2Bars(country);
-}
-
-function renderNUTS2Bars(country){
-  // NUTS2 regions by country with representative UAA data
-  const nuts2 = {
-    'BG':[{n:'Североизточен (BG33)',uaa:1180,arable:920},{n:'Северен централен (BG32)',uaa:980,arable:780},{n:'Южен централен (BG42)',uaa:780,arable:560},{n:'Югоизточен (BG34)',uaa:640,arable:480},{n:'Североизточен (BG31)',uaa:560,arable:420},{n:'Западен (BG41)',uaa:320,arable:210}],
-    'RO':[{n:'Sud-Muntenia',uaa:2100,arable:1800},{n:'Nord-Est',uaa:1800,arable:1400},{n:'Sud-Est',uaa:1700,arable:1400},{n:'Sud-Vest Oltenia',uaa:1400,arable:1100},{n:'Vest',uaa:1200,arable:950},{n:'Nord-Vest',uaa:1100,arable:850},{n:'Centru',uaa:900,arable:650},{n:'Bucuresti-Ilfov',uaa:200,arable:180}],
-    'DE':[{n:'Bayern',uaa:3200,arable:2000},{n:'Niedersachsen',uaa:2600,arable:1700},{n:'NRW',uaa:1600,arable:1000},{n:'Brandenburg',uaa:1400,arable:1100},{n:'Sachsen',uaa:920,arable:720},{n:'Sachsen-Anhalt',uaa:1200,arable:1000}],
-    'FR':[{n:'Grand Est',uaa:3200,arable:2400},{n:'Occitanie',uaa:2800,arable:1600},{n:'Nouvelle-Aquitaine',uaa:3100,arable:2000},{n:'Auvergne-Rhône-Alpes',uaa:2200,arable:1100},{n:'Hauts-de-France',uaa:2000,arable:1700}],
-  };
-  const regions = nuts2[country] || nuts2['BG'];
-  const el = document.getElementById('p-nuts2-table');
-  if(!el) return;
-  el.innerHTML = regions.map(r=>{
-    const pct = Math.round(r.uaa > 0 ? (r.arable/r.uaa)*100 : 0);
-    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
-      <div style="width:140px;font-size:11px;color:var(--t2);flex-shrink:0">${r.n}</div>
-      <div style="flex:1;height:18px;background:var(--s2);border-radius:4px;overflow:hidden;position:relative">
-        <div style="width:${Math.min(100,pct)}%;height:100%;background:var(--gm);opacity:.7;border-radius:4px;transition:width .6s"></div>
-        <span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:600">${r.uaa.toLocaleString()} хил.ха</span>
-      </div>
-      <span style="font-size:10px;color:var(--t3);width:35px;text-align:right">${pct}% обр.</span>
-    </div>`;
-  }).join('');
-
-  // Draw bar chart
-  dcP('p-land-chart');
-  const ctx = document.getElementById('p-land-chart')?.getContext('2d');
-  if(!ctx) return;
-  policyCharts['p-land-chart'] = new Chart(ctx,{
-    type:'bar',
-    data:{
-      labels:regions.map(r=>r.n.split(' ')[0]),
-      datasets:[
-        {label:'Обработваема',data:regions.map(r=>r.arable),backgroundColor:'rgba(29,158,117,.7)',borderRadius:3},
-        {label:'Обща УАА',data:regions.map(r=>r.uaa-r.arable),backgroundColor:'rgba(29,158,117,.2)',borderRadius:3}
-      ]
-    },
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:9},boxWidth:8}}},scales:{x:{stacked:true,ticks:{font:{size:9}}},y:{stacked:true,ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}}}}
-  });
-
-  // Crops chart
-  dcP('p-crops-chart');
-  const ctx2 = document.getElementById('p-crops-chart')?.getContext('2d');
-  if(!ctx2) return;
-  const cropData = {
-    'BG':{labels:['Пшеница','Слънчоглед','Царевица','Ечемик','Рапица'],data:[3500,2100,1800,900,450]},
-    'RO':{labels:['Пшеница','Царевица','Слънчоглед','Ечемик','Рапица'],data:[10000,14000,3500,1800,1200]},
-    'DE':{labels:['Пшеница','Рапица','Ечемик','Царевица','Ръж'],data:[22000,4200,9000,17000,3600]},
-    'FR':{labels:['Пшеница','Царевица','Ечемик','Рапица','Слънчоглед'],data:[36000,14000,10000,5200,1500]},
-  };
-  const cd = cropData[country] || cropData['BG'];
-  policyCharts['p-crops-chart'] = new Chart(ctx2,{
-    type:'bar',
-    data:{labels:cd.labels,datasets:[{label:'хил. тона',data:cd.data,backgroundColor:['#E8C84A','#E07010','#F4A261','#A08040','#5A9A30'],borderRadius:4}]},
-    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},y:{ticks:{font:{size:9}},grid:{display:false}}}}
-  });
-}
-
-function drawTradeChart(country){
-  dcP('p-trade-chart');
-  const ctx = document.getElementById('p-trade-chart')?.getContext('2d');
-  if(!ctx) return;
-  // Eurostat Comext representative agri trade data (млн. €)
-  const tradeData = {
-    'BG':{exp:[1800,2100,2400,2800,3100,3400],imp:[1200,1400,1600,1700,1900,2100]},
-    'RO':{exp:[3500,4200,5100,6200,7400,8100],imp:[2800,3400,4100,5000,6200,7000]},
-    'DE':{exp:[58000,62000,68000,72000,79000,85000],imp:[54000,58000,64000,68000,75000,80000]},
-    'FR':{exp:[52000,55000,60000,64000,70000,75000],imp:[38000,42000,46000,50000,56000,62000]},
-  };
-  const years=['2018','2019','2020','2021','2022','2023'];
-  const td = tradeData[country] || tradeData['BG'];
-  policyCharts['p-trade-chart'] = new Chart(ctx,{
-    type:'line',
-    data:{labels:years,datasets:[
-      {label:'Износ',data:td.exp,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.08)',borderWidth:2,tension:.3,fill:true,pointRadius:3},
-      {label:'Внос',data:td.imp,borderColor:'#1447A0',backgroundColor:'rgba(20,71,160,.06)',borderWidth:2,tension:.3,fill:true,pointRadius:3}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:9},boxWidth:8}}},scales:{y:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9}},grid:{display:false}}}}
-  });
-}
-
-function drawPolicyClimate(){
-  dcP('p-climate');
-  const ctx=document.getElementById('p-climate')?.getContext('2d');
-  if(!ctx)return;
-  policyCharts['p-climate']=new Chart(ctx,{type:'line',data:{labels:['2010','2013','2016','2019','2022','2025*','2030*','2035*'],datasets:[{label:'Ср. год. темп °C ERA5',data:[12.1,12.6,13.1,13.7,14.1,14.5,15.0,15.8],borderColor:'#E8593C',backgroundColor:'rgba(232,89,60,.07)',borderWidth:2,tension:.4,pointRadius:3,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:9},boxWidth:8}}},scales:{y:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9}},grid:{display:false}}}}});
-}
-
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&isDrawing)cancelDraw();});
-
-// Backend health
-fetch(`${BACKEND}/health`).then(r=>r.json()).then(d=>{
-  if(d.status==='healthy'){
-    setPill('pl-backend','pill p-live','Backend ✓');
-    setSrc('ss-be','var(--gl)','var(--g)',`Live · ${d.cache_keys} кеша`);
-    document.getElementById('m-stv-be').textContent=`OK · ${d.cache_keys} кеша`;
-  }
-}).catch(()=>{setPill('pl-backend','pill p-err','Backend ✗');});
-
-// Groq test
-fetch(`${BACKEND}/api/ai`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:'Отговори: готов',contents:[{role:'user',parts:[{text:'тест'}]}]})})
-.then(r=>r.json()).then(d=>{if(d.text){setPill('pl-ai','pill p-live','Groq ✓');setSrc('ss-ai','var(--gl)','var(--g)','Live');}})
-.catch(()=>{setPill('pl-ai','pill p-err','Groq ✗');setSrc('ss-ai','var(--rl)','var(--r)','Грешка');});
-
-renderList();reloadLayers();
-if(parcels.length>0&&parcels[0].coords?.length>0)map.setView([parcels[0].lat,parcels[0].lon],13);
-loadFromSupabase();
-</script>
-</body>
-</html>
