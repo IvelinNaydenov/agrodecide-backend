@@ -870,3 +870,74 @@ function evaluatePixel(s){
         raise
     except Exception as e:
         raise HTTPException(500, f"Real NDVI error: {e}")
+
+@app.get("/api/market/prices")
+async def market_prices():
+    """
+    Fetch real MATIF/Euronext commodity prices via Yahoo Finance.
+    Returns €/ton prices for major Bulgarian crops.
+    Cached 15 minutes.
+    """
+    cache_key = "market:prices:matif"
+    cached = cache_get(cache_key)
+    if cached:
+        return {**cached, "_cache": "hit"}
+
+    # MATIF tickers on Yahoo Finance — all in €/ton
+    tickers = {
+        "wheat":     {"symbol": "EBM.PA", "name": "Пшеница мелница", "bg_discount": -15},
+        "corn":      {"symbol": "EMA.PA", "name": "Царевица",        "bg_discount": -12},
+        "rapeseed":  {"symbol": "ECO.PA", "name": "Рапица",          "bg_discount": -18},
+        "sunflower": {"symbol": "XSF.PA", "name": "Слънчоглед",      "bg_discount": -20},
+        "barley":    {"symbol": "ALW.PA", "name": "Ечемик",          "bg_discount": -14},
+    }
+
+    import asyncio as _aio
+    results = {}
+
+    async with make_client(False, timeout=15) as client:
+        for key, info in tickers.items():
+            try:
+                url = f"https://query1.finance.yahoo.com/v8/finance/chart/{info['symbol']}?interval=1d&range=30d"
+                r = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
+                if r.status_code == 200:
+                    data = r.json()
+                    meta = data["chart"]["result"][0]["meta"]
+                    price = meta.get("regularMarketPrice") or meta.get("previousClose")
+                    prev  = meta.get("chartPreviousClose") or meta.get("previousClose")
+                    currency = meta.get("currency", "EUR")
+
+                    # Historical closes for trend
+                    timestamps = data["chart"]["result"][0].get("timestamp", [])
+                    closes     = data["chart"]["result"][0]["indicators"]["quote"][0].get("close", [])
+                    history = [{"date": datetime.utcfromtimestamp(t).strftime("%Y-%m-%d"), "price": round(c, 2)}
+                               for t, c in zip(timestamps[-20:], closes[-20:]) if c is not None]
+
+                    change_pct = ((price - prev) / prev * 100) if prev and prev != 0 else 0
+
+                    results[key] = {
+                        "name":        info["name"],
+                        "symbol":      info["symbol"],
+                        "price":       round(price, 2),
+                        "prev_close":  round(prev, 2),
+                        "change_pct":  round(change_pct, 2),
+                        "currency":    currency,
+                        "unit":        "€/т",
+                        "bg_price":    round(price + info["bg_discount"], 2),
+                        "bg_discount": info["bg_discount"],
+                        "history":     history,
+                        "source":      "MATIF Euronext via Yahoo Finance"
+                    }
+                else:
+                    results[key] = {"name": info["name"], "error": f"HTTP {r.status_code}"}
+            except Exception as e:
+                results[key] = {"name": info["name"], "error": str(e)[:100]}
+
+    result = {
+        "prices": results,
+        "updated": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+        "note": "МАТИФ Euronext фючърси · 15мин забавяне · Цени в €/т",
+        "_cache": "miss"
+    }
+    cache_set(cache_key, result, 15 * 60)
+    return result
