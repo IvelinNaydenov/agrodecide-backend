@@ -195,7 +195,7 @@ html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans'
   <div class="t-live"><span class="dot"></span>LIVE</div>
   <div class="t-tabs">
     <button class="t-tab on" onclick="deskTab('farmer',this)">🌾 Фермер</button>
-    <button class="t-tab" onclick="deskTab('policy',this)">📊 Политик</button>
+    <button class="t-tab" onclick="deskTab('market',this)">💹 Пазар</button>
   </div>
   <div class="t-pills">
     <span class="pill p-warn" id="pl-backend"><span class="dot"></span>Backend</span>
@@ -306,71 +306,57 @@ html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans'
       </div>
     </div>
 
-    <!-- Policy: full-width center panel -->
-    <div id="policy-center" style="display:none;flex:1;overflow-y:auto;padding:16px">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-        <div style="font-size:15px;font-weight:700">Агростатистика · Eurostat</div>
-        <select id="policy-country" style="height:38px;border:1.5px solid var(--bd2);border-radius:8px;padding:0 12px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--s);cursor:pointer" onchange="loadPolicyData()">
-          <option value="BG">🇧🇬 България</option>
-          <option value="RO">🇷🇴 Румъния</option>
-          <option value="DE">🇩🇪 Германия</option>
-          <option value="FR">🇫🇷 Франция</option>
-          <option value="PL">🇵🇱 Полша</option>
-          <option value="ES">🇪🇸 Испания</option>
-          <option value="IT">🇮🇹 Италия</option>
-          <option value="HU">🇭🇺 Унгария</option>
-          <option value="CZ">🇨🇿 Чехия</option>
-          <option value="SK">🇸🇰 Словакия</option>
-        </select>
-        <span class="spin" id="policy-spin" style="display:none"></span>
-        <span id="policy-src" style="font-size:10px;color:var(--t3)">Eurostat · Farm Structure Survey</span>
-      </div>
-
-      <div class="policy-kpis" id="policy-kpis">
-        <div class="stat-card"><div class="stat-lbl">Използвана агр. площ</div><div class="stat-val" id="p-uaa" style="color:var(--gm)">—</div><div style="font-size:10px;color:var(--t3)">хил. ха</div></div>
-        <div class="stat-card"><div class="stat-lbl">Обработваема земя</div><div class="stat-val" id="p-arable" style="color:var(--a)">—</div><div style="font-size:10px;color:var(--t3)">хил. ха</div></div>
-        <div class="stat-card"><div class="stat-lbl">Трайни насаждения</div><div class="stat-val" id="p-perm" style="color:var(--b)">—</div><div style="font-size:10px;color:var(--t3)">хил. ха</div></div>
-        <div class="stat-card"><div class="stat-lbl">Постоянни ливади</div><div class="stat-val" id="p-grass" style="color:var(--p)">—</div><div style="font-size:10px;color:var(--t3)">хил. ха</div></div>
-      </div>
-
-      <div class="policy-row">
-        <div class="policy-col">
-          <div class="card" style="height:100%">
-            <div class="card-title">🌍 Структура на земеползването по NUTS2 региони</div>
-            <div class="ch-wrap" style="height:180px"><canvas id="p-land-chart"></canvas></div>
-            <div id="p-nuts2-table" style="margin-top:8px"></div>
+    <!-- Market: full-width center panel -->
+        <!-- Market: full-width center panel -->
+    <div id="market-center" style="display:none;flex:1;min-height:0;overflow:hidden">
+      <!-- Left: prices -->
+      <div style="display:flex;height:100%;overflow:hidden">
+        <div style="flex:1;overflow-y:auto;padding:16px;border-right:1px solid var(--bd)">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+            <div style="font-size:15px;font-weight:700">💹 Борсови цени · МАТИФ Euronext</div>
+            <span class="spin" id="market-spin" style="display:none"></span>
+            <span id="market-updated" style="font-size:10px;color:var(--t3)">Зарежда...</span>
+            <button onclick="loadMarketPrices()" style="margin-left:auto;padding:5px 12px;border-radius:7px;border:1.5px solid var(--bd2);background:var(--s);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer">↻ Обнови</button>
           </div>
-        </div>
-        <div class="policy-col">
-          <div class="card" style="height:100%">
-            <div class="card-title">🌾 Производство на основни култури (хил. тона)</div>
-            <div class="ch-wrap" style="height:220px"><canvas id="p-crops-chart"></canvas></div>
-          </div>
-        </div>
-      </div>
 
-      <div class="policy-row">
-        <div class="policy-col">
-          <div class="card" style="background:var(--gp);border-color:var(--gm)">
-            <div class="card-title" style="color:var(--g)">💶 CAP/ОСП Субсидии 2023-2027</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-              <div style="background:var(--s);border-radius:8px;padding:10px 12px"><div style="font-size:10px;color:var(--t3);margin-bottom:3px">Директни плащания</div><div style="font-size:20px;font-weight:700;color:var(--g)">~200 €/ха</div><div style="font-size:10px;color:var(--t3)">средно БГ 2023</div></div>
-              <div style="background:var(--s);border-radius:8px;padding:10px 12px"><div style="font-size:10px;color:var(--t3);margin-bottom:3px">Еко-схеми</div><div style="font-size:20px;font-weight:700;color:var(--b)">~60 €/ха</div><div style="font-size:10px;color:var(--t3)">eco-scheme 2023</div></div>
-            </div>
-            <div style="font-size:11px;color:var(--t2);line-height:1.7">Стратегическият план на България за ОСП 2023-2027 е одобрен от ЕК. Фермерите получават директни плащания, обвързани с изисквания за устойчивост и биоразнообразие.<br><a href="https://agriculture.ec.europa.eu/cap-my-country/cap-strategic-plans/bulgarias-cap-strategic-plan_en" target="_blank" style="color:var(--b);font-size:11px">CAP Strategic Plan Bulgaria →</a></div>
-          </div>
-        </div>
-        <div class="policy-col">
+          <!-- Price cards -->
+          <div id="market-cards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px"></div>
+
+          <!-- Price chart -->
           <div class="card">
-            <div class="card-title">📦 Агро внос/износ (млн. €)</div>
-            <div class="ch-wrap"><canvas id="p-trade-chart"></canvas></div>
+            <div class="card-title" id="market-chart-title">📈 История на цените — 30 дни</div>
+            <div class="ch-wrap" style="height:160px"><canvas id="market-chart"></canvas></div>
+          </div>
+
+          <!-- All crops table -->
+          <div class="card">
+            <div class="card-title">📊 Всички МАТИФ контракти</div>
+            <div id="market-table"></div>
+          </div>
+
+          <div style="font-size:10px;color:var(--t3);margin-top:8px">МАТИФ Euronext · 15мин забавяне · Цени в €/т · Не е инвестиционен съвет</div>
+        </div>
+
+        <!-- Right: AI market agent -->
+        <div style="width:280px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden">
+          <div style="padding:12px 14px;border-bottom:1px solid var(--bd);background:var(--gp)">
+            <div style="font-size:12px;font-weight:700;color:var(--g);margin-bottom:2px">🤖 Борсов AI Агент</div>
+            <div style="font-size:10px;color:var(--t3)">Groq LLaMA 3.3 · реални МАТИФ цени</div>
+          </div>
+          <div class="msgs" id="market-chat" style="flex:1;min-height:0">
+            <div class="msg ai">Зареди цените и ще ти дам препоръка кога и какво да продаваш.</div>
+          </div>
+          <div style="padding:7px 10px;border-top:1px solid var(--bd);display:flex;flex-wrap:wrap;gap:4px">
+            <button class="qbtn" onclick="mqa('Кога е оптимално да продавам пшеницата?')">🌾 Пшеница</button>
+            <button class="qbtn" onclick="mqa('Трябва ли да продавам рапицата сега или да чакам?')">🌱 Рапица</button>
+            <button class="qbtn" onclick="mqa('Как изглежда тренда за слънчоглед следващите 3 месеца?')">🌻 Слънчоглед</button>
+            <button class="qbtn" onclick="mqa('Анализирай всички цени и препоръчай стратегия')">📊 Анализ</button>
+          </div>
+          <div style="display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--bd)">
+            <input class="ai-in" id="market-ai-in" placeholder="Въпрос за пазара..." onkeydown="if(event.key==='Enter')mSendMarket()">
+            <button class="ai-go" onclick="mSendMarket()">→</button>
           </div>
         </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">🌡 Климатичен тренд · ERA5 Reanalysis (°C)</div>
-        <div class="ch-wrap"><canvas id="p-climate"></canvas></div>
       </div>
     </div>
 
@@ -792,15 +778,15 @@ function deskTab(name,btn){
   const left=document.getElementById('col-left');
   const right=document.getElementById('col-right');
   const fc=document.getElementById('farmer-center');
-  const pc=document.getElementById('policy-center');
+  const mc=document.getElementById('market-center');
   if(name==='farmer'){
     left.style.display='flex';right.style.display='flex';
-    fc.style.display='flex';pc.style.display='none';
+    fc.style.display='flex';mc.style.display='none';
     setTimeout(()=>map.invalidateSize(),50);
-  }else if(name==='policy'){
+  }else if(name==='market'){
     left.style.display='none';right.style.display='none';
-    fc.style.display='none';pc.style.display='block';
-    loadPolicyData();
+    fc.style.display='none';mc.style.display='flex';
+    loadMarketPrices();
   }
 }
 
@@ -1017,6 +1003,155 @@ async function loadFromSupabase(){
     if(changed){saveP();renderList();reloadLayers();}
   }catch(e){console.warn('Supabase:',e);}
 }
+
+// ── MARKET / BORSA ──
+let marketData = {};
+let marketChatH = [];
+let marketChart = null;
+
+async function loadMarketPrices(){
+  const spin = document.getElementById('market-spin');
+  const upd  = document.getElementById('market-updated');
+  if(spin) spin.style.display='inline-block';
+  if(upd)  upd.textContent='Зарежда МАТИФ...';
+
+  try{
+    const r = await fetch(`${BACKEND}/api/market/prices`);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const data = await r.json();
+    marketData = data;
+    renderMarketCards(data);
+    renderMarketTable(data);
+    if(upd) upd.textContent=data.updated+' · '+(data._cache==='hit'?'кеш':'live');
+    // Auto-generate AI market analysis
+    generateMarketAnalysis(data);
+  }catch(e){
+    if(upd) upd.textContent='Грешка: '+e.message;
+  }
+  if(spin) spin.style.display='none';
+}
+
+function renderMarketCards(data){
+  const el = document.getElementById('market-cards');
+  if(!el) return;
+  const prices = data.prices || {};
+  // Show top 3: wheat, sunflower, rapeseed
+  const featured = ['wheat','sunflower','rapeseed'];
+  el.innerHTML = featured.filter(k=>prices[k]&&!prices[k].error).map(k=>{
+    const p = prices[k];
+    const up = p.change_pct >= 0;
+    return `<div style="background:var(--s);border:1.5px solid ${up?'var(--gm)':'var(--r)'};border-radius:10px;padding:12px 14px;cursor:pointer" onclick="showMarketChart('${k}')">
+      <div style="font-size:11px;font-weight:600;color:var(--t3);margin-bottom:4px">${p.name}</div>
+      <div style="font-size:24px;font-weight:700;font-family:'DM Mono',monospace;color:var(--t)">${p.price} €</div>
+      <div style="font-size:11px;margin-top:3px;color:${up?'var(--g)':'var(--r)'}">
+        ${up?'▲':'▼'} ${Math.abs(p.change_pct).toFixed(2)}% · МАТИФ
+      </div>
+      <div style="font-size:10px;color:var(--t3);margin-top:4px">БГ ~${p.bg_price} €/т</div>
+    </div>`;
+  }).join('');
+}
+
+function renderMarketTable(data){
+  const el = document.getElementById('market-table');
+  if(!el) return;
+  const prices = data.prices || {};
+  el.innerHTML = `<div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:0;font-size:11px">
+    <div style="font-weight:700;color:var(--t3);padding:6px 0;border-bottom:2px solid var(--bd2)">Култура</div>
+    <div style="font-weight:700;color:var(--t3);padding:6px 8px;text-align:right;border-bottom:2px solid var(--bd2)">МАТИФ €/т</div>
+    <div style="font-weight:700;color:var(--t3);padding:6px 8px;text-align:right;border-bottom:2px solid var(--bd2)">Промяна</div>
+    <div style="font-weight:700;color:var(--t3);padding:6px 8px;text-align:right;border-bottom:2px solid var(--bd2)">БГ ~€/т</div>
+    <div style="font-weight:700;color:var(--t3);padding:6px 0 6px 8px;text-align:right;border-bottom:2px solid var(--bd2)">Тренд</div>
+    ${Object.entries(prices).map(([k,p])=>{
+      if(p.error) return `<div style="grid-column:1/-1;padding:4px 0;color:var(--r);font-size:10px">${p.name}: ${p.error}</div>`;
+      const up=p.change_pct>=0;
+      return `<div style="padding:7px 0;border-bottom:1px solid var(--bd);font-weight:500;cursor:pointer;color:var(--b)" onclick="showMarketChart('${k}')">${p.name}</div>
+        <div style="padding:7px 8px;text-align:right;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-weight:600">${p.price}</div>
+        <div style="padding:7px 8px;text-align:right;border-bottom:1px solid var(--bd);color:${up?'var(--g)':'var(--r)'}">
+          ${up?'▲':'▼'}${Math.abs(p.change_pct).toFixed(1)}%
+        </div>
+        <div style="padding:7px 8px;text-align:right;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;color:var(--t3)">${p.bg_price}</div>
+        <div style="padding:7px 0 7px 8px;text-align:right;border-bottom:1px solid var(--bd)">${sparkline(p.history?.map(h=>h.price)||[])}</div>`;
+    }).join('')}
+  </div>`;
+}
+
+function sparkline(vals){
+  if(!vals.length) return '—';
+  const min=Math.min(...vals),max=Math.max(...vals);
+  const w=60,h=20;
+  if(min===max) return `<svg width="${w}" height="${h}"><line x1="0" y1="${h/2}" x2="${w}" y2="${h/2}" stroke="var(--t3)" stroke-width="1"/></svg>`;
+  const pts=vals.map((v,i)=>`${(i/(vals.length-1)*w).toFixed(1)},${((1-(v-min)/(max-min))*(h-2)+1).toFixed(1)}`).join(' ');
+  const last=vals[vals.length-1];const first=vals[0];const up=last>=first;
+  return `<svg width="${w}" height="${h}" style="vertical-align:middle"><polyline points="${pts}" fill="none" stroke="${up?'var(--gm)':'var(--r)'}" stroke-width="1.5"/></svg>`;
+}
+
+function showMarketChart(cropKey){
+  const prices = marketData.prices || {};
+  const p = prices[cropKey];
+  if(!p || !p.history?.length) return;
+  const title = document.getElementById('market-chart-title');
+  if(title) title.textContent=`📈 ${p.name} — последните ${p.history.length} дни (МАТИФ €/т)`;
+  if(marketChart){marketChart.destroy();marketChart=null;}
+  const ctx = document.getElementById('market-chart')?.getContext('2d');if(!ctx)return;
+  const labels=p.history.map(h=>h.date.slice(5));
+  const vals=p.history.map(h=>h.price);
+  const up=vals[vals.length-1]>=vals[0];
+  marketChart=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:`${p.name} €/т`,data:vals,borderColor:up?'var(--gm)':'var(--r)',backgroundColor:up?'rgba(29,158,117,.08)':'rgba(163,45,45,.06)',borderWidth:2,tension:.3,pointRadius:2,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.parsed.y} €/т`}}},scales:{y:{ticks:{font:{size:9},callback:v=>`${v} €`},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9},maxTicksLimit:12},grid:{display:false}}}}});
+}
+
+async function generateMarketAnalysis(data){
+  const prices = data.prices || {};
+  const lines = Object.entries(prices).filter(([k,p])=>!p.error).map(([k,p])=>`${p.name}: ${p.price} €/т (${p.change_pct>=0?'+':''}${p.change_pct.toFixed(1)}%, БГ ~${p.bg_price} €/т)`).join('
+');
+  if(!lines) return;
+
+  const p = activeIdx>=0 ? parcels[activeIdx] : null;
+  const parcelCtx = p ? `Фермерът отглежда: ${p.crop||'—'}, ${p.area?.toFixed(1)||'—'} ха` : 'Не е избран парцел.';
+
+  const sys = `Ти си борсов AI агент за агрокомодити. Отговаряй кратко и конкретно на БЪЛГАРСКИ.
+МАТИФ ЦЕНИ (€/т): 
+${lines}
+${parcelCtx}
+Анализирай цените, тренда и дай конкретна препоръка: кога и какво да продава фермерът. Вземи предвид сезонността. До 4 изречения.`;
+
+  const chat = document.getElementById('market-chat');
+  if(chat) chat.innerHTML='<div class="msg ai" style="animation:none"><span class="spin"></span> Анализирам МАТИФ цените...</div>';
+  marketChatH = [{role:'user',parts:[{text:'Анализирай цените и дай препоръка за продажба.'}]}];
+
+  try{
+    const r=await fetch(`${BACKEND}/api/ai`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:sys,contents:marketChatH})}).then(r=>r.json());
+    if(chat) chat.innerHTML='';
+    addMarketMsg('ai',r.text);
+    marketChatH.push({role:'model',parts:[{text:r.text}]});
+  }catch(e){if(chat) chat.innerHTML=`<div class="msg ai">Грешка: ${e.message}</div>`;}
+}
+
+function addMarketMsg(role,txt){
+  const c=document.getElementById('market-chat');if(!c)return;
+  const d=document.createElement('div');d.className='msg '+role;d.textContent=txt;c.appendChild(d);c.scrollTop=c.scrollHeight;
+}
+
+async function mSendMarket(){
+  const inp=document.getElementById('market-ai-in');const txt=inp.value.trim();if(!txt)return;
+  inp.value='';
+  addMarketMsg('user',txt);
+  marketChatH.push({role:'user',parts:[{text:txt}]});
+  const loader=document.createElement('div');loader.className='msg loading';loader.innerHTML='<div class="dots"><span></span><span></span><span></span></div>';
+  const c=document.getElementById('market-chat');if(c){c.appendChild(loader);c.scrollTop=c.scrollHeight;}
+
+  const prices=marketData.prices||{};
+  const lines=Object.entries(prices).filter(([k,p])=>!p.error).map(([k,p])=>`${p.name}: ${p.price} €/т (${p.change_pct>=0?'+':''}${p.change_pct.toFixed(1)}%)`).join(', ');
+  const p=activeIdx>=0?parcels[activeIdx]:null;
+  const sys=`Ти си борсов AI агент за агрокомодити. Отговаряй кратко на БЪЛГАРСКИ.
+МАТИФ ЦЕНИ: ${lines||'не са заредени'}
+${p?`Парцел: ${p.name}, ${p.crop}, ${p.area?.toFixed(1)} ха`:'Без избран парцел.'}`;
+
+  try{
+    const r=await fetch(`${BACKEND}/api/ai`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:sys,contents:marketChatH})}).then(r=>r.json());
+    loader.remove();addMarketMsg('ai',r.text);marketChatH.push({role:'model',parts:[{text:r.text}]});
+  }catch(e){loader.remove();addMarketMsg('ai','Грешка: '+e.message);}
+}
+function mqa(q){document.getElementById('market-ai-in').value=q;mSendMarket();}
 
 // Init
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&isDrawing)cancelDraw();});
