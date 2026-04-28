@@ -210,23 +210,26 @@ html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans'
 
   <!-- LEFT -->
   <div class="col-left" id="col-left">
-    <div class="col-left-head">
-      <div class="sbl">Парцели <span class="spin" id="spin-left" style="display:none"></span></div>
-      <div id="sb-parcel-list"><div style="font-size:11px;color:var(--t3)">Зарежда...</div></div>
-    </div>
-    <div class="col-left-scroll">
+    <!-- Static: Indicators + API Status -->
+    <div style="flex-shrink:0;padding:10px 12px;border-bottom:1px solid var(--bd)">
       <div class="sbl">Индикатори</div>
       <div class="irow"><span class="ilbl">NDVI</span><div class="ibar"><div class="ifill" id="bi-ndvi" style="width:0%;background:var(--gm)"></div></div><span class="ival" id="vi-ndvi">—</span></div>
       <div class="irow"><span class="ilbl">Влажност</span><div class="ibar"><div class="ifill" id="bi-hum" style="width:0%;background:var(--b)"></div></div><span class="ival" id="vi-hum">—</span></div>
       <div class="irow"><span class="ilbl">ET₀ мм/д</span><div class="ibar"><div class="ifill" id="bi-et" style="width:0%;background:var(--a)"></div></div><span class="ival" id="vi-et">—</span></div>
       <div class="irow"><span class="ilbl">Суша</span><div class="ibar"><div class="ifill" id="bi-spi" style="width:0%;background:var(--r)"></div></div><span class="ival" id="vi-spi">—</span></div>
-
-      <div class="sbl" style="margin-top:14px">API Статус</div>
+      <div class="sbl" style="margin-top:10px">API Статус</div>
       <div class="api-row"><div><div class="api-name">Backend</div><div class="api-sub">onrender.com · EU</div></div><span class="api-badge" id="ss-be" style="background:var(--al);color:var(--a)">Зарежда</span></div>
-      <div class="api-row"><div><div class="api-name">Copernicus WMS</div><div class="api-sub">Sentinel-2 L2A</div></div><span class="api-badge" id="ss-cop" style="background:var(--al);color:var(--a)">Зарежда</span></div>
+      <div class="api-row"><div><div class="api-name">Copernicus</div><div class="api-sub">Sentinel-2 L2A</div></div><span class="api-badge" id="ss-cop" style="background:var(--al);color:var(--a)">Зарежда</span></div>
       <div class="api-row"><div><div class="api-name">OpenMeteo</div><div class="api-sub">ET₀ · Прогноза</div></div><span class="api-badge" id="ss-meteo" style="background:var(--al);color:var(--a)">Зарежда</span></div>
       <div class="api-row"><div><div class="api-name">Groq LLaMA 3.3</div><div class="api-sub">AI агроном</div></div><span class="api-badge" id="ss-ai" style="background:var(--al);color:var(--a)">Зарежда</span></div>
       <div class="api-row"><div><div class="api-name">EuroCrops</div><div class="api-sub">Supabase PostGIS</div></div><span class="api-badge" style="background:var(--gl);color:var(--g)">791k точки</span></div>
+    </div>
+    <!-- Scrollable parcels -->
+    <div style="flex-shrink:0;padding:8px 12px 4px;border-bottom:1px solid var(--bd)">
+      <div class="sbl" style="margin-bottom:0">Парцели <span class="spin" id="spin-left" style="display:none"></span></div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:8px 12px">
+      <div id="sb-parcel-list"><div style="font-size:11px;color:var(--t3)">Зарежда...</div></div>
     </div>
   </div>
 
@@ -299,7 +302,7 @@ html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans'
             <span style="opacity:.7">· 0.7+ отлично · 0.5–0.7 добро · 0.3–0.5 умерено · под 0.3 ниско</span>
           </div>
           <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">90-дневна NDVI история · Sentinel-2</div>
-          <div class="ch-wrap"><canvas id="c-ndvi90"></canvas></div>
+          <div class="ch-wrap" style="height:140px"><canvas id="c-ndvi90"></canvas></div>
         </div>
 
         <!-- EuroCrops + AI pred side by side -->
@@ -330,15 +333,15 @@ html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans'
 
       <!-- NDVI history -->
       <div class="desk-view" id="cv-ndvi">
-        <div class="card"><div class="card-title">NDVI история — 90 дни</div><div class="ch-wrap"><canvas id="c-ndvi90"></canvas></div></div>
+        <div class="card"><div class="card-title">NDVI история — 90 дни</div><div class="ch-wrap" style="height:140px"><canvas id="c-ndvi90"></canvas></div></div>
       </div>
     </div>
 
     <!-- Market: full-width center panel -->
         <!-- Market: full-width center panel -->
     <div id="market-center" style="display:none;flex:1;min-height:0;overflow:hidden">
-      <div style="display:flex;height:100%;overflow:hidden">
-        <div style="flex:1;overflow-y:auto;padding:16px">
+      <div style="display:flex;height:100%;overflow:hidden;gap:0">
+        <div style="flex:1;overflow-y:auto;padding:16px;min-width:0">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
             <div style="font-size:15px;font-weight:700">💹 Борсови цени · МАТИФ Euronext</div>
             <span class="spin" id="market-spin" style="display:none"></span>
@@ -361,22 +364,101 @@ html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans'
             <div id="market-table"></div>
           </div>
 
-          <div style="font-size:10px;color:var(--t3);margin-top:8px">МАТИФ Euronext · 15мин забавяне · Цени в €/т · Не е инвестиционен съвет</div>
+          <!-- CAP Subsidies -->
+          <div class="card" style="margin-top:10px">
+            <div class="card-title">💶 ОСП/CAP Субсидии · България 2023-2027</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
+              <div style="background:var(--gp);border:1px solid var(--gm);border-radius:8px;padding:10px 12px">
+                <div style="font-size:10px;color:var(--t3);margin-bottom:3px">Основно плащане (ПСДП)</div>
+                <div style="font-size:18px;font-weight:700;color:var(--g);font-family:'DM Mono',monospace">~118 €/ха</div>
+                <div style="font-size:9px;color:var(--t3);margin-top:2px">2024 г. · обработваема земя</div>
+              </div>
+              <div style="background:var(--bl);border:1px solid var(--b);border-radius:8px;padding:10px 12px">
+                <div style="font-size:10px;color:var(--t3);margin-bottom:3px">Еко-схема (доброволно)</div>
+                <div style="font-size:18px;font-weight:700;color:var(--b);font-family:'DM Mono',monospace">~55 €/ха</div>
+                <div style="font-size:9px;color:var(--t3);margin-top:2px">2024 г. · при изпълнение</div>
+              </div>
+              <div style="background:var(--al);border:1px solid var(--a);border-radius:8px;padding:10px 12px">
+                <div style="font-size:10px;color:var(--t3);margin-bottom:3px">Обвързана подкрепа</div>
+                <div style="font-size:18px;font-weight:700;color:var(--a);font-family:'DM Mono',monospace">varies</div>
+                <div style="font-size:9px;color:var(--t3);margin-top:2px">слънчоглед, пшеница, соя</div>
+              </div>
+            </div>
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:11px">
+                <tr style="background:var(--s2);border-bottom:2px solid var(--bd2)">
+                  <th style="text-align:left;padding:6px 8px;font-weight:700;color:var(--t2)">Схема</th>
+                  <th style="text-align:right;padding:6px 8px;font-weight:700;color:var(--t2)">2022</th>
+                  <th style="text-align:right;padding:6px 8px;font-weight:700;color:var(--t2)">2023</th>
+                  <th style="text-align:right;padding:6px 8px;font-weight:700;color:var(--t2)">2024</th>
+                  <th style="text-align:right;padding:6px 8px;font-weight:700;color:var(--t2)">2025*</th>
+                </tr>
+                <tr style="border-bottom:1px solid var(--bd)">
+                  <td style="padding:5px 8px">Основно плащане €/ха</td>
+                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">108</td>
+                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">112</td>
+                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">118</td>
+                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace;color:var(--t3)">~122</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--bd)">
+                  <td style="padding:5px 8px">Еко-схема €/ха</td>
+                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">—</td>
+                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">48</td>
+                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">55</td>
+                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace;color:var(--t3)">~58</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--bd)">
+                  <td style="padding:5px 8px">Обвързана · пшеница €/ха</td>
+                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">42</td>
+                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">45</td>
+                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">47</td>
+                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace;color:var(--t3)">~48</td>
+                </tr>
+                <tr style="border-bottom:1px solid var(--bd)">
+                  <td style="padding:5px 8px">Обвързана · слънчоглед €/ха</td>
+                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">58</td>
+                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">62</td>
+                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">65</td>
+                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace;color:var(--t3)">~67</td>
+                </tr>
+                <tr>
+                  <td style="padding:5px 8px">Обвързана · соя €/ха</td>
+                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">85</td>
+                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">88</td>
+                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">90</td>
+                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace;color:var(--t3)">~92</td>
+                </tr>
+              </table>
+            </div>
+            <div style="font-size:10px;color:var(--t3);margin-top:8px">
+              Данни: ДФЗ · Стратегически план на България за ОСП 2023-2027 · *прогнозни
+              · <a href="https://www.dfz.bg" target="_blank" style="color:var(--b)">dfz.bg →</a>
+            </div>
+          </div>
+          <div style="font-size:10px;color:var(--t3);margin-top:8px">МАТИФ Euronext · Yahoo Finance · Цени в €/т · Не е инвестиционен съвет</div>
         </div>
 
         <!-- Right: AI market agent -->
         <div style="width:280px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden">
           <!-- Basis calculator -->
           <div style="padding:12px 14px;border-bottom:1px solid var(--bd);background:var(--s2)">
-            <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:8px">📍 Basis калкулатор</div>
-            <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
-              <input id="basis-km" type="number" value="50" min="1" max="500"
-                style="width:60px;height:32px;border:1.5px solid var(--bd2);border-radius:6px;padding:0 8px;font-family:'DM Mono',monospace;font-size:12px;background:var(--s)"
-                onchange="calcBasis()">
-              <span style="font-size:11px;color:var(--t3)">км до силоза</span>
+            <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:8px">📍 Реална изкупна цена</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+              <div>
+                <div style="font-size:9px;color:var(--t3);margin-bottom:3px">Транспорт €/т</div>
+                <input id="basis-transport" type="number" value="12" min="0" max="100"
+                  style="width:100%;height:32px;border:1.5px solid var(--bd2);border-radius:6px;padding:0 8px;font-family:'DM Mono',monospace;font-size:12px;background:var(--s)"
+                  onchange="calcBasis()">
+              </div>
+              <div>
+                <div style="font-size:9px;color:var(--t3);margin-bottom:3px">Силоз/такси €/т</div>
+                <input id="basis-silo" type="number" value="8" min="0" max="50"
+                  style="width:100%;height:32px;border:1.5px solid var(--bd2);border-radius:6px;padding:0 8px;font-family:'DM Mono',monospace;font-size:12px;background:var(--s)"
+                  onchange="calcBasis()">
+              </div>
             </div>
-            <div id="basis-results" style="font-size:11px;line-height:1.8;color:var(--t2)">
-              Въведи разстояние до силоза →
+            <div id="basis-results" style="font-size:11px;line-height:1.9;color:var(--t2)">
+              Въведи разходите →
             </div>
           </div>
           <div style="padding:12px 14px;border-bottom:1px solid var(--bd);background:var(--gp)">
@@ -1140,7 +1222,7 @@ function renderMarketCards(data){
       <div style="font-size:11px;margin-top:3px;color:${up?'var(--g)':'var(--r)'}">
         ${up?'▲':'▼'} ${Math.abs(p.change_pct).toFixed(2)}% · МАТИФ
       </div>
-      <div style="font-size:10px;color:var(--t3);margin-top:4px">БГ ~${p.bg_price} €/т</div>
+      <div style="font-size:10px;color:var(--t3);margin-top:4px">${p.bg_price?'БГ '+p.bg_price+' €/т':''}</div>
     </div>`;
   }).join('');
 }
@@ -1202,12 +1284,13 @@ async function generateMarketAnalysis(data){
   const p = activeIdx>=0 ? parcels[activeIdx] : null;
   const parcelCtx = p ? `Фермерът отглежда: ${p.crop||'—'}, ${p.area?.toFixed(1)||'—'} ха` : 'Не е избран парцел.';
 
-  const km = parseFloat(document.getElementById('basis-km')?.value)||50;
-  const transport = (km*0.08+8).toFixed(0);
+  const transport = parseFloat(document.getElementById('basis-transport')?.value)||12;
+  const silo = parseFloat(document.getElementById('basis-silo')?.value)||8;
+  const basis = transport + silo;
   const sys = `Ти си борсов AI агент за агрокомодити в България. Отговаряй кратко и конкретно на БЪЛГАРСКИ.
 МАТИФ ЦЕНИ (€/т):
 ${lines}
-BASIS: Фермерът е на ${km}км от силоза. Транспорт+такси = -${transport}€/т (реалната му цена е МАТИФ - ${transport}€/т).
+BASIS: Фермерът има разходи транспорт=${transport}€/т + силоз=${silo}€/т = ${basis}€/т. Реалната изкупна цена = МАТИФ - ${basis}€/т.
 ${parcelCtx}
 Анализирай цените и тренда. Дай конкретна препоръка: кога и какво да продава, дали да продаде сега или да чака. Вземи предвид сезонността (реколта: юли за пшеница/ечемик, септември за слънчоглед/царевица). До 4 изречения.`;
 
@@ -1256,10 +1339,10 @@ const TRANSPORT_COST_PER_KM = 0.08;
 const BASIS_HANDLING = 8; // €/т силозна такса
 
 function calcBasis(){
-  const km = parseFloat(document.getElementById('basis-km')?.value) || 50;
+  const transport = parseFloat(document.getElementById('basis-transport')?.value) || 12;
+  const silo = parseFloat(document.getElementById('basis-silo')?.value) || 8;
+  const total_deduction = transport + silo;
   const prices = marketData.prices || {};
-  const transport = km * TRANSPORT_COST_PER_KM;
-  const total_deduction = transport + BASIS_HANDLING;
 
   const crops = [
     {k:'wheat',    emoji:'🌾'},
@@ -1272,16 +1355,16 @@ function calcBasis(){
   const lines = crops.filter(c=>prices[c.k]&&!prices[c.k].error).map(c=>{
     const p = prices[c.k];
     const local = Math.max(0, p.price - total_deduction);
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0">
-      <span>${c.emoji} ${p.name}</span>
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--bd)">
+      <span>${c.emoji} ${p.name.split(' ')[0]}</span>
       <span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--g)">${local.toFixed(0)} €/т</span>
     </div>`;
   }).join('');
 
   const el = document.getElementById('basis-results');
   if(el) el.innerHTML = lines +
-    `<div style="font-size:9px;color:var(--t3);margin-top:4px;padding-top:4px;border-top:1px solid var(--bd)">
-      Транспорт: ${transport.toFixed(0)} €/т · Силоз: ${BASIS_HANDLING} €/т · Общо: -${total_deduction.toFixed(0)} €/т
+    `<div style="font-size:9px;color:var(--t3);margin-top:5px">
+      МАТИФ минус транспорт (${transport}€) + силоз (${silo}€) = -${total_deduction}€/т
     </div>`;
 }
 
