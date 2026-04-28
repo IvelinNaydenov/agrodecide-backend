@@ -330,9 +330,12 @@ html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans'
         <div class="card"><div class="card-title">Воден баланс мм</div><div class="ch-wrap"><canvas id="c-wb"></canvas></div></div>
       </div>
 
-      <!-- NDVI history -->
+      <!-- NDVI history — uses same chart from Overview tab -->
       <div class="desk-view" id="cv-ndvi">
-        <div class="card"><div class="card-title">NDVI история — 90 дни</div><div class="ch-wrap" style="height:140px"><canvas id="c-ndvi90"></canvas></div></div>
+        <div class="card">
+          <div class="card-title">NDVI история — 90 дни</div>
+          <div class="ch-wrap" style="height:200px"><canvas id="c-ndvi90-full"></canvas></div>
+        </div>
       </div>
     </div>
 
@@ -833,7 +836,7 @@ async function selectParcel(i){
       // Show NDVI alert
       renderNDVIAlert(rn.current_ndvi, rn.series);
     }
-    if(rn.series?.length>0)drawNDVI90Real(rn.series);
+    if(rn.series?.length>0){window._lastNDVISeries=rn.series;drawNDVI90Real(rn.series);}
     else throw new Error('no series');
   }catch(e){
     // Fallback — meteo-derived NDVI curve
@@ -907,6 +910,14 @@ function renderNDVIAlert(current, series){
   el.style.border=`1px solid ${color}`;
   el.style.color=color;
   el.innerHTML=msg+(prev?` <span style="opacity:.7;font-size:10px">Промяна: ${change>=0?'+':''}${change.toFixed(3)} (${pct.toFixed(1)}%)</span>`:'');
+}
+
+function drawNDVI90Full(series){
+  dc_('c-ndvi90-full');
+  const ctx=document.getElementById('c-ndvi90-full')?.getContext('2d');if(!ctx)return;
+  const labels=series.map(s=>s.date?.slice(5)||s.date);
+  const values=series.map(s=>s.ndvi||s);
+  charts['c-ndvi90-full']=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'NDVI (Sentinel-2)',data:values,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.1)',borderWidth:2,tension:.3,pointRadius:3,pointBackgroundColor:'#1D9E75',fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:8}},tooltip:{callbacks:{label:ctx=>'NDVI: '+ctx.parsed.y.toFixed(4)}}},scales:{y:{min:0,max:1,ticks:{font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:10},maxTicksLimit:14},grid:{display:false}}}}});
 }
 
 function drawNDVI90Real(series){
@@ -1002,7 +1013,12 @@ function deskTab(name,btn){
   }else if(name==='market'){
     left.style.display='none';right.style.display='none';
     fc.style.display='none';mc.style.display='flex';
-    loadMarketPrices();
+    if(!marketData.prices) loadMarketPrices();
+    else{
+      // Re-render chart since canvas was hidden
+      const first=Object.keys(marketData.prices).find(k=>marketData.prices[k].history?.length>0);
+      if(first) setTimeout(()=>showMarketChart(first),100);
+    }
   }
 }
 
@@ -1019,6 +1035,10 @@ function centerTab(name,btn){
     mapEl.style.flex='0';mapEl.style.display='none';
     const dv=document.getElementById('cv-'+name);if(dv)dv.classList.add('on');
     // Lazy STAC
+    if(name==='ndvi'){
+      // Draw NDVI in the full-size canvas too
+      if(window._lastNDVISeries) drawNDVI90Full(window._lastNDVISeries);
+    }
     if(name==='stac'&&window._stacP){
       const p=window._stacP;window._stacP=null;
       const el=document.getElementById('stac-list');
@@ -1242,17 +1262,19 @@ let marketChart = null;
 // MATIF tickers
 const MARKET_CONFIG = {
   wheat:     {symbol:'EBM.PA', name:'Пшеница мелница (МАТИФ)', bg_ref:175, bg_note:'ДФЗ бюлетин'},
-  corn:      {symbol:'EMA.PA', name:'Царевица (МАТИФ)',        bg_ref:178, bg_note:'ДФЗ бюлетин'},
+  corn:      {symbol:'EMA.PA', name:'Царевица (МАТИФ)',        bg_ref:178, bg_note:'ДФЗ бюлетин', alt:['ZC=F','CORN.PA']},
   rapeseed:  {symbol:'ECO.PA', name:'Рапица (МАТИФ)',          bg_ref:460, bg_note:'ДФЗ бюлетин'},
   sunflower: {symbol:null,     name:'Слънчоглед маслодаен',    bg_ref:490, bg_note:'borsaagro.com'},
   barley:    {symbol:null,     name:'Ечемик фуражен',          bg_ref:168, bg_note:'ДФЗ бюлетин'},
 };
 
-async function fetchYahooPrice(symbol){
-  const urls = [
-    `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=30d`,
-    `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=30d`,
-  ];
+async function fetchYahooPrice(symbol, altSymbols){
+  const syms = [symbol, ...(altSymbols||[])];
+  const urls = [];
+  for(const s of syms){
+    urls.push(`https://query1.finance.yahoo.com/v8/finance/chart/${s}?interval=1d&range=30d`);
+    urls.push(`https://query2.finance.yahoo.com/v8/finance/chart/${s}?interval=1d&range=30d`);
+  }
   for(const url of urls){
     try{
       const r = await fetch(url);
@@ -1284,7 +1306,7 @@ async function loadMarketPrices(){
   const prices = {};
   for(const [key, cfg] of Object.entries(MARKET_CONFIG)){
     if(cfg.symbol){
-      const yf = await fetchYahooPrice(cfg.symbol);
+      const yf = await fetchYahooPrice(cfg.symbol, cfg.alt);
       if(yf && yf.price){
         const chg = yf.prev ? Math.round((yf.price-yf.prev)/yf.prev*10000)/100 : 0;
         prices[key] = {
