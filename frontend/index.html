@@ -3,1527 +3,699 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta name="theme-color" content="#0F6E56">
+<meta name="theme-color" content="#1a5c47">
 <title>AgroDecide — EU Farming Intelligence</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --g:#0F6E56;--gm:#1D9E75;--gl:#E4F5EE;--gp:#F0FAF5;
-  --a:#8A5200;--al:#FFF0D6;--r:#B91C1C;--rl:#FEE2E2;
-  --b:#1447A0;--bl:#EFF6FF;--p:#4C3DB5;--pl:#EEF2FF;
-  --t:#0D0D0B;--t2:#4A4A45;--t3:#8A8A82;
-  --s:#fff;--s2:#F4F2ED;--s3:#ECEAE4;
-  --bd:rgba(0,0,0,.08);--bd2:rgba(0,0,0,.13);
-  --shadow:0 1px 4px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
-  --shadow-md:0 2px 8px rgba(0,0,0,.1),0 8px 24px rgba(0,0,0,.08);
+--pri:#1a5c47;--pri2:#25845e;--pri3:#d6f0e3;--pri4:#eef8f3;
+--warn:#92610e;--warn-bg:#fef3dc;
+--err:#a62020;--err-bg:#fde8e8;
+--info:#1a4f8c;--info-bg:#e8f0fd;
+--purp:#5b3fad;--purp-bg:#eeebfa;
+--tx:#111;--tx2:#555;--tx3:#999;
+--bg:#f0eeea;--card:#fff;--card2:#f5f3ef;--brd:#ddd8d0;--brd2:#c8c2b8;
+--mono:'IBM Plex Mono',monospace;
+--sans:'IBM Plex Sans',sans-serif;
+--r:8px;
 }
-html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans',sans-serif;color:var(--t);font-size:14px}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--sans);color:var(--tx);font-size:13px;line-height:1.5}
 
-/* Mobile banner */
-.mob-banner{display:none;position:fixed;inset:0;background:var(--g);z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center;color:#fff}
-.mb-logo{font-size:36px;font-weight:700;margin-bottom:8px}
-.mb-sub{font-size:15px;opacity:.8;margin-bottom:28px;line-height:1.7}
-.mb-box{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);border-radius:14px;padding:18px 22px;font-size:14px;line-height:1.8;margin-bottom:8px}
-
-/* App */
+/* === LAYOUT === */
 .app{display:flex;flex-direction:column;height:100vh}
-.topbar{display:flex;align-items:center;height:50px;flex-shrink:0;background:var(--g);padding:0 16px;box-shadow:0 2px 12px rgba(0,0,0,.2);z-index:200;gap:0}
-.t-logo{font-size:16px;font-weight:700;color:#fff;letter-spacing:-.3px}
-.t-logo sup{font-size:9px;font-weight:400;opacity:.65;margin-left:4px;vertical-align:super}
-.t-live{margin-left:10px;font-size:10px;font-weight:600;padding:2px 8px;border-radius:12px;background:rgba(255,255,255,.18);color:#fff;display:flex;align-items:center;gap:5px}
-.t-live .dot{width:5px;height:5px;border-radius:50%;background:#4ade80;animation:blink 1.5s infinite}
-.t-tabs{display:flex;height:100%;margin-left:20px}
-.t-tab{padding:0 14px;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;color:rgba(255,255,255,.65);border-bottom:2.5px solid transparent;height:100%;transition:all .15s}
-.t-tab.on{color:#fff;border-bottom-color:rgba(255,255,255,.8)}
-.t-tab:hover:not(.on){color:rgba(255,255,255,.9)}
-.t-pills{margin-left:auto;display:flex;gap:6px;align-items:center}
-.pill{font-size:10px;font-weight:600;padding:3px 9px;border-radius:12px;display:flex;align-items:center;gap:4px;white-space:nowrap}
-.pill .dot{width:5px;height:5px;border-radius:50%}
-.p-live{background:rgba(255,255,255,.15);color:#fff}.p-live .dot{background:#4ade80;animation:blink 2s infinite}
-.p-warn{background:rgba(255,200,50,.2);color:#fde68a}.p-warn .dot{background:#fbbf24}
-.p-err{background:rgba(255,80,80,.2);color:#fca5a5}.p-err .dot{background:#f87171}
+.topbar{display:flex;align-items:center;height:46px;flex-shrink:0;background:var(--pri);padding:0 14px;gap:12px;z-index:100}
+.logo{font-size:15px;font-weight:700;color:#fff;letter-spacing:-.2px}
+.logo small{font-size:10px;font-weight:400;opacity:.6;margin-left:4px}
+.top-tabs{display:flex;height:100%;gap:0}
+.ttab{padding:0 14px;border:none;background:none;font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;color:rgba(255,255,255,.6);border-bottom:2px solid transparent;height:100%}
+.ttab.on{color:#fff;border-bottom-color:rgba(255,255,255,.75)}
+.ttab:hover:not(.on){color:rgba(255,255,255,.85)}
+.top-pills{margin-left:auto;display:flex;gap:5px;align-items:center}
+.pill{font-size:9px;font-weight:600;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.7);display:flex;align-items:center;gap:4px}
+.pill .d{width:5px;height:5px;border-radius:50%}
+.p-ok .d{background:#4ade80}.p-wait .d{background:#fbbf24}.p-err .d{background:#f87171}
 
-/* 3-column layout */
-.main{flex:1;display:flex;overflow:hidden;min-height:0}
-.col-left{width:230px;flex-shrink:0;border-right:1px solid var(--bd2);background:var(--s);display:flex;flex-direction:column;overflow:hidden}
-.col-center{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;position:relative}
-.col-right{width:265px;flex-shrink:0;border-left:1px solid var(--bd2);background:var(--s);display:flex;flex-direction:column;overflow:hidden}
+.body{flex:1;display:flex;overflow:hidden;min-height:0}
 
-/* Left column */
-.col-left-head{padding:10px 12px;border-bottom:1px solid var(--bd);flex-shrink:0}
-.sbl{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px}
-.col-left-scroll{flex:1;overflow-y:auto;padding:10px 12px}
-.sb-parcel{padding:8px 10px;border-radius:8px;border:1px solid var(--bd);cursor:pointer;margin-bottom:6px;background:var(--s);transition:all .15s}
-.sb-parcel.on{border-color:var(--gm);background:var(--gl)}
-.sb-parcel:hover:not(.on){background:var(--s2)}
-.sb-p-name{font-size:12px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
-.sb-p-meta{font-size:10px;color:var(--t3);margin-top:1px;font-family:'DM Mono',monospace}
-.irow{display:flex;align-items:center;gap:7px;padding:3px 0}
-.ilbl{font-size:10px;color:var(--t3);width:52px;flex-shrink:0}
-.ibar{flex:1;height:4px;background:var(--s3);border-radius:2px;overflow:hidden}
-.ifill{height:100%;border-radius:2px;transition:width .8s ease}
-.ival{font-size:10px;font-weight:600;width:38px;text-align:right;flex-shrink:0;font-family:'DM Mono',monospace}
-.api-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bd)}
-.api-row:last-child{border:none}
-.api-name{font-size:11px;font-weight:500}
-.api-sub{font-size:9px;color:var(--t3)}
-.api-badge{font-size:9px;font-weight:600;padding:2px 7px;border-radius:8px}
+/* Left sidebar */
+.left{width:220px;flex-shrink:0;border-right:1px solid var(--brd);background:var(--card);display:flex;flex-direction:column;overflow:hidden}
+.l-section{padding:8px 10px;border-bottom:1px solid var(--brd);flex-shrink:0}
+.l-title{font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px}
+.l-scroll{flex:1;overflow-y:auto;padding:6px 10px}
 
-/* Center tabs */
-.c-tabs{display:flex;border-bottom:1px solid var(--bd);background:var(--s);flex-shrink:0;z-index:10}
-.c-tab{padding:9px 13px;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;color:var(--t3);border-bottom:2px solid transparent;transition:all .15s}
-.c-tab.on{color:var(--g);border-bottom-color:var(--g)}
-.c-tab:hover:not(.on){color:var(--t)}
-.desk-view{display:none;overflow-y:auto;padding:14px;flex:1;min-height:0}
-.desk-view.on{display:block}
+/* Indicator bars */
+.ind{display:flex;align-items:center;gap:6px;padding:2px 0}
+.ind-label{font-size:10px;color:var(--tx3);width:48px;flex-shrink:0}
+.ind-bar{flex:1;height:4px;background:var(--card2);border-radius:2px;overflow:hidden}
+.ind-fill{height:100%;border-radius:2px;transition:width .6s}
+.ind-val{font-size:10px;font-weight:600;width:40px;text-align:right;font-family:var(--mono)}
 
-/* Map */
-#map{position:absolute;inset:0;width:100%;height:100%}
-.map-fill{flex:1;position:relative;min-height:0}
-.layer-pills{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;gap:5px;background:rgba(255,255,255,.93);border-radius:22px;padding:4px 7px;box-shadow:var(--shadow-md);border:1px solid var(--bd)}
-.layer-pill{padding:4px 12px;border-radius:16px;border:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;background:transparent;color:var(--t2);transition:all .15s}
-.layer-pill.on{background:var(--g);color:#fff}
-.map-coords{position:absolute;bottom:10px;right:10px;z-index:1000;background:rgba(255,255,255,.9);border-radius:6px;padding:4px 9px;font-size:10px;font-weight:500;font-family:'DM Mono',monospace;box-shadow:var(--shadow);border:.5px solid var(--bd)}
-.draw-hint{position:absolute;top:58px;left:50%;transform:translateX(-50%);z-index:1000;background:var(--g);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;display:none;box-shadow:var(--shadow-md);white-space:nowrap}
-.fab-locate{position:absolute;bottom:50px;right:10px;z-index:1000;width:44px;height:44px;border-radius:8px;border:none;background:rgba(255,255,255,.94);box-shadow:var(--shadow-md);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.map-fabs{position:absolute;bottom:10px;left:10px;z-index:1000;display:flex;gap:8px}
-.map-fab{height:44px;border-radius:10px;border:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:var(--shadow-md);padding:0 16px}
-.fab-primary{background:var(--g);color:#fff}
-.fab-cancel{background:var(--r);color:#fff}
+/* API status */
+.api{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--brd)}
+.api:last-child{border:none}
+.api-n{font-size:10px;font-weight:500}.api-s{font-size:9px;color:var(--tx3)}
+.api-b{font-size:8px;font-weight:700;padding:2px 6px;border-radius:6px}
 
-/* Cards */
-.card{border:1px solid var(--bd);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--s)}
-.card-title{font-weight:600;font-size:12px;margin-bottom:8px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;color:var(--t2)}
-.ch-wrap{position:relative;height:130px;margin-bottom:6px}
-.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
-.stat-card{background:var(--s2);border-radius:8px;padding:10px 12px;border:1px solid var(--bd)}
-.stat-val{font-size:22px;font-weight:600;font-family:'DM Mono',monospace;margin-top:3px}
-.stat-lbl{font-size:10px;color:var(--t3);font-weight:500}
-.stac-item{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bd);font-size:11px}
-.stac-item:last-child{border:none}
-.ec-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--bd)}
-.ec-row:last-child{border:none}
-.ec-yr{font-size:11px;font-weight:700;color:var(--t3);width:36px;flex-shrink:0;font-family:'DM Mono',monospace}
-.ec-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-.ec-crop{font-size:13px;font-weight:500;flex:1}
-.badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;display:inline-block}
-.bg-green{background:var(--gl);color:var(--g)}
-.bg-amber{background:var(--al);color:var(--a)}
-.bg-red{background:var(--rl);color:var(--r)}
-.bg-blue{background:var(--bl);color:var(--b)}
-.bg-purple{background:var(--pl);color:var(--p)}
-.pred-box{background:var(--gp);border:1.5px solid var(--gm);border-radius:12px;padding:12px 14px;margin-bottom:10px}
-.pred-lbl{font-size:10px;font-weight:700;color:var(--g);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.pred-txt{font-size:13px;line-height:1.65}
+/* Parcel list */
+.parcel{padding:7px 8px;border-radius:var(--r);border:1px solid var(--brd);cursor:pointer;margin-bottom:5px;transition:all .12s;background:var(--card)}
+.parcel.on{border-color:var(--pri2);background:var(--pri3)}
+.parcel:hover:not(.on){background:var(--card2)}
+.p-name{font-size:11px;font-weight:600;display:flex;justify-content:space-between}
+.p-meta{font-size:9px;color:var(--tx3);font-family:var(--mono);margin-top:1px}
+.p-btns{display:flex;gap:3px}
+.p-btn{background:none;border:none;cursor:pointer;font-size:10px;padding:1px 3px;border-radius:3px;color:var(--tx3)}
+.p-btn:hover{background:var(--card2)}
 
-/* Right column — weather + AI */
-.rp-weather{padding:12px 14px;border-bottom:1px solid var(--bd);background:var(--bl);flex-shrink:0}
-.w-main{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.w-temp{font-size:26px;font-weight:300;color:var(--b);font-family:'DM Mono',monospace}
-.w-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.wc{background:rgba(20,71,160,.07);border-radius:8px;padding:6px 9px}
-.wc-v{font-size:14px;font-weight:600;color:var(--b);font-family:'DM Mono',monospace}
-.wc-l{font-size:9px;color:var(--t3);margin-top:1px}
-.ai-head{padding:9px 13px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:7px;flex-shrink:0;flex-wrap:wrap}
-.ai-tag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px}
-.msgs{flex:1;overflow-y:auto;padding:9px 12px;display:flex;flex-direction:column;gap:6px;min-height:0}
-.msg{max-width:218px;padding:8px 11px;border-radius:12px;font-size:12px;line-height:1.55}
-.msg.ai{background:var(--s2);border-bottom-left-radius:2px;align-self:flex-start}
-.msg.user{background:var(--gm);color:#fff;border-bottom-right-radius:2px;align-self:flex-end}
-.msg.loading{background:var(--s2);align-self:flex-start}
-.dots span{width:4px;height:4px;border-radius:50%;background:var(--t3);display:inline-block;animation:dot .9s infinite}
+/* Center */
+.center{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;position:relative}
+.c-tabs{display:flex;border-bottom:1px solid var(--brd);background:var(--card);flex-shrink:0;z-index:10}
+.ctab{padding:8px 12px;border:none;background:none;font-family:var(--sans);font-size:11px;font-weight:500;cursor:pointer;color:var(--tx3);border-bottom:2px solid transparent}
+.ctab.on{color:var(--pri);border-bottom-color:var(--pri)}
+.ctab:hover:not(.on){color:var(--tx)}
+
+/* Map container */
+.map-wrap{flex:1;position:relative;min-height:0}
+#map{position:absolute;inset:0}
+.map-pills{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;gap:4px;background:rgba(255,255,255,.92);border-radius:20px;padding:3px 6px;box-shadow:0 2px 10px rgba(0,0,0,.15);border:1px solid var(--brd)}
+.mpill{padding:3px 10px;border-radius:14px;border:none;font-family:var(--sans);font-size:11px;font-weight:500;cursor:pointer;background:none;color:var(--tx2)}
+.mpill.on{background:var(--pri);color:#fff}
+.map-coord{position:absolute;bottom:8px;right:8px;z-index:1000;background:rgba(255,255,255,.9);border-radius:5px;padding:3px 7px;font-size:9px;font-family:var(--mono);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.draw-hint{position:absolute;top:52px;left:50%;transform:translateX(-50%);z-index:1000;background:var(--pri);color:#fff;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;display:none;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.fab-loc{position:absolute;bottom:48px;right:8px;z-index:1000;width:40px;height:40px;border-radius:var(--r);border:none;background:rgba(255,255,255,.94);box-shadow:0 2px 8px rgba(0,0,0,.15);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.map-btns{position:absolute;bottom:8px;left:8px;z-index:1000;display:flex;gap:6px}
+.mfab{height:38px;border-radius:var(--r);border:none;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;box-shadow:0 2px 8px rgba(0,0,0,.15);padding:0 14px}
+.mfab-go{background:var(--pri);color:#fff}
+.mfab-no{background:var(--err);color:#fff}
+
+/* Desk views (overview, meteo, ndvi) */
+.dview{display:none;overflow-y:auto;padding:12px;flex:1;min-height:0}
+.dview.on{display:block}
+.card{background:var(--card);border:1px solid var(--brd);border-radius:var(--r);padding:10px 12px;margin-bottom:8px}
+.card-t{font-size:11px;font-weight:600;color:var(--tx2);margin-bottom:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ch{position:relative;height:120px}
+.badge{font-size:9px;font-weight:600;padding:2px 7px;border-radius:8px;display:inline-block}
+.b-ok{background:var(--pri3);color:var(--pri)}.b-warn{background:var(--warn-bg);color:var(--warn)}.b-err{background:var(--err-bg);color:var(--err)}.b-info{background:var(--info-bg);color:var(--info)}.b-purp{background:var(--purp-bg);color:var(--purp)}
+
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+.stat{background:var(--card2);border-radius:var(--r);padding:8px 10px;border:1px solid var(--brd)}
+.stat-v{font-size:18px;font-weight:600;font-family:var(--mono);margin-top:2px}
+.stat-l{font-size:9px;color:var(--tx3)}
+
+.ec-r{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--brd)}
+.ec-r:last-child{border:none}
+.ec-y{font-size:10px;font-weight:700;color:var(--tx3);width:32px;font-family:var(--mono)}
+.ec-d{width:8px;height:8px;border-radius:50%}
+.ec-c{font-size:12px;font-weight:500;flex:1}
+
+.pred{background:var(--pri4);border:1px solid var(--pri2);border-radius:var(--r);padding:10px 12px;margin-bottom:8px}
+.pred-h{font-size:9px;font-weight:700;color:var(--pri);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:flex;align-items:center;gap:5px}
+.pred-b{font-size:12px;line-height:1.6}
+
+.ndvi-alert{border-radius:var(--r);padding:8px 12px;margin-bottom:8px;font-size:11px;line-height:1.6;display:none}
+
+/* Right sidebar */
+.right{width:250px;flex-shrink:0;border-left:1px solid var(--brd);background:var(--card);display:flex;flex-direction:column;overflow:hidden}
+.r-weather{padding:10px 12px;border-bottom:1px solid var(--brd);background:var(--info-bg);flex-shrink:0}
+.w-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.w-temp{font-size:22px;font-weight:300;color:var(--info);font-family:var(--mono)}
+.w-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.wc{background:rgba(26,79,140,.06);border-radius:6px;padding:5px 8px}
+.wc-v{font-size:12px;font-weight:600;color:var(--info);font-family:var(--mono)}
+.wc-l{font-size:8px;color:var(--tx3)}
+.ai-bar{padding:8px 10px;border-bottom:1px solid var(--brd);flex-shrink:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ai-tag{font-size:8px;font-weight:700;padding:2px 6px;border-radius:6px}
+.msgs{flex:1;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:5px;min-height:0}
+.msg{max-width:200px;padding:7px 10px;border-radius:10px;font-size:11px;line-height:1.5}
+.msg-ai{background:var(--card2);border-bottom-left-radius:2px;align-self:flex-start}
+.msg-u{background:var(--pri2);color:#fff;border-bottom-right-radius:2px;align-self:flex-end}
+.msg-ld{background:var(--card2);align-self:flex-start}
+.dots span{width:4px;height:4px;border-radius:50%;background:var(--tx3);display:inline-block;animation:dot .9s infinite}
 .dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
 @keyframes dot{0%,80%,100%{opacity:.2}40%{opacity:1}}
-.qbtns{padding:7px 10px;border-top:1px solid var(--bd);display:flex;flex-wrap:wrap;gap:4px;flex-shrink:0}
-.qbtn{padding:4px 9px;border-radius:14px;border:1px solid var(--bd);background:var(--s2);font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--t2);transition:all .15s}
-.qbtn:hover{background:var(--gl);border-color:var(--gm);color:var(--g)}
-.ai-ir{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--bd);flex-shrink:0}
-.ai-in{flex:1;border:1.5px solid var(--bd);border-radius:8px;padding:6px 10px;font-family:'DM Sans',sans-serif;font-size:12px;background:var(--s);color:var(--t);outline:none}
-.ai-in:focus{border-color:var(--gm)}
-.ai-go{padding:6px 12px;border-radius:8px;border:none;background:var(--gm);color:#fff;font-size:12px;font-weight:600;cursor:pointer}
-.ai-go:disabled{opacity:.4;cursor:default}
+.qrow{padding:6px 8px;border-top:1px solid var(--brd);display:flex;flex-wrap:wrap;gap:3px;flex-shrink:0}
+.qb{padding:3px 8px;border-radius:12px;border:1px solid var(--brd);background:var(--card2);font-size:9px;font-weight:500;cursor:pointer;font-family:var(--sans);color:var(--tx2)}
+.qb:hover{background:var(--pri3);border-color:var(--pri2);color:var(--pri)}
+.ai-input{display:flex;gap:5px;padding:6px 8px;border-top:1px solid var(--brd);flex-shrink:0}
+.ai-in{flex:1;border:1px solid var(--brd);border-radius:6px;padding:5px 8px;font-family:var(--sans);font-size:11px;background:var(--card);outline:none}
+.ai-in:focus{border-color:var(--pri2)}
+.ai-go{padding:5px 10px;border-radius:6px;border:none;background:var(--pri2);color:#fff;font-size:11px;font-weight:600;cursor:pointer}
+.ai-go:disabled{opacity:.4}
 
-/* Policy full-width */
-#dv-policy{overflow-y:auto;padding:16px}
-.policy-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
-.policy-row{display:flex;gap:14px;margin-bottom:14px}
-.policy-col{flex:1;min-width:0}
+/* === MARKET VIEW (fullscreen) === */
+#market-view{display:none;flex:1;overflow:hidden}
+.mkt{display:flex;height:100%;gap:0}
+.mkt-main{flex:1;overflow-y:auto;padding:14px;min-width:0}
+.mkt-side{width:260px;flex-shrink:0;border-left:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden;background:var(--card)}
+.mkt-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}
+.mkt-card{background:var(--card);border-radius:var(--r);padding:10px 12px;cursor:pointer;transition:all .12s}
+.mkt-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.mkt-price{font-size:20px;font-weight:700;font-family:var(--mono)}
+.mkt-name{font-size:10px;color:var(--tx3);margin-bottom:3px}
+.mkt-chg{font-size:10px;margin-top:3px}
+.mkt-bg{font-size:9px;color:var(--tx3);margin-top:2px}
 
 /* Modal */
-.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:none;align-items:flex-end;justify-content:center}
-.modal-ov.show{display:flex}
-.modal{background:var(--s);border-radius:18px 18px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;box-shadow:0 -4px 30px rgba(0,0,0,.2)}
-.modal-handle{width:36px;height:4px;border-radius:2px;background:var(--bd2);margin:0 auto 16px}
-.modal-title{font-size:18px;font-weight:700;margin-bottom:16px}
-.mf{margin-bottom:14px}
-.ml{font-size:11px;font-weight:700;color:var(--t2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
-.mi{width:100%;height:48px;border:1.5px solid var(--bd2);border-radius:8px;padding:0 12px;font-family:'DM Sans',sans-serif;font-size:15px;background:var(--s);color:var(--t);outline:none}
-.mi:focus{border-color:var(--gm)}
-.mbtns{display:flex;gap:10px;margin-top:18px}
-.mok{flex:1;height:48px;border-radius:12px;border:none;background:var(--g);color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer}
-.mcancel{height:48px;padding:0 18px;border-radius:12px;border:1.5px solid var(--bd2);background:var(--s2);font-family:'DM Sans',sans-serif;font-size:15px;cursor:pointer;color:var(--t)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:2000;display:none;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:var(--card);border-radius:12px;padding:20px;width:380px;box-shadow:0 8px 40px rgba(0,0,0,.2)}
+.m-title{font-size:16px;font-weight:700;margin-bottom:14px}
+.mf{margin-bottom:10px}
+.mf-l{font-size:10px;font-weight:600;color:var(--tx2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
+.mf-i{width:100%;height:40px;border:1.5px solid var(--brd);border-radius:6px;padding:0 10px;font-family:var(--sans);font-size:13px;background:var(--card);outline:none}
+.mf-i:focus{border-color:var(--pri2)}
+.m-btns{display:flex;gap:8px;margin-top:14px}
+.m-ok{flex:1;height:40px;border-radius:8px;border:none;background:var(--pri);color:#fff;font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer}
+.m-no{height:40px;padding:0 16px;border-radius:8px;border:1.5px solid var(--brd);background:var(--card2);font-family:var(--sans);font-size:14px;cursor:pointer}
 
+/* Utils */
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--bd2);border-top-color:var(--gm);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
-.loading-sm{padding:12px;text-align:center;color:var(--t3);font-size:12px}
+.spin{display:inline-block;width:10px;height:10px;border:2px solid var(--brd);border-top-color:var(--pri2);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
 </style>
 </head>
 <body>
-
-<!-- Mobile banner -->
-<div class="mob-banner">
-  <div class="mb-logo">🌾 AgroDecide</div>
-  <div class="mb-sub">EU Farming Intelligence Platform</div>
-  <div class="mb-box">
-    <strong>Мобилното приложение е в разработка.</strong><br>
-    За пълния опит, моля отвори на<br>
-    <strong>компютър или широк таблет.</strong>
-  </div>
-  <div style="font-size:12px;opacity:.5;margin-top:12px">agrodecide-frontend.onrender.com</div>
-</div>
-
 <div class="app">
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <div class="t-logo">AgroDecide<sup>EU Pilot</sup></div>
-  <div class="t-live"><span class="dot"></span>LIVE</div>
-  <div class="t-tabs">
-    <button class="t-tab on" onclick="deskTab('farmer',this)">🌾 Фермер</button>
-    <button class="t-tab" onclick="deskTab('market',this)">💹 Пазар</button>
-  </div>
-  <div class="t-pills">
-    <span class="pill p-warn" id="pl-backend"><span class="dot"></span>Backend</span>
-    <span class="pill p-warn" id="pl-cop"><span class="dot"></span>Copernicus</span>
-    <span class="pill p-warn" id="pl-meteo"><span class="dot"></span>OpenMeteo</span>
-    <span class="pill p-warn" id="pl-ai"><span class="dot"></span>Groq</span>
-  </div>
+<div class="logo">AgroDecide <small>EU Pilot</small></div>
+<div class="top-tabs">
+<button class="ttab on" onclick="switchView('farmer',this)">🌾 Фермер</button>
+<button class="ttab" onclick="switchView('market',this)">💹 Пазар</button>
+</div>
+<div class="top-pills">
+<span class="pill p-wait" id="pl-be"><span class="d"></span>Backend</span>
+<span class="pill p-wait" id="pl-cop"><span class="d"></span>Copernicus</span>
+<span class="pill p-wait" id="pl-met"><span class="d"></span>Метео</span>
+<span class="pill p-wait" id="pl-ai"><span class="d"></span>Gemini/Groq</span>
+</div>
 </div>
 
-<!-- MAIN -->
-<div class="main" id="main-layout">
+<div class="body">
 
-  <!-- LEFT -->
-  <div class="col-left" id="col-left">
-    <!-- Static: Indicators + API Status -->
-    <div style="flex-shrink:0;padding:10px 12px;border-bottom:1px solid var(--bd)">
-      <div class="sbl">Индикатори</div>
-      <div class="irow"><span class="ilbl">NDVI</span><div class="ibar"><div class="ifill" id="bi-ndvi" style="width:0%;background:var(--gm)"></div></div><span class="ival" id="vi-ndvi">—</span></div>
-      <div class="irow"><span class="ilbl">Влажност</span><div class="ibar"><div class="ifill" id="bi-hum" style="width:0%;background:var(--b)"></div></div><span class="ival" id="vi-hum">—</span></div>
-      <div class="irow"><span class="ilbl">ET₀ мм/д</span><div class="ibar"><div class="ifill" id="bi-et" style="width:0%;background:var(--a)"></div></div><span class="ival" id="vi-et">—</span></div>
-      <div class="irow"><span class="ilbl">Суша</span><div class="ibar"><div class="ifill" id="bi-spi" style="width:0%;background:var(--r)"></div></div><span class="ival" id="vi-spi">—</span></div>
-      <div class="sbl" style="margin-top:10px">API Статус</div>
-      <div class="api-row"><div><div class="api-name">Backend</div><div class="api-sub">onrender.com · EU</div></div><span class="api-badge" id="ss-be" style="background:var(--al);color:var(--a)">Зарежда</span></div>
-      <div class="api-row"><div><div class="api-name">Copernicus</div><div class="api-sub">Sentinel-2 L2A</div></div><span class="api-badge" id="ss-cop" style="background:var(--al);color:var(--a)">Зарежда</span></div>
-      <div class="api-row"><div><div class="api-name">OpenMeteo</div><div class="api-sub">ET₀ · Прогноза</div></div><span class="api-badge" id="ss-meteo" style="background:var(--al);color:var(--a)">Зарежда</span></div>
-      <div class="api-row"><div><div class="api-name">Groq LLaMA 3.3</div><div class="api-sub">AI агроном</div></div><span class="api-badge" id="ss-ai" style="background:var(--al);color:var(--a)">Зарежда</span></div>
-      <div class="api-row"><div><div class="api-name">EuroCrops</div><div class="api-sub">Supabase PostGIS</div></div><span class="api-badge" style="background:var(--gl);color:var(--g)">791k точки</span></div>
-    </div>
-    <!-- Scrollable parcels -->
-    <div style="flex-shrink:0;padding:8px 12px 4px;border-bottom:1px solid var(--bd)">
-      <div class="sbl" style="margin-bottom:0">Парцели <span class="spin" id="spin-left" style="display:none"></span></div>
-    </div>
-    <div style="flex:1;overflow-y:auto;padding:8px 12px">
-      <div id="sb-parcel-list"><div style="font-size:11px;color:var(--t3)">Зарежда...</div></div>
-    </div>
-  </div>
+<!-- === FARMER VIEW === -->
+<div id="farmer-view" style="display:flex;flex:1;overflow:hidden">
 
-  <!-- CENTER -->
-  <div class="col-center" id="col-center">
+<!-- LEFT -->
+<div class="left">
+<div class="l-section">
+<div class="l-title">Индикатори</div>
+<div class="ind"><span class="ind-label">NDVI</span><div class="ind-bar"><div class="ind-fill" id="bi-ndvi" style="width:0%;background:var(--pri2)"></div></div><span class="ind-val" id="vi-ndvi">—</span></div>
+<div class="ind"><span class="ind-label">Влажност</span><div class="ind-bar"><div class="ind-fill" id="bi-hum" style="width:0%;background:var(--info)"></div></div><span class="ind-val" id="vi-hum">—</span></div>
+<div class="ind"><span class="ind-label">ET₀</span><div class="ind-bar"><div class="ind-fill" id="bi-et" style="width:0%;background:var(--warn)"></div></div><span class="ind-val" id="vi-et">—</span></div>
+<div class="ind"><span class="ind-label">Суша</span><div class="ind-bar"><div class="ind-fill" id="bi-spi" style="width:0%;background:var(--err)"></div></div><span class="ind-val" id="vi-spi">—</span></div>
+</div>
+<div class="l-section">
+<div class="l-title">API Статус</div>
+<div class="api"><div><div class="api-n">Backend</div><div class="api-s">Render EU</div></div><span class="api-b" id="ss-be" style="background:var(--warn-bg);color:var(--warn)">…</span></div>
+<div class="api"><div><div class="api-n">Copernicus</div><div class="api-s">Sentinel-2</div></div><span class="api-b" id="ss-cop" style="background:var(--warn-bg);color:var(--warn)">…</span></div>
+<div class="api"><div><div class="api-n">OpenMeteo</div><div class="api-s">Прогноза</div></div><span class="api-b" id="ss-met" style="background:var(--warn-bg);color:var(--warn)">…</span></div>
+<div class="api"><div><div class="api-n">Groq AI</div><div class="api-s">LLaMA 3.3</div></div><span class="api-b" id="ss-ai" style="background:var(--warn-bg);color:var(--warn)">…</span></div>
+<div class="api"><div><div class="api-n">EuroCrops</div><div class="api-s">PostGIS</div></div><span class="api-b" style="background:var(--pri3);color:var(--pri)">791k</span></div>
+</div>
+<div style="padding:6px 10px 0;border-bottom:1px solid var(--brd);flex-shrink:0"><div class="l-title" style="margin:0">Парцели</div></div>
+<div class="l-scroll" id="parcel-list"><div style="font-size:10px;color:var(--tx3)">Зарежда…</div></div>
+</div>
 
-    <!-- Farmer: center tabs + map/views -->
-    <div id="farmer-center" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
-      <div class="c-tabs" id="c-tabs">
-        <button class="c-tab on" onclick="centerTab('map',this)">🗺 Карта</button>
-        <button class="c-tab" onclick="centerTab('overview',this)">📈 Преглед</button>
-        <button class="c-tab" onclick="centerTab('meteo',this)">🌤 Метео</button>
-        <button class="c-tab" onclick="centerTab('ndvi',this)">🌿 NDVI</button>
-      </div>
+<!-- CENTER -->
+<div class="center" id="farmer-center">
+<div class="c-tabs" id="c-tabs">
+<button class="ctab on" onclick="cTab('map',this)">🗺 Карта</button>
+<button class="ctab" onclick="cTab('overview',this)">📈 Преглед</button>
+<button class="ctab" onclick="cTab('meteo',this)">🌤 Метео</button>
+<button class="ctab" onclick="cTab('ndvi',this)">🌿 NDVI</button>
+</div>
 
-      <!-- Map -->
-      <div class="map-fill" id="cv-map" style="flex:1;position:relative;min-height:0;display:block">
-        <div id="map"></div>
-        <div class="layer-pills">
-          <button class="layer-pill on" onclick="setLayer('sentinel',this)">🛰 Satellite</button>
-          <button class="layer-pill" onclick="setLayer('ndvi',this)">🌿 NDVI</button>
-          <button class="layer-pill" onclick="setLayer('carto',this)">🗺 Карта</button>
-        </div>
-        <div class="map-coords" id="ml-coords">—</div>
-        <div class="draw-hint" id="draw-hint">✏️ Кликни за точки · Двоен клик за край · ESC отказ</div>
-        <button class="fab-locate" id="btn-locate" onclick="locateMe()">📍</button>
-        <div class="map-fabs">
-          <button class="map-fab fab-primary" id="fab-draw" onclick="startDraw()">✏️ Рисувай парцел</button>
-          <button class="map-fab fab-cancel" id="fab-cancel" onclick="cancelDraw()" style="display:none">✕ Отказ</button>
-        </div>
-      </div>
+<div class="map-wrap" id="cv-map">
+<div id="map"></div>
+<div class="map-pills">
+<button class="mpill on" onclick="setLyr('sentinel',this)">🛰 Satellite</button>
+<button class="mpill" onclick="setLyr('ndvi',this)">🌿 NDVI</button>
+<button class="mpill" onclick="setLyr('carto',this)">🗺 Карта</button>
+</div>
+<div class="map-coord" id="mcoord">—</div>
+<div class="draw-hint" id="draw-hint">✏️ Кликни точки · Двоен клик за край · ESC отказ</div>
+<button class="fab-loc" id="btn-loc" onclick="locateMe()">📍</button>
+<div class="map-btns">
+<button class="mfab mfab-go" id="fab-draw" onclick="startDraw()">✏️ Рисувай парцел</button>
+<button class="mfab mfab-no" id="fab-cancel" onclick="cancelDraw()" style="display:none">✕ Отказ</button>
+</div>
+</div>
 
-      <!-- Overview -->
-      <div class="desk-view" id="cv-overview">
-        <!-- KPI row -->
-        <div class="stat-grid" style="grid-template-columns:repeat(4,1fr)">
-          <div class="stat-card">
-            <div class="stat-lbl">🌿 NDVI · Sentinel-2</div>
-            <div class="stat-val" id="ov-ndvi" style="color:var(--gm)">—</div>
-            <div style="font-size:10px;color:var(--t3)" id="ov-ndvi-src">Зарежда...</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-lbl">🌡 Температура</div>
-            <div class="stat-val" id="ov-temp" style="color:var(--a)">—</div>
-            <div style="font-size:10px;color:var(--t3)">OpenMeteo live</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-lbl">💧 ET₀ мм/д</div>
-            <div class="stat-val" id="ov-et" style="color:var(--b)">—</div>
-            <div style="font-size:10px;color:var(--t3)">Евапотранспирация</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-lbl">🛰 Последна ясна снимка</div>
-            <div class="stat-val" id="ov-last-scene" style="color:var(--p);font-size:16px">—</div>
-            <div style="font-size:10px;color:var(--t3)" id="ov-scene-cloud">Copernicus</div>
-          </div>
-        </div>
+<!-- Overview -->
+<div class="dview" id="cv-overview">
+<div class="stat-row">
+<div class="stat"><div class="stat-l">🌿 NDVI Sentinel-2</div><div class="stat-v" id="ov-ndvi" style="color:var(--pri)">—</div><div class="stat-l" id="ov-ndvi-src">Зарежда…</div></div>
+<div class="stat"><div class="stat-l">🌡 Температура</div><div class="stat-v" id="ov-temp" style="color:var(--warn)">—</div><div class="stat-l">OpenMeteo</div></div>
+<div class="stat"><div class="stat-l">💧 ET₀ мм/д</div><div class="stat-v" id="ov-et" style="color:var(--info)">—</div><div class="stat-l">Евапотранспирация</div></div>
+<div class="stat"><div class="stat-l">🛰 Последна ясна</div><div class="stat-v" id="ov-scene" style="color:var(--purp);font-size:14px">—</div><div class="stat-l" id="ov-scene-s">Copernicus</div></div>
+</div>
+<div id="ndvi-alert" class="ndvi-alert"></div>
+<div class="card">
+<div class="card-t">🛰 NDVI Класификация · Sentinel-2 <span class="spin" id="sp-ndvi" style="display:none"></span><span class="badge" id="b-ndvi" style="display:none"></span></div>
+<div id="ndvi-body"><div style="font-size:10px;color:var(--tx3)">Избери парцел…</div></div>
+<div style="background:var(--info-bg);border-radius:6px;padding:8px 10px;margin-top:8px;font-size:10px;color:var(--info);line-height:1.6">
+<b>Какво е NDVI?</b> Индекс на зеленост от спътника (0–1). Нормален посев расте плавно нагоре. <b>Рязък спад = стрес</b> (суша, болест, вредители).
+<span style="opacity:.7">0.7+ отлично · 0.5–0.7 добро · 0.3–0.5 умерено · &lt;0.3 ниско</span>
+</div>
+<div style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin:8px 0 4px">NDVI 90 дни · Sentinel-2</div>
+<div class="ch" style="height:130px"><canvas id="c-ndvi90"></canvas></div>
+</div>
+<div style="display:flex;gap:8px">
+<div class="card" style="flex:1">
+<div class="card-t">📅 EuroCrops <span class="spin" id="sp-ec" style="display:none"></span></div>
+<div id="ec-body"><div style="font-size:10px;color:var(--tx3)">Избери парцел…</div></div>
+</div>
+<div class="pred" style="flex:1">
+<div class="pred-h">🤖 AI Предикция 2026 <span class="badge b-purp" style="font-size:8px">Groq</span></div>
+<div class="pred-b" id="pred-text">Избери парцел…</div>
+</div>
+</div>
+<div class="card">
+<div class="card-t">🌤 14-дневна прогноза <span class="badge" id="met-badge" style="background:var(--warn-bg);color:var(--warn)">…</span></div>
+<div class="ch"><canvas id="c-forecast"></canvas></div>
+</div>
+</div>
 
-        <!-- NDVI alert box -->
-        <div id="ov-ndvi-alert" style="display:none;border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:12px;line-height:1.65"></div>
+<!-- Meteo -->
+<div class="dview" id="cv-meteo">
+<div class="card"><div class="card-t">Температура Макс/Мин 14д</div><div class="ch"><canvas id="c-temp"></canvas></div></div>
+<div class="card"><div class="card-t">ET₀ Евапотранспирация 14д</div><div class="ch"><canvas id="c-et14"></canvas></div></div>
+<div class="card"><div class="card-t">Воден баланс мм</div><div class="ch"><canvas id="c-wb"></canvas></div></div>
+</div>
 
-        <!-- NDVI Sentinel-2 real chart + classification -->
-        <div class="card">
-          <div class="card-title">🛰 NDVI · Sentinel-2 реални данни <span class="spin" id="d-ndvi-spin" style="display:none"></span><span class="badge" id="d-ndvi-badge" style="display:none;background:var(--al);color:var(--a)"></span></div>
-          <div id="d-ndvi-body"><div style="font-size:11px;color:var(--t3)">Избери парцел...</div></div>
-          <!-- NDVI explanation -->
-          <div style="background:var(--bl);border-radius:8px;padding:10px 12px;margin-top:10px;margin-bottom:8px;font-size:11px;color:var(--b);line-height:1.7">
-            <strong>Какво е NDVI?</strong> Индекс на зеленост от спътника (0–1). Показва колко гъста и здрава е растителността.<br>
-            <strong>Кривата</strong>: нормален посев расте плавно нагоре до средата на сезона. <strong>Рязък спад</strong> = стрес (суша, болест, вредители).
-            <span style="opacity:.7">· 0.7+ отлично · 0.5–0.7 добро · 0.3–0.5 умерено · под 0.3 ниско</span>
-          </div>
-          <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">90-дневна NDVI история · Sentinel-2</div>
-          <div class="ch-wrap" style="height:140px"><canvas id="c-ndvi90"></canvas></div>
-        </div>
+<!-- NDVI full -->
+<div class="dview" id="cv-ndvi">
+<div class="card"><div class="card-t">NDVI история 90 дни · Sentinel-2</div><div class="ch" style="height:200px"><canvas id="c-ndvi-full"></canvas></div></div>
+</div>
 
-        <!-- EuroCrops + AI pred side by side -->
-        <div style="display:flex;gap:10px;margin-bottom:10px">
-          <div class="card" style="flex:1;margin-bottom:0">
-            <div class="card-title">📅 EuroCrops · Сеитбообращение <span class="spin" id="d-ec-spin" style="display:none"></span></div>
-            <div id="d-ec-content"><div style="font-size:11px;color:var(--t3)">Избери парцел...</div></div>
-          </div>
-          <div class="pred-box" style="flex:1;margin-bottom:0">
-            <div class="pred-lbl">🤖 AI Предикция 2026 <span class="badge bg-purple" style="font-size:10px">Groq</span></div>
-            <div class="pred-txt" id="d-pred-text">Избери парцел...</div>
-          </div>
-        </div>
+</div><!-- center -->
 
-        <!-- 14-day forecast -->
-        <div class="card">
-          <div class="card-title">🌤 OpenMeteo — 14-дневна прогноза <span class="badge" id="meteo-badge" style="background:var(--al);color:var(--a)">Зарежда...</span></div>
-          <div class="ch-wrap"><canvas id="c-forecast"></canvas></div>
-        </div>
-      </div>
+<!-- RIGHT -->
+<div class="right">
+<div class="r-weather">
+<div class="l-title">OpenMeteo Live</div>
+<div class="w-row"><div style="font-size:20px" id="w-ico">⛅</div><div><div class="w-temp" id="w-tmp">—</div><div style="font-size:9px;color:var(--tx3)" id="w-desc">Зарежда…</div></div></div>
+<div class="w-grid">
+<div class="wc"><div class="wc-v" id="w-wnd">—</div><div class="wc-l">Вятър км/ч</div></div>
+<div class="wc"><div class="wc-v" id="w-hum">—</div><div class="wc-l">Влажност %</div></div>
+<div class="wc"><div class="wc-v" id="w-et">—</div><div class="wc-l">ET₀ мм/д</div></div>
+<div class="wc"><div class="wc-v" id="w-rn">—</div><div class="wc-l">Валежи 7д мм</div></div>
+</div>
+<div style="font-size:8px;color:var(--tx3);margin-top:4px" id="w-upd">—</div>
+</div>
+<div class="ai-bar"><span style="font-size:11px;font-weight:600">AI Агроном</span><span class="ai-tag" style="background:var(--purp-bg);color:var(--purp)">Gemini 2.5 Flash / Groq</span><span class="ai-tag" style="background:var(--pri3);color:var(--pri)" id="ctx-tag">—</span></div>
+<div class="msgs" id="d-chat"><div class="msg msg-ai">Избери парцел за анализ…</div></div>
+<div class="qrow">
+<button class="qb" onclick="dqa('Анализирай данните и препоръчай действие')">📡 Анализ</button>
+<button class="qb" onclick="dqa('Риск от суша?')">💧 Суша</button>
+<button class="qb" onclick="dqa('Кога е оптимално да торя?')">🌱 Торене</button>
+<button class="qb" onclick="dqa('Прогноза за добив?')">🌾 Добив</button>
+</div>
+<div class="ai-input"><input class="ai-in" id="d-ai-in" placeholder="Въпрос…" onkeydown="if(event.key==='Enter')dSend()"><button class="ai-go" id="d-ai-go" onclick="dSend()">→</button></div>
+</div>
 
-      <!-- Meteo charts -->
-      <div class="desk-view" id="cv-meteo">
-        <div class="card"><div class="card-title">Температура Макс/Мин — 14 дни</div><div class="ch-wrap"><canvas id="c-temp14"></canvas></div></div>
-        <div class="card"><div class="card-title">ET₀ Евапотранспирация — 14 дни</div><div class="ch-wrap"><canvas id="c-et14"></canvas></div></div>
-        <div class="card"><div class="card-title">Воден баланс мм</div><div class="ch-wrap"><canvas id="c-wb"></canvas></div></div>
-      </div>
+</div><!-- farmer-view -->
 
-      <!-- NDVI history — uses same chart from Overview tab -->
-      <div class="desk-view" id="cv-ndvi">
-        <div class="card">
-          <div class="card-title">NDVI история — 90 дни</div>
-          <div class="ch-wrap" style="height:200px"><canvas id="c-ndvi90-full"></canvas></div>
-        </div>
-      </div>
-    </div>
+<!-- === MARKET VIEW === -->
+<div id="market-view">
+<div class="mkt">
+<div class="mkt-main">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+<div style="font-size:15px;font-weight:700">💹 Борсови цени · МАТИФ Euronext</div>
+<span class="spin" id="mkt-spin" style="display:none"></span>
+<span id="mkt-upd" style="font-size:9px;color:var(--tx3)">Зарежда…</span>
+<button onclick="loadMarket()" style="margin-left:auto;padding:4px 10px;border-radius:6px;border:1px solid var(--brd);background:var(--card);font-family:var(--sans);font-size:10px;cursor:pointer">↻ Обнови</button>
+</div>
+<div class="mkt-cards" id="mkt-cards"></div>
+<div class="card"><div class="card-t" id="mkt-ch-title">📈 Цени 30 дни</div><div class="ch" style="height:150px"><canvas id="mkt-chart"></canvas></div></div>
+<div class="card"><div class="card-t">📊 Всички контракти</div><div id="mkt-table"></div></div>
 
-    <!-- Market: full-width center panel -->
-        <!-- Market: full-width center panel -->
-    <div id="market-center" style="display:none;flex:1;min-height:0;overflow:hidden">
-      <div style="display:flex;height:100%;overflow:hidden;gap:0">
-        <div style="flex:1;overflow-y:auto;padding:16px;min-width:0">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-            <div style="font-size:15px;font-weight:700">💹 Борсови цени · МАТИФ Euronext</div>
-            <span class="spin" id="market-spin" style="display:none"></span>
-            <span id="market-updated" style="font-size:10px;color:var(--t3)">Зарежда...</span>
-            <button onclick="loadMarketPrices()" style="margin-left:auto;padding:5px 12px;border-radius:7px;border:1.5px solid var(--bd2);background:var(--s);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer">↻ Обнови</button>
-          </div>
+<!-- Subsidies -->
+<div class="card" style="background:var(--pri4);border-color:var(--pri2)">
+<div class="card-t" style="color:var(--pri)">💶 ОСП/CAP Субсидии · България</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">
+<div style="background:var(--card);border-radius:6px;padding:8px"><div style="font-size:9px;color:var(--tx3)">Основно плащане</div><div style="font-size:16px;font-weight:700;color:var(--pri);font-family:var(--mono)">~122 €/ха</div><div style="font-size:8px;color:var(--tx3)">2025 · обработваема</div></div>
+<div style="background:var(--card);border-radius:6px;padding:8px"><div style="font-size:9px;color:var(--tx3)">Еко-схема</div><div style="font-size:16px;font-weight:700;color:var(--info);font-family:var(--mono)">~58 €/ха</div><div style="font-size:8px;color:var(--tx3)">2025 · при изпълнение</div></div>
+<div style="background:var(--card);border-radius:6px;padding:8px"><div style="font-size:9px;color:var(--tx3)">Обвързана подкрепа</div><div style="font-size:16px;font-weight:700;color:var(--warn);font-family:var(--mono)">47–92 €</div><div style="font-size:8px;color:var(--tx3)">по култура</div></div>
+</div>
+<table style="width:100%;border-collapse:collapse;font-size:10px">
+<tr style="background:var(--card2)"><th style="text-align:left;padding:4px 6px">Схема</th><th style="text-align:right;padding:4px 6px">2022</th><th style="text-align:right;padding:4px 6px">2023</th><th style="text-align:right;padding:4px 6px">2024</th><th style="text-align:right;padding:4px 6px">2025*</th></tr>
+<tr style="border-bottom:1px solid var(--brd)"><td style="padding:3px 6px">Основно €/ха</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono)">108</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono)">112</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono)">118</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono);color:var(--tx3)">~122</td></tr>
+<tr style="border-bottom:1px solid var(--brd)"><td style="padding:3px 6px">Еко-схема €/ха</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono)">—</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono)">48</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono)">55</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono);color:var(--tx3)">~58</td></tr>
+<tr style="border-bottom:1px solid var(--brd)"><td style="padding:3px 6px">Обвързана · пшеница</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono)">42</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono)">45</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono)">47</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono);color:var(--tx3)">~48</td></tr>
+<tr style="border-bottom:1px solid var(--brd)"><td style="padding:3px 6px">Обвързана · слънчоглед</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono)">58</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono)">62</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono)">65</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono);color:var(--tx3)">~67</td></tr>
+<tr style="border-bottom:1px solid var(--brd)"><td style="padding:3px 6px">Обвързана · соя</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono)">85</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono)">88</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono)">90</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono);color:var(--tx3)">~92</td></tr>
+<tr><td style="padding:3px 6px">Обвързана · рапица</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono)">72</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono)">75</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono)">78</td><td style="text-align:right;padding:3px 6px;font-family:var(--mono);color:var(--tx3)">~80</td></tr>
+</table>
+<div style="font-size:9px;color:var(--tx3);margin-top:6px">ДФЗ · ЕК · ОСП 2023-2027 · *прогнозни · <a href="https://www.dfz.bg" target="_blank" style="color:var(--info)">dfz.bg →</a></div>
+</div>
 
-          <!-- Price cards -->
-          <div id="market-cards" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px"></div>
+<div style="font-size:9px;color:var(--tx3);margin-top:6px">МАТИФ Euronext · Yahoo Finance · Цени в €/т · Не е инвестиционен съвет</div>
+</div>
 
-          <!-- Price chart -->
-          <div class="card">
-            <div class="card-title" id="market-chart-title">📈 История на цените — 30 дни</div>
-            <div class="ch-wrap" style="height:160px"><canvas id="market-chart"></canvas></div>
-          </div>
+<!-- Market AI agent sidebar -->
+<div class="mkt-side">
+<div style="padding:10px 12px;border-bottom:1px solid var(--brd);background:var(--pri4)">
+<div style="font-size:11px;font-weight:700;color:var(--pri)">🤖 Борсов AI Агент</div>
+<div style="font-size:9px;color:var(--tx3)">Groq LLaMA 3.3 · реални МАТИФ цени</div>
+</div>
+<div style="padding:10px 12px;border-bottom:1px solid var(--brd);background:var(--card2)">
+<div style="font-size:10px;font-weight:600;color:var(--tx2);margin-bottom:6px">📍 Реална изкупна цена</div>
+<div style="display:flex;gap:5px;margin-bottom:5px">
+<div style="flex:1"><div style="font-size:8px;color:var(--tx3)">Транспорт €/т</div><input id="b-transport" type="number" value="12" min="0" max="100" style="width:100%;height:28px;border:1px solid var(--brd);border-radius:5px;padding:0 6px;font-family:var(--mono);font-size:11px;background:var(--card)" onchange="calcBasis()"></div>
+<div style="flex:1"><div style="font-size:8px;color:var(--tx3)">Силоз €/т</div><input id="b-silo" type="number" value="8" min="0" max="50" style="width:100%;height:28px;border:1px solid var(--brd);border-radius:5px;padding:0 6px;font-family:var(--mono);font-size:11px;background:var(--card)" onchange="calcBasis()"></div>
+</div>
+<div id="basis-out" style="font-size:10px;color:var(--tx2);line-height:1.7"></div>
+</div>
+<div class="msgs" id="mkt-chat"><div class="msg msg-ai">Зареди цените за AI анализ.</div></div>
+<div class="qrow">
+<button class="qb" onclick="mqa('Кога да продавам пшеницата?')">🌾 Пшеница</button>
+<button class="qb" onclick="mqa('Рапицата сега или да чакам?')">🌱 Рапица</button>
+<button class="qb" onclick="mqa('Тренд слънчоглед 3 месеца?')">🌻 Слънчоглед</button>
+<button class="qb" onclick="mqa('Анализирай и препоръчай стратегия')">📊 Анализ</button>
+</div>
+<div class="ai-input"><input class="ai-in" id="mkt-ai-in" placeholder="Пазарен въпрос…" onkeydown="if(event.key==='Enter')mktSend()"><button class="ai-go" onclick="mktSend()">→</button></div>
+</div>
 
-          <!-- All crops table -->
-          <div class="card">
-            <div class="card-title">📊 Всички МАТИФ контракти</div>
-            <div id="market-table"></div>
-          </div>
+</div>
+</div><!-- market-view -->
 
-          <!-- CAP Subsidies -->
-          <div class="card" style="margin-top:10px">
-            <div class="card-title">💶 ОСП/CAP Субсидии · България 2023-2027</div>
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
-              <div style="background:var(--gp);border:1px solid var(--gm);border-radius:8px;padding:10px 12px">
-                <div style="font-size:10px;color:var(--t3);margin-bottom:3px">Основно плащане (ПСДП)</div>
-                <div style="font-size:18px;font-weight:700;color:var(--g);font-family:'DM Mono',monospace">~118 €/ха</div>
-                <div style="font-size:9px;color:var(--t3);margin-top:2px">2024 г. · обработваема земя</div>
-              </div>
-              <div style="background:var(--bl);border:1px solid var(--b);border-radius:8px;padding:10px 12px">
-                <div style="font-size:10px;color:var(--t3);margin-bottom:3px">Еко-схема (доброволно)</div>
-                <div style="font-size:18px;font-weight:700;color:var(--b);font-family:'DM Mono',monospace">~55 €/ха</div>
-                <div style="font-size:9px;color:var(--t3);margin-top:2px">2024 г. · при изпълнение</div>
-              </div>
-              <div style="background:var(--al);border:1px solid var(--a);border-radius:8px;padding:10px 12px">
-                <div style="font-size:10px;color:var(--t3);margin-bottom:3px">Обвързана подкрепа</div>
-                <div style="font-size:18px;font-weight:700;color:var(--a);font-family:'DM Mono',monospace">varies</div>
-                <div style="font-size:9px;color:var(--t3);margin-top:2px">слънчоглед, пшеница, соя</div>
-              </div>
-            </div>
-            <div style="overflow-x:auto">
-              <table style="width:100%;border-collapse:collapse;font-size:11px">
-                <tr style="background:var(--s2);border-bottom:2px solid var(--bd2)">
-                  <th style="text-align:left;padding:6px 8px;font-weight:700;color:var(--t2)">Схема</th>
-                  <th style="text-align:right;padding:6px 8px;font-weight:700;color:var(--t2)">2022</th>
-                  <th style="text-align:right;padding:6px 8px;font-weight:700;color:var(--t2)">2023</th>
-                  <th style="text-align:right;padding:6px 8px;font-weight:700;color:var(--t2)">2024</th>
-                  <th style="text-align:right;padding:6px 8px;font-weight:700;color:var(--t2)">2025*</th>
-                </tr>
-                <tr style="border-bottom:1px solid var(--bd)">
-                  <td style="padding:5px 8px">Основно плащане €/ха</td>
-                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">108</td>
-                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">112</td>
-                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">118</td>
-                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace;color:var(--t3)">~122</td>
-                </tr>
-                <tr style="border-bottom:1px solid var(--bd)">
-                  <td style="padding:5px 8px">Еко-схема €/ха</td>
-                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">—</td>
-                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">48</td>
-                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">55</td>
-                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace;color:var(--t3)">~58</td>
-                </tr>
-                <tr style="border-bottom:1px solid var(--bd)">
-                  <td style="padding:5px 8px">Обвързана · пшеница €/ха</td>
-                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">42</td>
-                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">45</td>
-                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">47</td>
-                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace;color:var(--t3)">~48</td>
-                </tr>
-                <tr style="border-bottom:1px solid var(--bd)">
-                  <td style="padding:5px 8px">Обвързана · слънчоглед €/ха</td>
-                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">58</td>
-                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">62</td>
-                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">65</td>
-                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace;color:var(--t3)">~67</td>
-                </tr>
-                <tr>
-                  <td style="padding:5px 8px">Обвързана · соя €/ха</td>
-                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">85</td>
-                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">88</td>
-                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace">90</td>
-                  <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace;color:var(--t3)">~92</td>
-                </tr>
-              </table>
-            </div>
-            <tr style="border-top:2px solid var(--bd2);background:var(--gp)">
-              <td style="padding:5px 8px;font-weight:700;color:var(--g)">Обвързана · рапица €/ха</td>
-              <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace;font-weight:700;color:var(--g)">72</td>
-              <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace;font-weight:700;color:var(--g)">75</td>
-              <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace;font-weight:700;color:var(--g)">78</td>
-              <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace;color:var(--t3)">~80</td>
-            </tr>
-            </table>
-            </div>
-            <div style="margin-top:10px;padding:8px 10px;background:var(--bl);border-radius:8px;font-size:11px;color:var(--b);line-height:1.7">
-              <strong>2025/2026 актуализация (ЕК):</strong> Европейската комисия одобри повишение на директните плащания за България с ~3.5% за кампания 2025. Обвързаната подкрепа за протеинови култури (соя, грах) се увеличава с 8%. Еко-схемите за биологично производство достигат 380 €/ха.
-              <a href="https://agriculture.ec.europa.eu/cap-my-country/cap-strategic-plans/bulgarias-cap-strategic-plan_en" target="_blank" style="display:block;margin-top:4px;color:var(--b)">ЕК · CAP Strategic Plan Bulgaria →</a>
-            </div>
-            <div style="font-size:10px;color:var(--t3);margin-top:8px">
-              Данни: ДФЗ · ЕК · Стратегически план ОСП 2023-2027 · *прогнозни
-              · <a href="https://www.dfz.bg" target="_blank" style="color:var(--b)">dfz.bg →</a>
-            </div>
-          </div>
-          <div style="font-size:10px;color:var(--t3);margin-top:8px">МАТИФ Euronext · Yahoo Finance · Цени в €/т · Не е инвестиционен съвет</div>
-        </div>
-
-        <!-- Right: AI market agent -->
-        <div style="width:280px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden">
-          <!-- Basis calculator -->
-          <div style="padding:12px 14px;border-bottom:1px solid var(--bd);background:var(--s2)">
-            <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:8px">📍 Реална изкупна цена</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
-              <div>
-                <div style="font-size:9px;color:var(--t3);margin-bottom:3px">Транспорт €/т</div>
-                <input id="basis-transport" type="number" value="12" min="0" max="100"
-                  style="width:100%;height:32px;border:1.5px solid var(--bd2);border-radius:6px;padding:0 8px;font-family:'DM Mono',monospace;font-size:12px;background:var(--s)"
-                  onchange="calcBasis()">
-              </div>
-              <div>
-                <div style="font-size:9px;color:var(--t3);margin-bottom:3px">Силоз/такси €/т</div>
-                <input id="basis-silo" type="number" value="8" min="0" max="50"
-                  style="width:100%;height:32px;border:1.5px solid var(--bd2);border-radius:6px;padding:0 8px;font-family:'DM Mono',monospace;font-size:12px;background:var(--s)"
-                  onchange="calcBasis()">
-              </div>
-            </div>
-            <div id="basis-results" style="font-size:11px;line-height:1.9;color:var(--t2)">
-              Въведи разходите →
-            </div>
-          </div>
-          <div style="padding:12px 14px;border-bottom:1px solid var(--bd);background:var(--gp)">
-            <div style="font-size:12px;font-weight:700;color:var(--g);margin-bottom:2px">🤖 Борсов AI Агент</div>
-            <div style="font-size:10px;color:var(--t3)">Groq LLaMA 3.3 · реални МАТИФ цени</div>
-          </div>
-          <div class="msgs" id="market-chat" style="flex:1;min-height:0">
-            <div class="msg ai">Зареди цените и ще ти дам препоръка кога и какво да продаваш.</div>
-          </div>
-          <div style="padding:7px 10px;border-top:1px solid var(--bd);display:flex;flex-wrap:wrap;gap:4px">
-            <button class="qbtn" onclick="mqa('Кога е оптимално да продавам пшеницата?')">🌾 Пшеница</button>
-            <button class="qbtn" onclick="mqa('Трябва ли да продавам рапицата сега или да чакам?')">🌱 Рапица</button>
-            <button class="qbtn" onclick="mqa('Как изглежда тренда за слънчоглед следващите 3 месеца?')">🌻 Слънчоглед</button>
-            <button class="qbtn" onclick="mqa('Анализирай всички цени и препоръчай стратегия')">📊 Анализ</button>
-          </div>
-          <div style="display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--bd)">
-            <input class="ai-in" id="market-ai-in" placeholder="Въпрос за пазара..." onkeydown="if(event.key==='Enter')mSendMarket()">
-            <button class="ai-go" onclick="mSendMarket()">→</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- col-center -->
-
-  <!-- RIGHT -->
-  <div class="col-right" id="col-right">
-    <div class="rp-weather">
-      <div class="sbl">OpenMeteo · Live</div>
-      <div class="w-main">
-        <div style="font-size:22px" id="w-ico">⛅</div>
-        <div><div class="w-temp" id="w-tmp">—</div><div style="font-size:10px;color:var(--t3)" id="w-dsc">Зарежда...</div></div>
-      </div>
-      <div class="w-grid">
-        <div class="wc"><div class="wc-v" id="w-wnd">—</div><div class="wc-l">Вятър км/ч</div></div>
-        <div class="wc"><div class="wc-v" id="w-hum">—</div><div class="wc-l">Влажност %</div></div>
-        <div class="wc"><div class="wc-v" id="w-et">—</div><div class="wc-l">ET₀ мм/д</div></div>
-        <div class="wc"><div class="wc-v" id="w-rn">—</div><div class="wc-l">Валежи 7д мм</div></div>
-      </div>
-      <div style="font-size:9px;color:var(--t3);margin-top:5px" id="w-upd">—</div>
-    </div>
-    <div class="ai-head">
-      <span style="font-size:12px;font-weight:600">AI Агроном</span>
-      <span class="ai-tag" style="background:var(--pl);color:var(--p)">Groq · LLaMA 3.3</span>
-      <span class="ai-tag" style="background:var(--gl);color:var(--g)" id="ctx-tag">—</span>
-    </div>
-    <div class="msgs" id="d-chat"><div class="msg ai">Избери парцел за анализ...</div></div>
-    <div class="qbtns">
-      <button class="qbtn" onclick="dqa('Анализирай данните и препоръчай действие за днес')">📡 Анализ</button>
-      <button class="qbtn" onclick="dqa('Риск от суша следващите 10 дни?')">💧 Суша</button>
-      <button class="qbtn" onclick="dqa('Кога е оптимално да торя?')">🌱 Торене</button>
-      <button class="qbtn" onclick="dqa('Прогноза за добив?')">🌾 Добив</button>
-    </div>
-    <div class="ai-ir">
-      <input class="ai-in" id="d-ai-in" placeholder="Въпрос..." onkeydown="if(event.key==='Enter')dSend()">
-      <button class="ai-go" id="d-ai-go" onclick="dSend()">→</button>
-    </div>
-  </div>
-
-</div><!-- main -->
+</div><!-- body -->
 </div><!-- app -->
 
-<!-- Modal -->
-<div class="modal-ov" id="modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="modal-title-text">Запази парцела</div>
-    <div class="mf"><div class="ml">Ime</div><input class="mi" id="m-name" placeholder="напр. Северно поле А-12"></div>
-    <div class="mf"><div class="ml">Планирана култура <span style="font-weight:400;text-transform:none;opacity:.7">(незадължително)</span></div>
-      <select class="mi" id="m-crop" style="cursor:pointer">
-        <option value="unknown">🤔 Не знам / Искам съвет</option>
-        <option value="none">🌱 Незасято / Угар</option>
-        <option disabled>── Земеделски ──</option>
-        <option>Пшеница</option><option>Слънчоглед</option><option>Рапица</option>
-        <option>Царевица</option><option>Ечемик</option><option>Соя</option>
-        <option>Захарно цвекло</option><option>Люцерна</option><option>Лозе</option>
-        <option>Овошки</option><option>Зеленчуци</option><option>Друго</option>
-        <option disabled>── Неземеделски ──</option>
-        <option value="forest">🌲 Гора</option><option value="water">💧 Водоем</option>
-        <option value="built">🏗 Застроена площ</option><option value="pasture">🐄 Пасище</option>
-      </select>
-    </div>
-    <div class="mf"><div class="ml">Площ</div><div class="mi" id="m-area" style="display:flex;align-items:center;background:var(--s2);cursor:default">— ха</div></div>
-    <div class="mbtns"><button class="mcancel" onclick="closeModal(false)">Откажи</button><button class="mok" onclick="closeModal(true)">✓ Запази</button></div>
-  </div>
+<!-- MODAL -->
+<div class="modal-bg" id="modal">
+<div class="modal">
+<div class="m-title" id="modal-title">Запази парцела</div>
+<div class="mf"><div class="mf-l">Име</div><input class="mf-i" id="m-name" placeholder="напр. Северно поле А-12"></div>
+<div class="mf"><div class="mf-l">Култура <span style="font-weight:400;text-transform:none;opacity:.6">(незадълж.)</span></div>
+<select class="mf-i" id="m-crop" style="cursor:pointer">
+<option value="unknown">🤔 Не знам / Искам съвет</option>
+<option value="none">🌱 Незасято / Угар</option>
+<option disabled>── Земеделски ──</option>
+<option>Пшеница</option><option>Слънчоглед</option><option>Рапица</option>
+<option>Царевица</option><option>Ечемик</option><option>Соя</option>
+<option>Захарно цвекло</option><option>Люцерна</option><option>Лозе</option>
+<option>Овошки</option><option>Зеленчуци</option><option>Друго</option>
+<option disabled>── Неземеделски ──</option>
+<option value="forest">🌲 Гора</option><option value="water">💧 Водоем</option>
+<option value="built">🏗 Застроена площ</option><option value="pasture">🐄 Пасище</option>
+</select>
+</div>
+<div class="mf"><div class="mf-l">Площ</div><div class="mf-i" id="m-area" style="display:flex;align-items:center;background:var(--card2);cursor:default">— ха</div></div>
+<div class="m-btns"><button class="m-no" onclick="closeModal(false)">Откажи</button><button class="m-ok" onclick="closeModal(true)">✓ Запази</button></div>
+</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 <script>
-const BACKEND='https://agrodecide-backend.onrender.com';
-const WMS=`${BACKEND}/api/wms`;
+const B='https://agrodecide-backend.onrender.com';
+const WMS=`${B}/api/wms`;
+const CC={'Пшеница':'#D4A800','Слънчоглед':'#E07010','Рапица':'#5A9A30','Царевица':'#E07030','Ечемик':'#A08040','Соя':'#408060','Люцерна':'#206040'};
+const CL={unknown:'Не знам',none:'Незасято',forest:'Гора',water:'Водоем',built:'Застроено',pasture:'Пасище'};
+const NA=['forest','water','built','pasture'];
+function tCrop(e){if(!e)return'—';const t={'Common wheat':'Пшеница','Soft wheat':'Пшеница','Winter wheat':'Пшеница','Wheat':'Пшеница','Barley':'Ечемик','Maize':'Царевица','Sunflower':'Слънчоглед','Rapeseed':'Рапица','Rape':'Рапица','Soybean':'Соя','Soybeans':'Соя','Sugar beet':'Захарно цвекло','Potatoes':'Картофи','Lucerne':'Люцерна','Alfalfa':'Люцерна','Clover':'Детелина','Peas':'Грах','Beans':'Боб','Vegetables':'Зеленчуци','Fruit':'Овошки','Vineyard':'Лозе','Grassland':'Ливада','Pasture':'Пасище','Fallow':'Угар','Arable land':'Обработваема земя','Forest':'Гора','Oats':'Овес','Rye':'Ръж','Triticale':'Тритикале'};if(t[e])return t[e];const l=e.toLowerCase();for(const[k,v]of Object.entries(t)){if(k.toLowerCase()===l)return v;if(l.includes(k.toLowerCase()))return v;}return e;}
+function simHist(lat,lon){const s=Math.abs(Math.sin(lat*1000)*Math.cos(lon*1000)*10000)%4;return[[{y:'2018',c:'Пшеница'},{y:'2019',c:'Слънчоглед'},{y:'2020',c:'Пшеница'},{y:'2021',c:'Рапица'},{y:'2022',c:'Пшеница'},{y:'2023',c:'Слънчоглед'},{y:'2024',c:'Пшеница'}],[{y:'2018',c:'Слънчоглед'},{y:'2019',c:'Пшеница'},{y:'2020',c:'Царевица'},{y:'2021',c:'Пшеница'},{y:'2022',c:'Слънчоглед'},{y:'2023',c:'Рапица'},{y:'2024',c:'Пшеница'}],[{y:'2018',c:'Рапица'},{y:'2019',c:'Пшеница'},{y:'2020',c:'Слънчоглед'},{y:'2021',c:'Пшеница'},{y:'2022',c:'Царевица'},{y:'2023',c:'Пшеница'},{y:'2024',c:'Слънчоглед'}],[{y:'2018',c:'Пшеница'},{y:'2019',c:'Ечемик'},{y:'2020',c:'Слънчоглед'},{y:'2021',c:'Пшеница'},{y:'2022',c:'Рапица'},{y:'2023',c:'Пшеница'},{y:'2024',c:'Царевица'}]][Math.floor(s)];}
 
-const CROP_COLORS={'Пшеница':'#D4A800','Слънчоглед':'#E07010','Рапица':'#5A9A30','Царевица':'#E07030','Ечемик':'#A08040','Угар':'#A0A090','Соя':'#408060','Люцерна':'#206040','Друго':'#808080'};
-const CROP_LABELS={unknown:'🤔 Не знам',none:'🌱 Незасято',forest:'🌲 Гора',water:'💧 Водоем',built:'🏗 Застроено',pasture:'🐄 Пасище'};
-const NON_AGRI=['forest','water','built','pasture'];
-
-function translateCrop(eng){
-  if(!eng)return'—';
-  const t={'Common wheat':'Пшеница','Soft wheat':'Пшеница','Winter wheat':'Пшеница','Spring wheat':'Пшеница яра','Wheat':'Пшеница','Barley':'Ечемик','Winter barley':'Ечемик','Spring barley':'Ечемик ярен','Maize':'Царевица','Grain maize':'Царевица','Rye':'Ръж','Oats':'Овес','Triticale':'Тритикале','Sunflower':'Слънчоглед','Rapeseed':'Рапица','Rape':'Рапица','Winter rapeseed':'Рапица','Soybean':'Соя','Soybeans':'Соя','Sugar beet':'Захарно цвекло','Potatoes':'Картофи','Lucerne':'Люцерна','Alfalfa':'Люцерна','Clover':'Детелина','Peas':'Грах','Beans':'Боб','Vegetables':'Зеленчуци','Fruit':'Овошки','Orchards':'Овошки','Vineyard':'Лозе','Vineyards':'Лозе','Olive':'Маслини','Grassland':'Ливада','Meadow':'Ливада','Pasture':'Пасище','Fallow':'Угар','Set-aside':'Угар','Arable land':'Обработваема земя','Mixed crops':'Смесени','Forest':'Гора'};
-  if(t[eng])return t[eng];
-  const lo=eng.toLowerCase();
-  for(const[k,v]of Object.entries(t)){if(k.toLowerCase()===lo)return v;}
-  for(const[k,v]of Object.entries(t)){if(lo.includes(k.toLowerCase()))return v;}
-  return eng;
-}
-
-function getSimHistory(lat,lon){
-  const s=Math.abs(Math.sin(lat*1000)*Math.cos(lon*1000)*10000)%4;
-  return [[{y:'2018',c:'Пшеница'},{y:'2019',c:'Слънчоглед'},{y:'2020',c:'Пшеница'},{y:'2021',c:'Рапица'},{y:'2022',c:'Пшеница'},{y:'2023',c:'Слънчоглед'},{y:'2024',c:'Пшеница'}],[{y:'2018',c:'Слънчоглед'},{y:'2019',c:'Пшеница'},{y:'2020',c:'Царевица'},{y:'2021',c:'Пшеница'},{y:'2022',c:'Слънчоглед'},{y:'2023',c:'Рапица'},{y:'2024',c:'Пшеница'}],[{y:'2018',c:'Рапица'},{y:'2019',c:'Пшеница'},{y:'2020',c:'Слънчоглед'},{y:'2021',c:'Пшеница'},{y:'2022',c:'Царевица'},{y:'2023',c:'Пшеница'},{y:'2024',c:'Слънчоглед'}],[{y:'2018',c:'Пшеница'},{y:'2019',c:'Ечемик'},{y:'2020',c:'Слънчоглед'},{y:'2021',c:'Пшеница'},{y:'2022',c:'Рапица'},{y:'2023',c:'Пшеница'},{y:'2024',c:'Царевица'}]][Math.floor(s)];
-}
-
-// Map
+// ── Map ──
 const map=L.map('map',{center:[43.577,27.828],zoom:13,zoomControl:true});
-const TL={
-  sentinel:L.tileLayer.wms(WMS,{layers:'TRUE_COLOR',format:'image/jpeg',version:'1.3.0',tileSize:512,attribution:'© Copernicus/ESA'}),
-  ndvi:L.tileLayer.wms(WMS,{layers:'VEGETATION_INDEX',format:'image/png',version:'1.3.0',tileSize:512,transparent:true,attribution:'© Copernicus/ESA'}),
-  carto:L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OSM · © CARTO',subdomains:'abcd',maxZoom:20})
-};
+const TL={sentinel:L.tileLayer.wms(WMS,{layers:'TRUE_COLOR',format:'image/jpeg',version:'1.3.0',tileSize:512,attribution:'© Copernicus/ESA'}),ndvi:L.tileLayer.wms(WMS,{layers:'VEGETATION_INDEX',format:'image/png',version:'1.3.0',tileSize:512,transparent:true,attribution:'© Copernicus/ESA'}),carto:L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OSM · CARTO',subdomains:'abcd',maxZoom:20})};
 TL.carto.addTo(map);TL.sentinel.addTo(map);
+function setLyr(n,btn){map.removeLayer(TL.sentinel);map.removeLayer(TL.ndvi);if(n==='sentinel')TL.sentinel.addTo(map);else if(n==='ndvi')TL.ndvi.addTo(map);document.querySelectorAll('.mpill').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
+map.on('mousemove',e=>{document.getElementById('mcoord').textContent=`${e.latlng.lat.toFixed(4)}°N ${e.latlng.lng.toFixed(4)}°E`;});
 
-function setLayer(name,btn){
-  map.removeLayer(TL.sentinel);map.removeLayer(TL.ndvi);
-  if(name==='sentinel')TL.sentinel.addTo(map);
-  else if(name==='ndvi')TL.ndvi.addTo(map);
-  document.querySelectorAll('.layer-pill').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-}
-map.on('mousemove',e=>{document.getElementById('ml-coords').textContent=`${e.latlng.lat.toFixed(4)}°N  ${e.latlng.lng.toFixed(4)}°E`;});
-
-const drawnItems=new L.FeatureGroup().addTo(map);
-const drawCtrl=new L.Draw.Polygon(map,{shapeOptions:{color:'#1D9E75',weight:2.5,fillColor:'#1D9E75',fillOpacity:.2}});
-
+const drawn=new L.FeatureGroup().addTo(map);
+const drawCtrl=new L.Draw.Polygon(map,{shapeOptions:{color:'#25845e',weight:2.5,fillColor:'#25845e',fillOpacity:.2}});
 let parcels=[];try{parcels=JSON.parse(localStorage.getItem('agd_v4')||'[]');}catch(e){}
-let pendingLayer=null,pendingArea=0,activeIdx=-1,isDrawing=false;
-let dChatH=[],meteoData={},ndviResult=null,charts={};
+let pending=null,pendArea=0,active=-1,drawing=false,editIdx=-1;
+let dH=[],mktH=[],met={},ndviRes=null,charts={};
 
-function calcArea(lls){let a=0;const n=lls.length;for(let i=0;i<n;i++){const j=(i+1)%n;const xi=lls[i].lng*Math.PI/180*Math.cos(lls[i].lat*Math.PI/180)*6371000;const yi=lls[i].lat*Math.PI/180*6371000;const xj=lls[j].lng*Math.PI/180*Math.cos(lls[j].lat*Math.PI/180)*6371000;const yj=lls[j].lat*Math.PI/180*6371000;a+=xi*yj-xj*yi;}return Math.abs(a/2)/10000;}
+function calcA(ll){let a=0,n=ll.length;for(let i=0;i<n;i++){const j=(i+1)%n;const xi=ll[i].lng*Math.PI/180*Math.cos(ll[i].lat*Math.PI/180)*6371000,yi=ll[i].lat*Math.PI/180*6371000,xj=ll[j].lng*Math.PI/180*Math.cos(ll[j].lat*Math.PI/180)*6371000,yj=ll[j].lat*Math.PI/180*6371000;a+=xi*yj-xj*yi;}return Math.abs(a/2)/10000;}
+function startDraw(){drawing=true;drawCtrl.enable();document.getElementById('fab-draw').style.display='none';document.getElementById('fab-cancel').style.display='flex';document.getElementById('draw-hint').style.display='block';}
+function cancelDraw(){drawing=false;drawCtrl.disable();document.getElementById('fab-draw').style.display='flex';document.getElementById('fab-cancel').style.display='none';document.getElementById('draw-hint').style.display='none';}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&drawing)cancelDraw();});
 
-function startDraw(){isDrawing=true;drawCtrl.enable();document.getElementById('fab-draw').style.display='none';document.getElementById('fab-cancel').style.display='flex';document.getElementById('draw-hint').style.display='block';}
-function cancelDraw(){isDrawing=false;drawCtrl.disable();document.getElementById('fab-draw').style.display='flex';document.getElementById('fab-cancel').style.display='none';document.getElementById('draw-hint').style.display='none';}
+map.on(L.Draw.Event.CREATED,function(e){pending=e.layer;pendArea=calcA(pending.getLatLngs()[0]);document.getElementById('m-area').textContent=pendArea.toFixed(2)+' ха';document.getElementById('m-name').value='Парцел '+(parcels.length+1);cancelDraw();document.getElementById('modal-title').textContent='Запази парцела';document.getElementById('modal').classList.add('show');setTimeout(()=>document.getElementById('m-name').focus(),200);});
 
-map.on(L.Draw.Event.CREATED,function(e){
-  pendingLayer=e.layer;pendingArea=calcArea(pendingLayer.getLatLngs()[0]);
-  document.getElementById('m-area').textContent=pendingArea.toFixed(2)+' ха';
-  document.getElementById('m-name').value='Парцел '+(parcels.length+1);
-  cancelDraw();document.getElementById('modal').classList.add('show');
-  setTimeout(()=>document.getElementById('m-name').focus(),300);
-});
-
-let editingIdx = -1;
-
-function editParcel(i){
-  editingIdx = i;
-  const p = parcels[i];
-  document.getElementById('m-name').value = p.name;
-  document.getElementById('m-crop').value = p.crop || 'unknown';
-  document.getElementById('m-area').textContent = p.area.toFixed(2) + ' ха';
-  document.getElementById('modal-title-text').textContent = 'Редактирай парцела';
-  document.getElementById('modal').classList.add('show');
-}
+function editParcel(i){editIdx=i;const p=parcels[i];document.getElementById('m-name').value=p.name;document.getElementById('m-crop').value=p.crop||'unknown';document.getElementById('m-area').textContent=p.area.toFixed(2)+' ха';document.getElementById('modal-title').textContent='Редактирай парцела';document.getElementById('modal').classList.add('show');}
 
 function closeModal(save){
   document.getElementById('modal').classList.remove('show');
-  document.getElementById('modal-title-text').textContent = 'Запази парцела';
-
-  if(save && editingIdx >= 0){
-    // Edit mode
-    const p = parcels[editingIdx];
-    p.name = document.getElementById('m-name').value || p.name;
-    p.crop = document.getElementById('m-crop').value;
-    saveP();
-    renderList();
-    if(activeIdx === editingIdx) selectParcel(editingIdx);
-    editingIdx = -1;
-    return;
-  }
-
-  if(save && pendingLayer){
-    const name=document.getElementById('m-name').value||'Парцел '+(parcels.length+1);
-    const crop=document.getElementById('m-crop').value;
-    const lls=pendingLayer.getLatLngs()[0];
-    const center=pendingLayer.getBounds().getCenter();
-    const p={id:Date.now(),name,crop,area:pendingArea,lat:center.lat,lon:center.lng,coords:lls.map(ll=>[ll.lat,ll.lng]),source:'drawn'};
-    parcels.push(p);saveP();drawnItems.addLayer(pendingLayer);bindPop(pendingLayer,p);
-    renderList();selectParcel(parcels.length-1);
-    saveSupa(p);
-  }
-  editingIdx = -1;
-  pendingLayer=null;
+  if(save&&editIdx>=0){parcels[editIdx].name=document.getElementById('m-name').value||parcels[editIdx].name;parcels[editIdx].crop=document.getElementById('m-crop').value;saveP();renderList();if(active===editIdx)selectParcel(editIdx);editIdx=-1;return;}
+  if(save&&pending){const nm=document.getElementById('m-name').value||'Парцел '+(parcels.length+1),cr=document.getElementById('m-crop').value,ll=pending.getLatLngs()[0],ct=pending.getBounds().getCenter();const p={id:Date.now(),name:nm,crop:cr,area:pendArea,lat:ct.lat,lon:ct.lng,coords:ll.map(l=>[l.lat,l.lng]),source:'drawn'};parcels.push(p);saveP();drawn.addLayer(pending);bindPop(pending,p);renderList();selectParcel(parcels.length-1);saveSupa(p);}
+  editIdx=-1;pending=null;
 }
 
-function bindPop(layer,p){layer.bindPopup(`<div style="font-family:'DM Sans',sans-serif;padding:4px"><div style="font-weight:700;font-size:14px;margin-bottom:4px">${p.name}</div><div style="font-size:12px;color:#555">${CROP_LABELS[p.crop]||p.crop} · ${p.area.toFixed(2)} ха</div><div style="font-size:10px;color:#888;margin-top:3px;font-family:'DM Mono',monospace">${p.lat.toFixed(4)}°N · ${p.lon.toFixed(4)}°E</div></div>`);}
-
-function loadLPIS(){} // placeholder
-
+function bindPop(l,p){l.bindPopup(`<div style="font-family:var(--sans);padding:4px"><div style="font-weight:700">${p.name}</div><div style="font-size:11px;color:#666">${CL[p.crop]||p.crop} · ${p.area.toFixed(2)} ха</div></div>`);}
 function renderList(){
-  const el=document.getElementById('sb-parcel-list');
-  if(!el)return;
-  if(!parcels.length){el.innerHTML='<div style="font-size:11px;color:var(--t3)">Няма парцели.<br>Рисувай върху картата.</div>';return;}
-  el.innerHTML=parcels.map((p,i)=>{
-    const ndvi=(0.45+Math.sin(p.id*.001)*.2).toFixed(2);
-    const label=(CROP_LABELS[p.crop]||p.crop||'—').replace(/[🤔🌱🌲💧🏗🐄]/g,'').trim();
-    return`<div class="sb-parcel ${activeIdx===i?'on':''}" onclick="selectParcel(${i})">
-      <div class="sb-p-name">${p.name}
-        <div style="display:flex;gap:4px">
-          <span onclick="event.stopPropagation();editParcel(${i})" style="cursor:pointer;color:var(--b);font-size:11px" title="Редактирай">✏️</span>
-          <span onclick="event.stopPropagation();delParcel(${i})" style="cursor:pointer;color:var(--t3);font-size:13px" title="Изтрий">×</span>
-        </div>
-      </div>
-      <div class="sb-p-meta">${label} · ${p.area.toFixed(1)} ха</div>
-    </div>`;
-  }).join('');
+  const el=document.getElementById('parcel-list');
+  if(!parcels.length){el.innerHTML='<div style="font-size:10px;color:var(--tx3);text-align:center;padding:20px 0">Няма парцели.<br>Рисувай на картата.</div>';return;}
+  el.innerHTML=parcels.map((p,i)=>{const lb=(CL[p.crop]||p.crop||'—');return`<div class="parcel ${active===i?'on':''}" onclick="selectParcel(${i})"><div class="p-name">${p.name}<div class="p-btns"><span class="p-btn" onclick="event.stopPropagation();editParcel(${i})" title="Редактирай">✏️</span><span class="p-btn" onclick="event.stopPropagation();delParcel(${i})" title="Изтрий">×</span></div></div><div class="p-meta">${lb} · ${p.area.toFixed(1)} ха</div></div>`;}).join('');
 }
-
-function delParcel(i){if(!confirm(`Изтрий "${parcels[i].name}"?`))return;parcels.splice(i,1);saveP();drawnItems.clearLayers();reloadLayers();activeIdx=-1;renderList();}
-function reloadLayers(){parcels.forEach(p=>{const l=L.polygon(p.coords,{color:p.source==='lpis'?'#1447A0':'#1D9E75',weight:2.5,fillOpacity:.2});drawnItems.addLayer(l);bindPop(l,p);});}
+function delParcel(i){if(!confirm('Изтрий "'+parcels[i].name+'"?'))return;parcels.splice(i,1);saveP();drawn.clearLayers();reloadLyr();active=-1;renderList();}
+function reloadLyr(){parcels.forEach(p=>{const l=L.polygon(p.coords,{color:p.source==='lpis'?'#1a4f8c':'#25845e',weight:2.5,fillOpacity:.2});drawn.addLayer(l);bindPop(l,p);});}
 function saveP(){try{localStorage.setItem('agd_v4',JSON.stringify(parcels));}catch(e){}}
+async function saveSupa(p){try{const r=await fetch(`${B}/api/parcels`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:p.name,crop:p.crop,area:p.area,source:p.source,coords:p.coords})});if(r.ok){const d=await r.json();if(d[0]?.id){p.supabase_id=d[0].id;saveP();}}}catch(e){}}
 
-async function saveSupa(p){
-  try{
-    const r=await fetch(`${BACKEND}/api/parcels`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:p.name,crop:p.crop,area:p.area,source:p.source,coords:p.coords})});
-    if(r.ok){const d=await r.json();if(d[0]?.id){p.supabase_id=d[0].id;saveP();const h=getSimHistory(p.lat,p.lon);await fetch(`${BACKEND}/api/parcels/${d[0].id}/eucrops`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({history:h})});}}
-  }catch(e){console.warn('Supa:',e);}
-}
-
-// Meteo with fallback
-async function fetchMeteo(lat,lon){
-  try{
-    const r=await fetch(`${BACKEND}/api/meteo?lat=${lat}&lon=${lon}`,{signal:AbortSignal.timeout(8000)});
-    if(r.ok){const d=await r.json();if(!d.error&&!d.reason)return d;}
-  }catch(e){}
-  // Direct fallback — bypass backend rate limit
-  try{
-    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&hourly=et0_fao_evapotranspiration&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,et0_fao_evapotranspiration&forecast_days=14&timezone=auto`,{signal:AbortSignal.timeout(12000)});
-    if(r.ok){const d=await r.json();d._cache='direct_fallback';return d;}
-  }catch(e){}
+// ── Meteo ──
+async function fetchMet(lat,lon){
+  try{const r=await fetch(`${B}/api/meteo?lat=${lat}&lon=${lon}`,{signal:AbortSignal.timeout(8000)});if(r.ok){const d=await r.json();if(!d.error&&!d.reason)return d;}}catch(e){}
+  try{const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&hourly=et0_fao_evapotranspiration&daily=precipitation_sum,temperature_2m_max,temperature_2m_min,et0_fao_evapotranspiration&forecast_days=14&timezone=auto`,{signal:AbortSignal.timeout(12000)});if(r.ok){const d=await r.json();d._cache='fallback';return d;}}catch(e){}
   return null;
 }
 
-// NDVI Classification
+// ── NDVI ──
 async function loadNDVI(p){
-  const spin=document.getElementById('d-ndvi-spin');
-  const body=document.getElementById('d-ndvi-body');
+  const body=document.getElementById('ndvi-body'),spin=document.getElementById('sp-ndvi');
   if(spin)spin.style.display='inline-block';
-  if(body)body.innerHTML='<div class="loading-sm"><span class="spin"></span> Анализирам Sentinel-2...</div>';
-  try{
-    const r=await fetch(`${BACKEND}/api/ndvi/classify?lat=${p.lat}&lon=${p.lon}&days=180`);
-    const data=await r.json();const cls=data.classification;
-    const conf=cls.confidence||0;
-    const confCls=conf>=70?'bg-green':conf>=50?'bg-amber':'bg-red';
-    const html=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><div style="font-size:20px;font-weight:700">${cls.crop||'—'}</div><span class="badge ${confCls}">${conf}%</span></div><div style="font-size:12px;color:var(--t2);line-height:1.6">${cls.reasoning||''}</div>${cls.rotation_hint?`<div style="margin-top:8px;padding:7px 11px;background:var(--bl);border-radius:7px;font-size:11px;color:var(--b);font-weight:500">💡 ${cls.rotation_hint}</div>`:''}<div style="font-size:10px;color:var(--t3);margin-top:7px">${data.series_summary||''}</div>`;
-    if(body)body.innerHTML=html;
-    if(spin)spin.style.display='none';
-    // Update badge
-    const badge=document.getElementById('d-ndvi-badge');
-    if(badge){badge.textContent=`${conf}% · Sentinel-2`;badge.style.display='inline';badge.style.background=conf>=70?'var(--gl)':conf>=50?'var(--al)':'var(--rl)';badge.style.color=conf>=70?'var(--g)':conf>=50?'var(--a)':'var(--r)';}
-    return{crop:cls.crop,confidence:conf,reasoning:cls.reasoning};
-  }catch(e){if(body)body.innerHTML=`<div style="color:var(--r);font-size:12px">Грешка: ${e.message}</div>`;if(spin)spin.style.display='none';return null;}
+  if(body)body.innerHTML='<div style="padding:8px;color:var(--tx3)"><span class="spin"></span> Sentinel-2 анализ…</div>';
+  try{const r=await fetch(`${B}/api/ndvi/classify?lat=${p.lat}&lon=${p.lon}&days=180`);const d=await r.json();const c=d.classification,cf=c.confidence||0;const cls=cf>=70?'b-ok':cf>=50?'b-warn':'b-err';
+  if(body)body.innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><div style="font-size:18px;font-weight:700">${c.crop||'—'}</div><span class="badge ${cls}">${cf}%</span></div><div style="font-size:11px;color:var(--tx2);line-height:1.5">${c.reasoning||''}</div>${c.rotation_hint?`<div style="margin-top:6px;padding:6px 10px;background:var(--info-bg);border-radius:5px;font-size:10px;color:var(--info)">💡 ${c.rotation_hint}</div>`:''}<div style="font-size:9px;color:var(--tx3);margin-top:5px">${d.series_summary||''}</div>`;
+  const b=document.getElementById('b-ndvi');if(b){b.textContent=`${cf}%`;b.className=`badge ${cls}`;b.style.display='inline';}
+  if(spin)spin.style.display='none';return{crop:c.crop,confidence:cf,reasoning:c.reasoning};
+  }catch(e){if(body)body.innerHTML=`<div style="color:var(--err)">Грешка: ${e.message}</div>`;if(spin)spin.style.display='none';return null;}
 }
 
-// EuroCrops
-async function loadEuroCrops(p){
-  const spin=document.getElementById('d-ec-spin');
-  const el=document.getElementById('d-ec-content');
-  if(spin)spin.style.display='inline-block';
-  if(el)el.innerHTML='<div class="loading-sm"><span class="spin"></span></div>';
-  try{
-    const r=await fetch(`${BACKEND}/api/crop-history?lat=${p.lat}&lon=${p.lon}&radius_km=10`);
-    const data=await r.json();
-    if(data.found&&data.history.length>0){
-      const rows=data.history.map(h=>{const c=translateCrop(h.crop);return`<div class="ec-row"><span class="ec-yr">${h.year}</span><div class="ec-dot" style="background:${CROP_COLORS[c]||'#aaa'}"></div><span class="ec-crop">${c}</span></div>`;}).join('');
-      if(el)el.innerHTML=rows+`<div style="font-size:10px;color:var(--t3);margin-top:8px;padding-top:8px;border-top:1px solid var(--bd)">Източник: ${data.source} · ${data.points_found} точки · CC-BY 4.0</div>`;
-      if(spin)spin.style.display='none';
-      return data.history.map(h=>({y:h.year,c:translateCrop(h.crop)}));
-    }
+async function loadEC(p){
+  const spin=document.getElementById('sp-ec'),el=document.getElementById('ec-body');
+  if(spin)spin.style.display='inline-block';if(el)el.innerHTML='<span class="spin"></span>';
+  try{const r=await fetch(`${B}/api/crop-history?lat=${p.lat}&lon=${p.lon}&radius_km=10`);const d=await r.json();
+  if(d.found&&d.history.length>0){const rows=d.history.map(h=>{const c=tCrop(h.crop);return`<div class="ec-r"><span class="ec-y">${h.year}</span><div class="ec-d" style="background:${CC[c]||'#aaa'}"></div><span class="ec-c">${c}</span></div>`;}).join('');
+  if(el)el.innerHTML=rows+`<div style="font-size:8px;color:var(--tx3);margin-top:6px;padding-top:5px;border-top:1px solid var(--brd)">Източник: ${d.source} · ${d.points_found} точки</div>`;
+  if(spin)spin.style.display='none';return d.history.map(h=>({y:h.year,c:tCrop(h.crop)}));}
   }catch(e){}
-  // Simulated fallback
-  const hist=getSimHistory(p.lat,p.lon);
-  const rows=hist.map(h=>`<div class="ec-row"><span class="ec-yr">${h.y}</span><div class="ec-dot" style="background:${CROP_COLORS[h.c]||'#aaa'}"></div><span class="ec-crop">${h.c}</span><span style="font-size:9px;color:var(--t3);margin-left:4px">~</span></div>`).join('');
-  if(el)el.innerHTML=rows+'<div style="font-size:10px;color:var(--t3);margin-top:8px;padding-top:8px;border-top:1px solid var(--bd)">Симулирано · Добави реални данни чрез ДФЗ</div>';
-  if(spin)spin.style.display='none';
-  return hist;
+  const h=simHist(p.lat,p.lon);if(el)el.innerHTML=h.map(x=>`<div class="ec-r"><span class="ec-y">${x.y}</span><div class="ec-d" style="background:${CC[x.c]||'#aaa'}"></div><span class="ec-c">${x.c}</span><span style="font-size:8px;color:var(--tx3);margin-left:3px">~</span></div>`).join('')+'<div style="font-size:8px;color:var(--tx3);margin-top:6px">Симулирано</div>';
+  if(spin)spin.style.display='none';return h;
 }
 
-// Select parcel
+// ── Select Parcel ──
 async function selectParcel(i){
-  activeIdx=i;renderList();
-  const p=parcels[i];
-  map.setView([p.lat,p.lon],14);
-  dChatH=[];meteoData={};ndviResult=null;
-  document.getElementById('d-chat').innerHTML='<div class="msg ai">Анализирам парцела...</div>';
-  document.getElementById('d-pred-text').textContent='Анализирам...';
+  active=i;renderList();const p=parcels[i];map.setView([p.lat,p.lon],14);
+  dH=[];met={};ndviRes=null;
+  document.getElementById('d-chat').innerHTML='<div class="msg msg-ai">Анализирам…</div>';
+  document.getElementById('pred-text').textContent='Анализирам…';
   document.getElementById('ctx-tag').textContent='—';
-  // Reset indicators
   ['bi-ndvi','bi-hum','bi-et','bi-spi'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.width='0%';});
   ['vi-ndvi','vi-hum','vi-et','vi-spi','ov-ndvi','ov-temp','ov-et','w-tmp','w-wnd','w-hum','w-et','w-rn'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='—';});
-  document.getElementById('w-dsc').textContent='Зарежда...';
-  document.getElementById('w-ico').textContent='⛅';
-  // Store current parcel for STAC lazy load
-  window._stacP=p;
 
-  // Parallel: NDVI + EuroCrops
-  const[ndviRes,history]=await Promise.all([loadNDVI(p),loadEuroCrops(p)]);
-  ndviResult=ndviRes;
+  const[nr,hist]=await Promise.all([loadNDVI(p),loadEC(p)]);
+  ndviRes=nr;const history=hist||simHist(p.lat,p.lon);
 
   // Meteo
-  try{
-    const m=await fetchMeteo(p.lat,p.lon);
-    if(m){
-      const cur=m.current;
-      const et0=(m.hourly?.et0_fao_evapotranspiration||[]).slice(0,24).reduce((a,b)=>a+b,0)/24||3.5;
-      const rain7=(m.daily?.precipitation_sum||[]).slice(0,7).reduce((a,b)=>a+(b||0),0);
-      const ndviD=Math.min(0.95,Math.max(0.05,0.62+(rain7-et0*7)/28*.15));
-      meteoData={temp:cur.temperature_2m,hum:cur.relative_humidity_2m,et0,rain7,ndvi:ndviD,wind:cur.wind_speed_10m,code:cur.weather_code,daily:m.daily,src:m._cache};
+  try{const m=await fetchMet(p.lat,p.lon);if(m){const c=m.current,et0=(m.hourly?.et0_fao_evapotranspiration||[]).slice(0,24).reduce((a,b)=>a+b,0)/24||3.5,r7=(m.daily?.precipitation_sum||[]).slice(0,7).reduce((a,b)=>a+(b||0),0),ndviD=Math.min(.95,Math.max(.05,.58+(r7-et0*7)/30*.18));
+  met={temp:c.temperature_2m,hum:c.relative_humidity_2m,et0,rain7:r7,ndvi:ndviD,daily:m.daily};
+  setInd('bi-ndvi','vi-ndvi',ndviD*100,ndviD.toFixed(3));setInd('bi-hum','vi-hum',c.relative_humidity_2m,c.relative_humidity_2m?.toFixed(0)+'%');setInd('bi-et','vi-et',Math.min(100,et0/7*100),et0.toFixed(1));const spi=Math.max(0,Math.min(100,100-r7/.85));setInd('bi-spi','vi-spi',spi,spi>60?'Висок':spi>35?'Умерен':'Нисък');
+  document.getElementById('ov-ndvi').textContent=ndviD.toFixed(3);document.getElementById('ov-temp').textContent=c.temperature_2m?.toFixed(1)+'°C';document.getElementById('ov-et').textContent=et0.toFixed(1);
+  document.getElementById('ctx-tag').textContent=`NDVI ${ndviD.toFixed(3)}`;
+  document.getElementById('w-tmp').textContent=(c.temperature_2m?.toFixed(1)||'—')+'°C';document.getElementById('w-ico').textContent=wIco(c.weather_code||0);document.getElementById('w-desc').textContent=wDesc(c.weather_code||0);
+  document.getElementById('w-wnd').textContent=c.wind_speed_10m?.toFixed(0)||'—';document.getElementById('w-hum').textContent=c.relative_humidity_2m?.toFixed(0)||'—';document.getElementById('w-et').textContent=et0.toFixed(1);document.getElementById('w-rn').textContent=r7.toFixed(1);
+  document.getElementById('w-upd').textContent='OpenMeteo · '+new Date().toLocaleTimeString('bg-BG');
+  const mb=document.getElementById('met-badge');if(mb){mb.textContent=m._cache||'live';mb.style.background='var(--pri3)';mb.style.color='var(--pri)';}
+  setPl('pl-met','p-ok','Метео ✓');setSt('ss-met','var(--pri3)','var(--pri)','Live');
+  if(m.daily)drawForecast(m.daily);if(m.daily)drawMeteo(m.daily);
+  }}catch(e){setPl('pl-met','p-wait','Метео !');}
 
-      setBar('bi-ndvi','vi-ndvi',ndviD*100,ndviD.toFixed(3));
-      setBar('bi-hum','vi-hum',cur.relative_humidity_2m,cur.relative_humidity_2m?.toFixed(0)+'%');
-      setBar('bi-et','vi-et',Math.min(100,et0/7*100),et0.toFixed(1));
-      const spi=Math.max(0,Math.min(100,100-rain7/0.85));
-      setBar('bi-spi','vi-spi',spi,spi>60?'Висок':spi>35?'Умерен':'Нисък');
+  // Real NDVI
+  try{const rn=await fetch(`${B}/api/ndvi/real?lat=${p.lat}&lon=${p.lon}&days=90`).then(r=>r.json());
+  if(rn.current_ndvi!=null){window._ndviSeries=rn.series;setInd('bi-ndvi','vi-ndvi',rn.current_ndvi*100,rn.current_ndvi.toFixed(3));
+  document.getElementById('ov-ndvi').textContent=rn.current_ndvi.toFixed(3);const src=document.getElementById('ov-ndvi-src');if(src)src.textContent=`Реален · ${rn.series_count} сцени`;
+  document.getElementById('ctx-tag').textContent=`NDVI ${rn.current_ndvi.toFixed(3)}`;
+  setPl('pl-cop','p-ok','Copernicus ✓');setSt('ss-cop','var(--pri3)','var(--pri)',`Live · ${rn.series_count}`);
+  showNDVIAlert(rn.current_ndvi,rn.series);}
+  if(rn.series?.length>0)drawNDVI(rn.series,'c-ndvi90');
+  }catch(e){try{const h=await fetch(`${B}/api/meteo/history?lat=${p.lat}&lon=${p.lon}&days=90`).then(r=>r.json());if(h.daily?.time)drawNDVIproxy(h,p.crop);}catch(e2){}}
 
-      document.getElementById('ov-ndvi').textContent=ndviD.toFixed(2);
-      document.getElementById('ov-temp').textContent=cur.temperature_2m?.toFixed(1)+'°C';
-      document.getElementById('ov-et').textContent=et0.toFixed(1);
-      document.getElementById('ctx-tag').textContent=`NDVI ${ndviD.toFixed(2)} · ET₀ ${et0.toFixed(1)}`;
-      document.getElementById('w-tmp').textContent=(cur.temperature_2m?.toFixed(1)||'—')+'°C';
-      document.getElementById('w-ico').textContent=wmoIco(cur.weather_code||0);
-      document.getElementById('w-dsc').textContent=wmoDesc(cur.weather_code||0)+(m._cache==='direct_fallback'?' (fallback)':'');
-      document.getElementById('w-wnd').textContent=cur.wind_speed_10m?.toFixed(0)||'—';
-      document.getElementById('w-hum').textContent=cur.relative_humidity_2m?.toFixed(0)||'—';
-      document.getElementById('w-et').textContent=et0.toFixed(1);
-      document.getElementById('w-rn').textContent=rain7.toFixed(1);
-      document.getElementById('w-upd').textContent=`OpenMeteo · ${m._cache||'live'} · ${new Date().toLocaleTimeString('bg-BG')}`;
-
-      const mb=document.getElementById('meteo-badge');
-      if(mb){mb.textContent=m._cache==='hit'?'cache hit':m._cache==='direct_fallback'?'fallback':'live';mb.style.background='var(--gl)';mb.style.color='var(--g)';}
-
-      setPill('pl-meteo','pill p-live','OpenMeteo ✓');
-      setSrc('ss-meteo','var(--gl)','var(--g)','Live');
-      if(m.daily)drawForecast(m.daily);
-      if(m.daily)drawMeteoCharts(m.daily);
-    }
-  }catch(e){setPill('pl-meteo','pill p-warn','OpenMeteo !');}
-
-  // Real NDVI from Sentinel-2 Statistical API
-  try{
-    const rn=await fetch(`${BACKEND}/api/ndvi/real?lat=${p.lat}&lon=${p.lon}&days=90`).then(r=>r.json());
-    if(rn.current_ndvi!=null){
-      window._lastRealNDVI=rn.current_ndvi;
-      setBar('bi-ndvi','vi-ndvi',rn.current_ndvi*100,rn.current_ndvi.toFixed(3));
-      const ndviEl=document.getElementById('ov-ndvi');
-      if(ndviEl)ndviEl.textContent=rn.current_ndvi.toFixed(3);
-      const ndviSrc=document.getElementById('ov-ndvi-src');
-      if(ndviSrc)ndviSrc.textContent=`Реален · ${rn.series_count} сцени`;
-      document.getElementById('ctx-tag').textContent=`NDVI ${rn.current_ndvi.toFixed(3)} · ET₀ ${meteoData.et0?.toFixed(1)||'—'}`;
-      setPill('pl-cop','pill p-live','Copernicus ✓');
-      setSrc('ss-cop','var(--gl)','var(--g)',`Live · ${rn.series_count} сцени`);
-      // Show NDVI alert
-      renderNDVIAlert(rn.current_ndvi, rn.series);
-    }
-    if(rn.series?.length>0){window._lastNDVISeries=rn.series;drawNDVI90Real(rn.series);}
-    else throw new Error('no series');
-  }catch(e){
-    // Fallback — meteo-derived NDVI curve
-    try{
-      const hist=await fetch(`${BACKEND}/api/meteo/history?lat=${p.lat}&lon=${p.lon}&days=90`).then(r=>r.json());
-      if(hist.daily?.time){
-        drawNDVI90(hist,p.crop);
-        // Update indicator with derived NDVI
-        const et0avg=(hist.daily.et0_fao_evapotranspiration||[]).slice(-7).reduce((a,b)=>a+b,0)/7||3.5;
-        const rain7=(hist.daily.precipitation_sum||[]).slice(-7).reduce((a,b)=>a+(b||0),0);
-        const ndviD=Math.min(0.95,Math.max(0.05,0.58+(rain7-et0avg*7)/30*0.18));
-        setBar('bi-ndvi','vi-ndvi',ndviD*100,ndviD.toFixed(3));
-        const ndviEl=document.getElementById('ov-ndvi');
-        if(ndviEl)ndviEl.textContent=ndviD.toFixed(3);
-        const ndviSrc=document.getElementById('ov-ndvi-src');
-        if(ndviSrc)ndviSrc.textContent='ERA5 proxy · метео';
-      }
-    }catch(e2){console.warn('NDVI fallback error:',e2);}
-  }
-
-  // AI prediction
-  await generatePrediction(p,history||getSimHistory(p.lat,p.lon),ndviResult);
+  await genPred(p,history,ndviRes);
 }
 
-function setBar(bi,vi,pct,val){
-  const b=document.getElementById(bi);const v=document.getElementById(vi);
-  if(b)b.style.width=Math.min(100,Math.max(0,pct||0))+'%';
-  if(v)v.textContent=val||'—';
-}
-function wmoIco(c){if(c<=1)return'☀️';if(c<=3)return'⛅';if(c<=49)return'🌫️';if(c<=69)return'🌧️';return'⛈️';}
-function wmoDesc(c){if(c===0)return'Ясно';if(c<=2)return'Частично облачно';if(c<=3)return'Облачно';if(c<=67)return'Дъжд';return'Буря';}
-function setPill(id,cls,txt){const e=document.getElementById(id);if(e){e.className=cls;e.innerHTML=`<span class="dot"></span>${txt}`;}}
-function setSrc(id,bg,col,txt){const e=document.getElementById(id);if(e){e.style.background=bg;e.style.color=col;e.textContent=txt;}}
+function setInd(bi,vi,pct,val){const b=document.getElementById(bi),v=document.getElementById(vi);if(b)b.style.width=Math.min(100,Math.max(0,pct||0))+'%';if(v)v.textContent=val||'—';}
+function wIco(c){return c<=1?'☀️':c<=3?'⛅':c<=49?'🌫️':c<=69?'🌧️':'⛈️';}
+function wDesc(c){return c===0?'Ясно':c<=2?'Частично облачно':c<=3?'Облачно':c<=67?'Дъжд':'Буря';}
+function setPl(id,cls,txt){const e=document.getElementById(id);if(e){e.className='pill '+cls;e.innerHTML=`<span class="d"></span>${txt}`;}}
+function setSt(id,bg,col,txt){const e=document.getElementById(id);if(e){e.style.background=bg;e.style.color=col;e.textContent=txt;}}
 
-function drawNDVI90(hist,crop){
-  if(!hist.daily?.time)return;dc_('c-ndvi90');
-  const ctx=document.getElementById('c-ndvi90')?.getContext('2d');if(!ctx)return;
-  const dates=hist.daily.time,et0=hist.daily.et0_fao_evapotranspiration||[],rain=hist.daily.precipitation_sum||[],tmax=hist.daily.temperature_2m_max||[];
-  const base={'Пшеница':0.64,'Слънчоглед':0.50,'Рапица':0.38,'Царевица':0.55,'Ечемик':0.60};
-  const b=base[crop]||0.55;
-  const series=dates.map((_,i)=>{const r7=rain.slice(Math.max(0,i-6),i+1).reduce((a,v)=>a+(v||0),0);const wb=(r7-(et0[i]||3)*7)/30;const hs=(tmax[i]||25)>33?-((tmax[i]-33)*0.01):0;return Math.min(0.95,Math.max(0.05,b+Math.min(0.18,Math.max(-0.22,wb))+hs));});
-  charts['c-ndvi90']=new Chart(ctx,{type:'line',data:{labels:dates.map(d=>d.slice(5)),datasets:[{label:'NDVI',data:series,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.08)',borderWidth:1.5,tension:.3,pointRadius:0,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:0,max:1,ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9},maxTicksLimit:12},grid:{display:false}}}}});
-}
-
-function renderNDVIAlert(current, series){
-  const el=document.getElementById('ov-ndvi-alert');if(!el)return;
+function showNDVIAlert(val,series){
+  const el=document.getElementById('ndvi-alert');if(!el)return;
   if(!series||series.length<2){el.style.display='none';return;}
-
-  // Detect trend — compare last value vs 2 weeks ago
-  const prev=series.length>=2?series[series.length-2].ndvi:null;
-  const change=prev?current-prev:0;
-  const pct=prev?((change/prev)*100):0;
-
-  let msg='',color='',bg='';
-  if(current>=0.7){
-    bg='var(--gl)';color='var(--g)';
-    msg=`✅ <strong>Отлично NDVI ${current.toFixed(3)}</strong> — гъста, здрава растителност. ${change>0.02?'Расте спрямо предходната сцена (+'+change.toFixed(3)+').':change<-0.05?'Лек спад спрямо предходната сцена ('+change.toFixed(3)+') — следи.':'Стабилно.'}`;
-  }else if(current>=0.5){
-    bg='var(--gp)';color='var(--g)';
-    msg=`🟡 <strong>Добро NDVI ${current.toFixed(3)}</strong> — умерена растителност. ${change<-0.05?'⚠️ Спад от '+Math.abs(change).toFixed(3)+' спрямо предходната сцена — провери за стрес.':'Нормален статус.'}`;
-  }else if(current>=0.3){
-    bg='var(--al)';color='var(--a)';
-    msg=`⚠️ <strong>Умерено NDVI ${current.toFixed(3)}</strong> — ${change<-0.08?'Рязък спад! Вероятен стрес от суша, болест или вредители. Препоръчва се теренна проверка.':'Рядка растителност или начало на сезона. Следи тренда.'}`;
-  }else{
-    bg='var(--rl)';color='var(--r)';
-    msg=`🔴 <strong>Ниско NDVI ${current.toFixed(3)}</strong> — малко или липсваща растителност. ${current<0.1?'Вероятно незасят парцел или сериозен проблем.':'Провери парцела. Суша, болест или механична повреда?'}`;
-  }
-
-  el.style.display='block';
-  el.style.background=bg;
-  el.style.border=`1px solid ${color}`;
-  el.style.color=color;
-  el.innerHTML=msg+(prev?` <span style="opacity:.7;font-size:10px">Промяна: ${change>=0?'+':''}${change.toFixed(3)} (${pct.toFixed(1)}%)</span>`:'');
+  const prev=series[series.length-2]?.ndvi;const chg=prev?val-prev:0;
+  let msg,bg,col;
+  if(val>=.7){bg='var(--pri3)';col='var(--pri)';msg=`✅ <b>Отлично (${val.toFixed(3)})</b> — гъста, здрава растителност.${chg<-.05?' Лек спад — следи.':''}`;
+  }else if(val>=.5){bg='var(--pri4)';col='var(--pri)';msg=`🟡 <b>Добро (${val.toFixed(3)})</b> — умерена растителност.${chg<-.05?' ⚠️ Спад '+Math.abs(chg).toFixed(3):''}`;
+  }else if(val>=.3){bg='var(--warn-bg)';col='var(--warn)';msg=`⚠️ <b>Умерено (${val.toFixed(3)})</b> — ${chg<-.08?'Рязък спад! Вероятен стрес.':'Рядка растителност или начало на сезона.'}`;
+  }else{bg='var(--err-bg)';col='var(--err)';msg=`🔴 <b>Ниско (${val.toFixed(3)})</b> — провери парцела. Суша, болест или незасят.`;}
+  el.style.display='block';el.style.background=bg;el.style.border=`1px solid ${col}`;el.style.color=col;el.innerHTML=msg;
 }
 
-function drawNDVI90Full(series){
-  dc_('c-ndvi90-full');
-  const ctx=document.getElementById('c-ndvi90-full')?.getContext('2d');if(!ctx)return;
-  const labels=series.map(s=>s.date?.slice(5)||s.date);
-  const values=series.map(s=>s.ndvi||s);
-  charts['c-ndvi90-full']=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'NDVI (Sentinel-2)',data:values,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.1)',borderWidth:2,tension:.3,pointRadius:3,pointBackgroundColor:'#1D9E75',fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:8}},tooltip:{callbacks:{label:ctx=>'NDVI: '+ctx.parsed.y.toFixed(4)}}},scales:{y:{min:0,max:1,ticks:{font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:10},maxTicksLimit:14},grid:{display:false}}}}});
+// ── Charts ──
+function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+function drawNDVI(series,canvasId){
+  dc(canvasId);const ctx=document.getElementById(canvasId)?.getContext('2d');if(!ctx)return;
+  charts[canvasId]=new Chart(ctx,{type:'line',data:{labels:series.map(s=>(s.date||'').slice(5)),datasets:[{label:'NDVI',data:series.map(s=>s.ndvi),borderColor:'#25845e',backgroundColor:'rgba(37,132,94,.1)',borderWidth:2,tension:.3,pointRadius:3,pointBackgroundColor:'#25845e',fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:0,max:1,ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9},maxTicksLimit:10},grid:{display:false}}}}});
+}
+function drawNDVIproxy(h,crop){
+  dc('c-ndvi90');const ctx=document.getElementById('c-ndvi90')?.getContext('2d');if(!ctx)return;
+  const d=h.daily,base={'Пшеница':.64,'Слънчоглед':.50,'Рапица':.38,'Царевица':.55}[crop]||.55;
+  const vals=d.time.map((_,i)=>{const r7=d.precipitation_sum.slice(Math.max(0,i-6),i+1).reduce((a,v)=>a+(v||0),0);return Math.min(.95,Math.max(.05,base+(r7-(d.et0_fao_evapotranspiration[i]||3)*7)/30*.18));});
+  charts['c-ndvi90']=new Chart(ctx,{type:'line',data:{labels:d.time.map(t=>t.slice(5)),datasets:[{label:'NDVI (ERA5 proxy)',data:vals,borderColor:'#25845e',backgroundColor:'rgba(37,132,94,.06)',borderWidth:1.5,tension:.3,pointRadius:0,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:9}}}},scales:{y:{min:0,max:1,ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9},maxTicksLimit:10},grid:{display:false}}}}});
+}
+function drawForecast(d){if(!d?.time)return;dc('c-forecast');const ctx=document.getElementById('c-forecast')?.getContext('2d');if(!ctx)return;charts['c-forecast']=new Chart(ctx,{type:'bar',data:{labels:d.time.map(t=>t.slice(5)),datasets:[{label:'Макс °C',data:d.temperature_2m_max,type:'line',borderColor:'#c44',backgroundColor:'transparent',borderWidth:1.5,tension:.3,pointRadius:1,yAxisID:'y'},{label:'Валежи мм',data:d.precipitation_sum,backgroundColor:'rgba(26,79,140,.4)',borderRadius:2,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:9},boxWidth:8}}},scales:{y:{position:'left',ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},y1:{position:'right',ticks:{font:{size:9}},grid:{display:false}},x:{ticks:{font:{size:9},maxTicksLimit:12},grid:{display:false}}}}});}
+function drawMeteo(d){if(!d?.time)return;const lb=d.time.map(t=>t.slice(5));
+dc('c-temp');const c1=document.getElementById('c-temp')?.getContext('2d');if(c1)charts['c-temp']=new Chart(c1,{type:'line',data:{labels:lb,datasets:[{label:'Макс',data:d.temperature_2m_max,borderColor:'#c44',backgroundColor:'rgba(200,60,60,.05)',borderWidth:1.5,tension:.3,pointRadius:1,fill:true},{label:'Мин',data:d.temperature_2m_min,borderColor:'#185FA5',backgroundColor:'transparent',borderWidth:1,tension:.3,pointRadius:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:9},boxWidth:8}}},scales:{y:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9},maxTicksLimit:12},grid:{display:false}}}}});
+dc('c-et14');const c2=document.getElementById('c-et14')?.getContext('2d');if(c2)charts['c-et14']=new Chart(c2,{type:'line',data:{labels:lb,datasets:[{label:'ET₀',data:d.et0_fao_evapotranspiration,borderColor:'#92610e',backgroundColor:'rgba(146,97,14,.06)',borderWidth:1.5,tension:.3,pointRadius:1,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9},maxTicksLimit:12},grid:{display:false}}}}});
+dc('c-wb');const c3=document.getElementById('c-wb')?.getContext('2d');if(c3){const wb=d.time.map((_,i)=>(d.precipitation_sum[i]||0)-(d.et0_fao_evapotranspiration[i]||3));charts['c-wb']=new Chart(c3,{type:'bar',data:{labels:lb,datasets:[{label:'Баланс',data:wb,backgroundColor:wb.map(v=>v>=0?'rgba(37,132,94,.6)':'rgba(166,32,32,.5)'),borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9},maxTicksLimit:12},grid:{display:false}}}}});}
 }
 
-function drawNDVI90Real(series){
-  dc_('c-ndvi90');
-  const ctx=document.getElementById('c-ndvi90')?.getContext('2d');if(!ctx)return;
-  const labels=series.map(s=>s.date.slice(5));
-  const values=series.map(s=>s.ndvi);
-  charts['c-ndvi90']=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'NDVI (Sentinel-2)',data:values,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.1)',borderWidth:2,tension:.3,pointRadius:3,pointBackgroundColor:'#1D9E75',fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:9},boxWidth:8}},tooltip:{callbacks:{label:ctx=>`NDVI: ${ctx.parsed.y.toFixed(4)}`}}},scales:{y:{min:0,max:1,ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9},maxTicksLimit:10},grid:{display:false}}}}});
-}
+// ── AI ──
+// AI: try Gemini 2.5 Flash first (browser-side), fallback to Groq (backend)
+const GEMINI_KEY='AIzaSyBU8yIOs5uBM60808QASxj6E_kWZphusZE';
 
-let dc_=id=>{if(charts[id]){charts[id].destroy();delete charts[id];}};;
-
-function drawForecast(daily){
-  if(!daily?.time)return;dc_('c-forecast');
-  const ctx=document.getElementById('c-forecast')?.getContext('2d');if(!ctx)return;
-  charts['c-forecast']=new Chart(ctx,{type:'bar',data:{labels:daily.time.map(d=>d.slice(5)),datasets:[{label:'Макс °C',data:daily.temperature_2m_max,type:'line',borderColor:'#E8593C',backgroundColor:'transparent',borderWidth:1.5,tension:.3,pointRadius:1,yAxisID:'y'},{label:'Валежи мм',data:daily.precipitation_sum,backgroundColor:'rgba(20,71,160,.4)',borderRadius:2,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:9},boxWidth:8}}},scales:{y:{position:'left',ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},y1:{position:'right',ticks:{font:{size:9}},grid:{display:false}},x:{ticks:{font:{size:9},maxTicksLimit:12},grid:{display:false}}}}});
-}
-
-function drawMeteoCharts(daily){
-  if(!daily?.time)return;
-  const labels=daily.time.map(d=>d.slice(5));
-  dc_('c-temp14');const ctx1=document.getElementById('c-temp14')?.getContext('2d');
-  if(ctx1)charts['c-temp14']=new Chart(ctx1,{type:'line',data:{labels,datasets:[{label:'Макс °C',data:daily.temperature_2m_max,borderColor:'#E8593C',backgroundColor:'rgba(232,89,60,.07)',borderWidth:1.5,tension:.3,pointRadius:1,fill:true},{label:'Мин °C',data:daily.temperature_2m_min,borderColor:'#185FA5',backgroundColor:'transparent',borderWidth:1,tension:.3,pointRadius:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:9},boxWidth:8}}},scales:{y:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9},maxTicksLimit:12},grid:{display:false}}}}});
-  dc_('c-et14');const ctx2=document.getElementById('c-et14')?.getContext('2d');
-  if(ctx2)charts['c-et14']=new Chart(ctx2,{type:'line',data:{labels,datasets:[{label:'ET₀ мм/д',data:daily.et0_fao_evapotranspiration,borderColor:'#BA7517',backgroundColor:'rgba(186,117,23,.08)',borderWidth:1.5,tension:.3,pointRadius:1,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9},maxTicksLimit:12},grid:{display:false}}}}});
-  dc_('c-wb');const ctx3=document.getElementById('c-wb')?.getContext('2d');
-  if(ctx3){const wb=daily.time.map((_,i)=>(daily.precipitation_sum[i]||0)-(daily.et0_fao_evapotranspiration[i]||3));charts['c-wb']=new Chart(ctx3,{type:'bar',data:{labels,datasets:[{label:'Баланс мм',data:wb,backgroundColor:wb.map(v=>v>=0?'rgba(29,158,117,.6)':'rgba(163,45,45,.5)'),borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9},maxTicksLimit:12},grid:{display:false}}}}});}
-}
-
-// AI
-function getSys(p,histStr,ndviRes){
-  const ndviLine=ndviRes?`NDVI КЛАСИФИКАЦИЯ (Sentinel-2): ${ndviRes.crop} · ${ndviRes.confidence}% сигурност`:'NDVI: няма данни';
-  const rule=ndviRes?.confidence>=70?'ПРАВИЛО: NDVI ≥70% → приоритизирай спътниковите данни.':'ПРАВИЛО: NDVI <70% → разчитай на историята.';
-  const cropStatus=(!p?.crop||p?.crop==='unknown')?'Фермерът не е посочил култура.':NON_AGRI.includes(p?.crop)?`Неземеделски парцел: ${p.crop}.`:`Заявена от фермера: ${p.crop}.`;
-  return`Ти си AI агроном за AgroDecide. Отговаряй кратко и конкретно на БЪЛГАРСКИ.
-ПАРЦЕЛ: ${p?.name||'—'} · ${p?.area?.toFixed(2)||'—'}ха · ${p?.lat?.toFixed(4)||'—'}°N
-${cropStatus}
-${ndviLine}
-EUROCROPS/LUCAS: ${histStr}
-МЕТЕО: ${meteoData.temp?.toFixed(1)||'—'}°C, ET₀ ${meteoData.et0?.toFixed(1)||'—'} мм/д, валежи 7д ${meteoData.rain7?.toFixed(1)||'—'} мм
-${rule}
-ДАТА: ${new Date().toLocaleDateString('bg-BG')}`;
-}
-
-async function generatePrediction(p,history,ndviRes){
-  const histStr=history.map(h=>`${h.y||h.year}: ${h.c||h.crop}`).join(', ');
-  let conflict='';
-  if(ndviRes?.confidence>=70){
-    const last=history.length>0?(history[history.length-1].c||history[history.length-1].crop||''):'';
-    if(last&&!last.toLowerCase().includes(ndviRes.crop.toLowerCase()))
-      conflict=`Конфликт: NDVI показва "${ndviRes.crop}" но историята показва "${last}" — обясни.`;
-  }
-  const task=(!p?.crop||p?.crop==='unknown')?'Определи текущата от NDVI, препоръчай следваща, добив, риск.':NON_AGRI.includes(p?.crop)?'Потвърди от NDVI, информирай за регулации.':'Потвърди/коментирай избраната, препоръчай следваща, добив, риск.';
-  const q=`${conflict} ${task} До 4 изречения.`;
-  dChatH=[{role:'user',parts:[{text:q}]}];
+async function aiCall(system, contents){
+  // Try Gemini first
   try{
-    const r=await fetch(`${BACKEND}/api/ai`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:getSys(p,histStr,ndviRes),contents:dChatH})}).then(r=>r.json());
-    document.getElementById('d-pred-text').textContent=r.text||'—';
-    dChatH.push({role:'model',parts:[{text:r.text}]});
-    document.getElementById('d-chat').innerHTML='';
-    addMsg('ai',r.text);
-  }catch(e){document.getElementById('d-pred-text').textContent='Грешка при AI връзка.';}
-}
-
-function addMsg(role,txt){const c=document.getElementById('d-chat');const d=document.createElement('div');d.className='msg '+role;d.textContent=txt;c.appendChild(d);c.scrollTop=c.scrollHeight;return d;}
-function addLoad(){const c=document.getElementById('d-chat');const d=document.createElement('div');d.className='msg loading';d.innerHTML='<div class="dots"><span></span><span></span><span></span></div>';c.appendChild(d);c.scrollTop=c.scrollHeight;return d;}
-
-async function dSend(){
-  const inp=document.getElementById('d-ai-in');const txt=inp.value.trim();if(!txt)return;
-  const btn=document.getElementById('d-ai-go');inp.value='';btn.disabled=true;
-  addMsg('user',txt);dChatH.push({role:'user',parts:[{text:txt}]});
-  const loader=addLoad();
-  const p=activeIdx>=0?parcels[activeIdx]:null;
-  const hist=p?getSimHistory(p.lat,p.lon).map(h=>`${h.y}:${h.c}`).join(', '):'—';
-  try{const r=await fetch(`${BACKEND}/api/ai`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:getSys(p,hist,ndviResult),contents:dChatH})}).then(r=>r.json());loader.remove();addMsg('ai',r.text);dChatH.push({role:'model',parts:[{text:r.text}]});}
-  catch(e){loader.remove();addMsg('ai','Грешка: '+e.message);}
-  btn.disabled=false;
-}
-function dqa(q){document.getElementById('d-ai-in').value=q;dSend();}
-
-// Tab switching
-function deskTab(name,btn){
-  document.querySelectorAll('.t-tab').forEach(t=>t.classList.remove('on'));
-  btn.classList.add('on');
-  const left=document.getElementById('col-left');
-  const right=document.getElementById('col-right');
-  const fc=document.getElementById('farmer-center');
-  const mc=document.getElementById('market-center');
-  if(name==='farmer'){
-    left.style.display='flex';right.style.display='flex';
-    fc.style.display='flex';mc.style.display='none';
-    setTimeout(()=>map.invalidateSize(),50);
-  }else if(name==='market'){
-    left.style.display='none';right.style.display='none';
-    fc.style.display='none';mc.style.display='flex';
-    if(!marketData.prices) loadMarketPrices();
-    else{
-      // Re-render chart since canvas was hidden
-      const first=Object.keys(marketData.prices).find(k=>marketData.prices[k].history?.length>0);
-      if(first) setTimeout(()=>showMarketChart(first),100);
-    }
-  }
-}
-
-function centerTab(name,btn){
-  document.querySelectorAll('#c-tabs .c-tab').forEach(t=>t.classList.remove('on'));
-  if(btn)btn.classList.add('on');
-  // Show/hide map vs desk views
-  const mapEl=document.getElementById('cv-map');
-  document.querySelectorAll('.desk-view').forEach(v=>v.classList.remove('on'));
-  if(name==='map'){
-    mapEl.style.flex='1';mapEl.style.display='block';
-    setTimeout(()=>map.invalidateSize(),50);
-  }else{
-    mapEl.style.flex='0';mapEl.style.display='none';
-    const dv=document.getElementById('cv-'+name);if(dv)dv.classList.add('on');
-    // Lazy STAC
-    if(name==='ndvi'){
-      // Draw NDVI in the full-size canvas too
-      if(window._lastNDVISeries) drawNDVI90Full(window._lastNDVISeries);
-    }
-    if(name==='stac'&&window._stacP){
-      const p=window._stacP;window._stacP=null;
-      const el=document.getElementById('stac-list');
-      if(el)el.innerHTML='<div class="loading-sm"><span class="spin"></span> Зарежда Copernicus STAC...</div>';
-      fetch(`${BACKEND}/api/stac?lat=${p.lat}&lon=${p.lon}&days=60`).then(r=>r.json()).then(d=>{
-        renderSTAC(d.features||[],d._cache);setPill('pl-cop','pill p-live','Copernicus ✓');setSrc('ss-cop','var(--gl)','var(--g)','Live');
-      }).catch(()=>{if(el)el.textContent='Грешка.';});
-    }
-  }
-}
-
-function updateLastSceneKPI(items){
-  if(!items||!items.length)return;
-  const sorted=items.slice().sort((a,b)=>new Date(b.properties?.datetime)-new Date(a.properties?.datetime));
-  const clear=sorted.filter(it=>(it.properties?.['eo:cloud_cover']||100)<25);
-  const lastClear=clear[0];
-  if(lastClear){
-    const el=document.getElementById('ov-last-scene');
-    const cl=document.getElementById('ov-scene-cloud');
-    if(el)el.textContent=lastClear.properties?.datetime?.slice(0,10)||'—';
-    if(cl)cl.textContent=`☁ ${(lastClear.properties?.['eo:cloud_cover']||0).toFixed(0)}% · ${clear.length} ясни от ${items.length}`;
-  }
-}
-
-function renderSTAC(items,cache){
-  const el=document.getElementById('stac-list');if(!el)return;
-  const b=document.getElementById('stac-badge');
-  if(b){b.textContent=`${items.length} сцени · последните 60 дни`;b.style.background='var(--gl)';b.style.color='var(--g)';}
-  updateLastSceneKPI(items);
-  if(!items.length){el.innerHTML='<div style="color:var(--t3);font-size:12px">Няма налични сцени.</div>';return;}
-
-  // Sort by date desc, find clear scenes
-  const sorted=items.slice().sort((a,b)=>new Date(b.properties?.datetime)-new Date(a.properties?.datetime));
-  const clear=sorted.filter(it=>(it.properties?.['eo:cloud_cover']||100)<25);
-  const last=sorted[0];
-  const lastClear=clear[0];
-  const lastCloudPct=last?.properties?.['eo:cloud_cover']??100;
-  const lastDate=last?.properties?.datetime?.slice(0,10)||'—';
-  const lastClearDate=lastClear?.properties?.datetime?.slice(0,10)||'—';
-
-  // Estimate next overpass (~5 days from last)
-  const nextPass=lastDate!=='—'?new Date(new Date(lastDate).getTime()+5*86400000).toISOString().slice(0,10):'—';
-
-  // NDVI trend from stac metadata if available
-  const ndviCurrent=window._lastRealNDVI||null;
-
-  el.innerHTML=`
-    <!-- Last scene summary -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
-      <div style="background:var(--s2);border-radius:8px;padding:10px 12px;border:1px solid var(--bd)">
-        <div style="font-size:10px;color:var(--t3);margin-bottom:3px">📅 Последна снимка</div>
-        <div style="font-size:14px;font-weight:700;font-family:'DM Mono',monospace">${lastDate}</div>
-        <div style="font-size:10px;margin-top:3px;color:${lastCloudPct<25?'var(--g)':lastCloudPct<60?'var(--a)':'var(--r)'}">☁ ${lastCloudPct.toFixed(0)}% облачност</div>
-      </div>
-      <div style="background:var(--s2);border-radius:8px;padding:10px 12px;border:1px solid var(--bd)">
-        <div style="font-size:10px;color:var(--t3);margin-bottom:3px">✅ Последна ясна</div>
-        <div style="font-size:14px;font-weight:700;font-family:'DM Mono',monospace">${lastClearDate}</div>
-        <div style="font-size:10px;margin-top:3px;color:var(--g)">${clear.length} ясни от ${sorted.length}</div>
-      </div>
-      <div style="background:var(--s2);border-radius:8px;padding:10px 12px;border:1px solid var(--bd)">
-        <div style="font-size:10px;color:var(--t3);margin-bottom:3px">🛰 Следващ преход</div>
-        <div style="font-size:14px;font-weight:700;font-family:'DM Mono',monospace">~${nextPass}</div>
-        <div style="font-size:10px;margin-top:3px;color:var(--t3)">Sentinel-2 · 5 дни</div>
-      </div>
-    </div>
-
-    ${ndviCurrent!=null?`
-    <!-- NDVI insight -->
-    <div style="background:${ndviCurrent>=0.6?'var(--gl)':ndviCurrent>=0.4?'var(--al)':'var(--rl)'};border:1px solid ${ndviCurrent>=0.6?'var(--gm)':ndviCurrent>=0.4?'#d97706':'var(--r)'};border-radius:8px;padding:10px 14px;margin-bottom:12px">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;color:${ndviCurrent>=0.6?'var(--g)':ndviCurrent>=0.4?'var(--a)':'var(--r)'}">🌿 Реален NDVI от Sentinel-2</div>
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="font-size:28px;font-weight:700;font-family:'DM Mono',monospace;color:${ndviCurrent>=0.6?'var(--g)':ndviCurrent>=0.4?'var(--a)':'var(--r)'}">${ndviCurrent.toFixed(3)}</div>
-        <div style="font-size:12px;line-height:1.6">
-          ${ndviCurrent>=0.7?'<strong>Отлично</strong> — гъста, здрава растителност. Добри условия за растеж.':
-            ndviCurrent>=0.5?'<strong>Добро</strong> — умерена растителност. Нормален вегетационен статус.':
-            ndviCurrent>=0.3?'<strong>Умерено</strong> — рядка растителност или начало на сезона. Следи за стрес.':
-            '<strong>Ниско</strong> — малко или липсваща растителност. Провери парцела.'}
-        </div>
-      </div>
-    </div>`:''}
-
-    <!-- Scene timeline -->
-    <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Хронология на сцените</div>
-    ${sorted.slice(0,8).map(it=>{
-      const dt=it.properties?.datetime?.slice(0,10)||'—';
-      const cloud=it.properties?.['eo:cloud_cover']??100;
-      const usable=cloud<25;
-      const partial=cloud<60&&cloud>=25;
-      return`<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--bd)">
-        <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${usable?'var(--gm)':partial?'#d97706':'var(--r)'}"></div>
-        <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--t2);flex-shrink:0;width:80px">${dt}</div>
-        <div style="flex:1;height:6px;background:var(--s3);border-radius:3px;overflow:hidden">
-          <div style="width:${Math.min(100,cloud)}%;height:100%;background:${usable?'var(--gm)':partial?'#d97706':'var(--r)'};opacity:.6"></div>
-        </div>
-        <div style="font-size:10px;font-weight:600;width:50px;text-align:right;color:${usable?'var(--g)':partial?'var(--a)':'var(--r)'}">☁ ${cloud.toFixed(0)}%</div>
-        <div style="font-size:10px;color:var(--t3);width:52px;text-align:right">${usable?'✅ Ясна':partial?'⚠️ Частична':'❌ Облачна'}</div>
-      </div>`;
-    }).join('')}
-    <div style="font-size:10px;color:var(--t3);margin-top:8px">Данни: Copernicus Data Space · Sentinel-2 L2A · CC-BY 4.0</div>
-  `;
-}
-
-// Geolocation
-function locateMe(){
-  const btn=document.getElementById('btn-locate');btn.textContent='⏳';
-  if(!navigator.geolocation){btn.textContent='📍';return;}
-  function show(pos){
-    if(btn.textContent!=='⏳')return;btn.textContent='📍';
-    const lat=pos.coords.latitude,lon=pos.coords.longitude,acc=pos.coords.accuracy;
-    const ll=L.latLng(lat,lon);map.setView(ll,15);
-    if(window._lM)map.removeLayer(window._lM);if(window._lC)map.removeLayer(window._lC);
-    window._lC=L.circle(ll,{radius:acc,color:'#1D9E75',fillColor:'#1D9E75',fillOpacity:.1,weight:1}).addTo(map);
-    window._lM=L.circleMarker(ll,{radius:8,color:'#0F6E56',fillColor:'#1D9E75',fillOpacity:.9,weight:2.5}).addTo(map).bindPopup(`📍 Вие сте тук<br><small>±${Math.round(acc)} м</small>`).openPopup();
-  }
-  navigator.geolocation.getCurrentPosition(show,()=>{},{enableHighAccuracy:false,timeout:5000,maximumAge:60000});
-  navigator.geolocation.getCurrentPosition(show,()=>{btn.textContent='📍';},{enableHighAccuracy:true,timeout:60000,maximumAge:0});
-}
-
-// Policy: Eurostat data
-let pCharts={};
-function dcP(id){if(pCharts[id]){pCharts[id].destroy();delete pCharts[id];}}
-
-const POLICY_DATA={
-  'BG':{uaa:4460,arable:3300,perm:190,grass:860,
-    nuts2:[{n:'Североизточен',uaa:1180,arable:920},{n:'Северен централен',uaa:980,arable:780},{n:'Южен централен',uaa:780,arable:560},{n:'Югоизточен',uaa:640,arable:480},{n:'Северен',uaa:560,arable:420},{n:'Западен',uaa:320,arable:210}],
-    crops:{l:['Пшеница','Слънчоглед','Царевица','Ечемик','Рапица'],d:[3500,2100,1800,900,450]},
-    trade:{exp:[1800,2100,2400,2800,3100,3400],imp:[1200,1400,1600,1700,1900,2100]}},
-  'RO':{uaa:12700,arable:8800,perm:500,grass:3200,
-    nuts2:[{n:'Sud-Muntenia',uaa:2100,arable:1800},{n:'Nord-Est',uaa:1800,arable:1400},{n:'Sud-Est',uaa:1700,arable:1400},{n:'Sud-Vest',uaa:1400,arable:1100},{n:'Vest',uaa:1200,arable:950},{n:'Nord-Vest',uaa:1100,arable:850}],
-    crops:{l:['Пшеница','Царевица','Слънчоглед','Ечемик','Рапица'],d:[10000,14000,3500,1800,1200]},
-    trade:{exp:[3500,4200,5100,6200,7400,8100],imp:[2800,3400,4100,5000,6200,7000]}},
-  'DE':{uaa:16600,arable:11500,perm:200,grass:4700,
-    nuts2:[{n:'Bayern',uaa:3200,arable:2000},{n:'Niedersachsen',uaa:2600,arable:1700},{n:'NRW',uaa:1600,arable:1000},{n:'Brandenburg',uaa:1400,arable:1100},{n:'Sachsen-Anhalt',uaa:1200,arable:1000},{n:'Sachsen',uaa:920,arable:720}],
-    crops:{l:['Пшеница','Ечемик','Царевица','Рапица','Ръж'],d:[22000,9000,17000,4200,3600]},
-    trade:{exp:[58000,62000,68000,72000,79000,85000],imp:[54000,58000,64000,68000,75000,80000]}},
-  'FR':{uaa:26800,arable:18000,perm:1900,grass:6600,
-    nuts2:[{n:'Grand Est',uaa:3200,arable:2400},{n:'Occitanie',uaa:2800,arable:1600},{n:'Nouvelle-Aquitaine',uaa:3100,arable:2000},{n:'Auvergne-Rhône',uaa:2200,arable:1100},{n:'Hauts-de-France',uaa:2000,arable:1700}],
-    crops:{l:['Пшеница','Царевица','Ечемик','Рапица','Слънчоглед'],d:[36000,14000,10000,5200,1500]},
-    trade:{exp:[52000,55000,60000,64000,70000,75000],imp:[38000,42000,46000,50000,56000,62000]}},
-  'PL':{uaa:14400,arable:11000,perm:300,grass:2800,nuts2:[{n:'Mazowieckie',uaa:2100,arable:1700},{n:'Wielkopolskie',uaa:1900,arable:1600},{n:'Kujawsko-Pom.',uaa:1300,arable:1100},{n:'Łódźkie',uaa:1000,arable:800},{n:'Lubelskie',uaa:1400,arable:1100}],crops:{l:['Пшеница','Ечемик','Ръж','Царевица','Рапица'],d:[11000,3500,3000,4000,2800]},trade:{exp:[28000,32000,37000,42000,48000,52000],imp:[22000,26000,30000,35000,40000,44000]}},
-  'ES':{uaa:23200,arable:13200,perm:4900,grass:4900,nuts2:[{n:'Castilla y León',uaa:5200,arable:3800},{n:'Andalucía',uaa:4100,arable:2100},{n:'Aragón',uaa:2100,arable:1500},{n:'Castilla-La Mancha',uaa:3400,arable:2200},{n:'Extremadura',uaa:2000,arable:900}],crops:{l:['Пшеница','Ечемик','Царевица','Слънчоглед','Маслини'],d:[6000,8000,3500,900,6200]},trade:{exp:[45000,48000,52000,57000,64000,69000],imp:[35000,38000,42000,46000,52000,56000]}},
-  'IT':{uaa:12800,arable:7100,perm:3200,grass:2300,nuts2:[{n:'Pianura Padana',uaa:2800,arable:2200},{n:'Sicilia',uaa:1400,arable:900},{n:'Puglia',uaa:1300,arable:700},{n:'Sardegna',uaa:1000,arable:400},{n:'Toscana',uaa:700,arable:400}],crops:{l:['Пшеница','Царевица','Грозде','Маслини','Домати'],d:[7800,9200,4800,3500,4200]},trade:{exp:[46000,49000,53000,58000,65000,70000],imp:[42000,45000,49000,54000,61000,66000]}},
-  'HU':{uaa:5300,arable:4500,perm:200,grass:500,nuts2:[{n:'Dél-Alföld',uaa:1400,arable:1200},{n:'Észak-Alföld',uaa:1200,arable:1000},{n:'Közép-Dunántúl',uaa:700,arable:600},{n:'Dél-Dunántúl',uaa:900,arable:750}],crops:{l:['Пшеница','Царевица','Слънчоглед','Ечемик','Рапица'],d:[4500,6000,1500,1200,600]},trade:{exp:[8000,9000,10000,11500,13000,14000],imp:[5000,5800,6500,7200,8200,9000]}},
-  'CZ':{uaa:3500,arable:2500,perm:80,grass:800,nuts2:[{n:'Jihomoravský',uaa:700,arable:550},{n:'Středočeský',uaa:600,arable:480},{n:'Olomoucký',uaa:450,arable:350},{n:'Jihočeský',uaa:500,arable:320}],crops:{l:['Пшеница','Ечемик','Рапица','Царевица','Ръж'],d:[3500,2000,1500,900,500]},trade:{exp:[4000,4500,5000,5600,6200,6800],imp:[3500,4000,4400,5000,5600,6200]}},
-  'SK':{uaa:1900,arable:1400,perm:50,grass:440,nuts2:[{n:'Nitriansky',uaa:550,arable:450},{n:'Trnavský',uaa:400,arable:340},{n:'Košický',uaa:300,arable:200},{n:'Prešovský',uaa:250,arable:160}],crops:{l:['Пшеница','Царевица','Слънчоглед','Ечемик','Рапица'],d:[1600,1400,400,500,280]},trade:{exp:[2200,2500,2800,3100,3500,3800],imp:[1800,2100,2400,2700,3100,3400]}},
-};
-
-async function loadPolicyData(){
-  const country=document.getElementById('policy-country')?.value||'BG';
-  const spin=document.getElementById('policy-spin');
-  if(spin)spin.style.display='inline-block';
-
-  const d=POLICY_DATA[country]||POLICY_DATA['BG'];
-  document.getElementById('p-uaa').textContent=d.uaa.toLocaleString();
-  document.getElementById('p-arable').textContent=d.arable.toLocaleString();
-  document.getElementById('p-perm').textContent=d.perm.toLocaleString();
-  document.getElementById('p-grass').textContent=d.grass.toLocaleString();
-
-  // Also try real Eurostat
-  try{
-    const r=await fetch(`${BACKEND}/api/eurostat/agriculture?country=${country}`,{signal:AbortSignal.timeout(10000)});
+    const msgs = contents.map(m=>({role:m.role==='user'?'user':'model',parts:m.parts}));
+    const body = {
+      system_instruction:{parts:[{text:system}]},
+      contents: msgs,
+      generationConfig:{maxOutputTokens:500,temperature:0.7}
+    };
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,{
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
+      signal:AbortSignal.timeout(15000)
+    });
     if(r.ok){
-      const data=await r.json();
-      const src=document.getElementById('policy-src');
-      if(src)src.textContent='Eurostat API · Farm Structure Survey · реални данни';
+      const d = await r.json();
+      const text = d.candidates?.[0]?.content?.parts?.[0]?.text;
+      if(text) return {text, model:'gemini-2.5-flash'};
     }
   }catch(e){}
-
-  // NUTS2 bar chart
-  dcP('p-land-chart');
-  const ctx1=document.getElementById('p-land-chart')?.getContext('2d');
-  if(ctx1)pCharts['p-land-chart']=new Chart(ctx1,{type:'bar',data:{labels:d.nuts2.map(r=>r.n.split(' ')[0]),datasets:[{label:'Обработваема',data:d.nuts2.map(r=>r.arable),backgroundColor:'rgba(29,158,117,.7)',borderRadius:3},{label:'Друга УАА',data:d.nuts2.map(r=>r.uaa-r.arable),backgroundColor:'rgba(29,158,117,.2)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:9},boxWidth:8}}},scales:{x:{stacked:true,ticks:{font:{size:9}}},y:{stacked:true,ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}}}}});
-
-  // NUTS2 table
-  const tbl=document.getElementById('p-nuts2-table');
-  if(tbl)tbl.innerHTML=d.nuts2.map(r=>{const pct=Math.round(r.arable/r.uaa*100);return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div style="width:130px;font-size:10px;color:var(--t2);flex-shrink:0">${r.n}</div><div style="flex:1;height:14px;background:var(--s2);border-radius:3px;overflow:hidden;position:relative"><div style="width:${pct}%;height:100%;background:var(--gm);opacity:.7;transition:width .6s"></div><span style="position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:9px;font-weight:600">${r.uaa.toLocaleString()} хил.ха</span></div><span style="font-size:9px;color:var(--t3);width:30px;text-align:right">${pct}%</span></div>`;}).join('');
-
-  // Crops chart
-  dcP('p-crops-chart');
-  const ctx2=document.getElementById('p-crops-chart')?.getContext('2d');
-  if(ctx2)pCharts['p-crops-chart']=new Chart(ctx2,{type:'bar',data:{labels:d.crops.l,datasets:[{label:'хил. тона',data:d.crops.d,backgroundColor:['#E8C84A','#E07010','#F4A261','#A08040','#5A9A30'],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},y:{ticks:{font:{size:9}},grid:{display:false}}}}});
-
-  // Trade chart
-  dcP('p-trade-chart');
-  const ctx3=document.getElementById('p-trade-chart')?.getContext('2d');
-  if(ctx3)pCharts['p-trade-chart']=new Chart(ctx3,{type:'line',data:{labels:['2018','2019','2020','2021','2022','2023'],datasets:[{label:'Износ',data:d.trade.exp,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.08)',borderWidth:2,tension:.3,fill:true,pointRadius:3},{label:'Внос',data:d.trade.imp,borderColor:'#1447A0',backgroundColor:'rgba(20,71,160,.06)',borderWidth:2,tension:.3,fill:true,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:9},boxWidth:8}}},scales:{y:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9}},grid:{display:false}}}}});
-
-  // Climate
-  dcP('p-climate');
-  const ctx4=document.getElementById('p-climate')?.getContext('2d');
-  if(ctx4)pCharts['p-climate']=new Chart(ctx4,{type:'line',data:{labels:['2010','2013','2016','2019','2022','2025*','2030*','2035*'],datasets:[{label:'Ср. год. темп °C ERA5',data:[12.1,12.6,13.1,13.7,14.1,14.5,15.0,15.8],borderColor:'#E8593C',backgroundColor:'rgba(232,89,60,.07)',borderWidth:2,tension:.4,pointRadius:3,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:9},boxWidth:8}}},scales:{y:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9}},grid:{display:false}}}}});
-
-  if(spin)spin.style.display='none';
-}
-
-// Load from Supabase
-async function loadFromSupabase(){
+  // Fallback to Groq backend
   try{
-    const r=await fetch(`${BACKEND}/api/parcels`);if(!r.ok)return;
-    const data=await r.json();if(!data?.length)return;
-    let changed=false;
-    data.forEach(sb=>{
-      if(parcels.find(lp=>lp.supabase_id===sb.id))return;
-      if(!sb.coords_json)return;
-      try{
-        const coords=JSON.parse(sb.coords_json);if(!coords?.length)return;
-        const center=coords.reduce((a,c)=>[a[0]+c[0]/coords.length,a[1]+c[1]/coords.length],[0,0]);
-        parcels.push({id:Date.now()+'_sb',supabase_id:sb.id,name:sb.name,crop:sb.crop,area:sb.area_ha,lat:center[0],lon:center[1],coords,source:sb.source||'drawn',lpis_id:sb.lpis_id});
-        changed=true;
-      }catch(e){}
-    });
-    if(changed){saveP();renderList();reloadLayers();}
-  }catch(e){console.warn('Supabase:',e);}
+    const r = await fetch(`${B}/api/ai`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system,contents})});
+    const d = await r.json();
+    return {text:d.text, model:'groq-llama-3.3'};
+  }catch(e){return {text:'Грешка при AI връзка.', model:'error'};}
 }
 
-// ── MARKET / BORSA ──
-let marketData = {};
-let marketChatH = [];
-let marketChart = null;
+function buildSys(p,histStr,nr){
+  const ndviL=nr?`NDVI: ${nr.crop} ${nr.confidence}%`:'NDVI: няма';
+  const cs=(!p?.crop||p?.crop==='unknown')?'Фермерът не е посочил култура.':NA.includes(p?.crop)?'Неземеделски парцел.':'Заявена: '+p.crop+'.';
+  return`Ти си AI агроном за AgroDecide. Кратко, конкретно, БЪЛГАРСКИ.\nПАРЦЕЛ: ${p?.name||'—'} · ${p?.area?.toFixed(2)||'—'}ха · ${p?.lat?.toFixed(4)||'—'}°N\n${cs}\n${ndviL}\nEUROCROPS: ${histStr}\nМЕТЕО: ${met.temp?.toFixed(1)||'—'}°C, ET₀ ${met.et0?.toFixed(1)||'—'}, валежи 7д ${met.rain7?.toFixed(1)||'—'}мм\n${nr?.confidence>=70?'ПРАВИЛО: NDVI≥70% → приоритизирай спътника.':'ПРАВИЛО: NDVI<70% → ползвай историята.'}`;
+}
+async function genPred(p,hist,nr){
+  document.getElementById('pred-text').textContent='Анализирам…';
+  const hs=hist.map(h=>`${h.y||h.year}:${h.c||h.crop}`).join(', ');
+  const q=nr?`Анализирай парцела. NDVI класификация: ${nr.crop} ${nr.confidence}%. Прогноза 2026 в 3-4 изречения.`:`Въз основа на историята (${hs}) прогноза 2026 в 3 изречения.`;
+  dH=[{role:'user',parts:[{text:q}]}];
+  try{const r=await aiCall(buildSys(p,hs,nr),dH);
+  document.getElementById('pred-text').textContent=r.text||'—';dH.push({role:'model',parts:[{text:r.text}]});
+  document.getElementById('d-chat').innerHTML='';addMsg('d-chat','msg-ai',r.text);
+  const mdl=r.model||'AI';setPl('pl-ai','p-ok',mdl==='gemini-2.5-flash'?'Gemini ✓':'Groq ✓');setSt('ss-ai','var(--pri3)','var(--pri)',mdl);
+  }catch(e){document.getElementById('pred-text').textContent='Грешка.';}
+}
+function addMsg(cid,cls,txt){const c=document.getElementById(cid),d=document.createElement('div');d.className='msg '+cls;d.textContent=txt;c.appendChild(d);c.scrollTop=c.scrollHeight;}
+function addLd(cid){const c=document.getElementById(cid),d=document.createElement('div');d.className='msg msg-ld';d.innerHTML='<div class="dots"><span></span><span></span><span></span></div>';c.appendChild(d);c.scrollTop=c.scrollHeight;return d;}
 
-// MATIF tickers
-const MARKET_CONFIG = {
-  wheat:     {symbol:'EBM.PA', name:'Пшеница мелница (МАТИФ)', bg_ref:175, bg_note:'ДФЗ бюлетин'},
-  corn:      {symbol:'EMA.PA', name:'Царевица (МАТИФ)',        bg_ref:178, bg_note:'ДФЗ бюлетин', alt:['ZC=F','CORN.PA']},
-  rapeseed:  {symbol:'ECO.PA', name:'Рапица (МАТИФ)',          bg_ref:460, bg_note:'ДФЗ бюлетин'},
-  sunflower: {symbol:null,     name:'Слънчоглед маслодаен',    bg_ref:490, bg_note:'borsaagro.com'},
-  barley:    {symbol:null,     name:'Ечемик фуражен',          bg_ref:168, bg_note:'ДФЗ бюлетин'},
-};
+async function dSend(){const inp=document.getElementById('d-ai-in'),txt=inp.value.trim();if(!txt)return;const btn=document.getElementById('d-ai-go');inp.value='';btn.disabled=true;addMsg('d-chat','msg-u',txt);dH.push({role:'user',parts:[{text:txt}]});const l=addLd('d-chat');const p=active>=0?parcels[active]:null;const h=p?simHist(p.lat,p.lon).map(x=>`${x.y}:${x.c}`).join(', '):'—';try{const r=await aiCall(buildSys(p,h,ndviRes),dH);l.remove();addMsg('d-chat','msg-ai',r.text);dH.push({role:'model',parts:[{text:r.text}]});}catch(e){l.remove();addMsg('d-chat','msg-ai','Грешка.');}btn.disabled=false;}
+function dqa(q){document.getElementById('d-ai-in').value=q;dSend();}
 
-async function fetchYahooPrice(symbol, altSymbols){
-  const syms = [symbol, ...(altSymbols||[])];
-  const urls = [];
-  for(const s of syms){
-    urls.push(`https://query1.finance.yahoo.com/v8/finance/chart/${s}?interval=1d&range=30d`);
-    urls.push(`https://query2.finance.yahoo.com/v8/finance/chart/${s}?interval=1d&range=30d`);
+// ── View switching ──
+function switchView(name,btn){
+  document.querySelectorAll('.ttab').forEach(t=>t.classList.remove('on'));btn.classList.add('on');
+  const fv=document.getElementById('farmer-view'),mv=document.getElementById('market-view');
+  if(name==='farmer'){fv.style.display='flex';mv.style.display='none';setTimeout(()=>map.invalidateSize(),50);}
+  else{fv.style.display='none';mv.style.display='flex';if(!mktData.prices)loadMarket();}
+}
+function cTab(name,btn){
+  document.querySelectorAll('#c-tabs .ctab').forEach(t=>t.classList.remove('on'));btn.classList.add('on');
+  const mw=document.getElementById('cv-map');document.querySelectorAll('.dview').forEach(v=>v.classList.remove('on'));
+  if(name==='map'){mw.style.display='block';setTimeout(()=>map.invalidateSize(),50);}
+  else{mw.style.display='none';const dv=document.getElementById('cv-'+name);if(dv)dv.classList.add('on');
+  if(name==='ndvi'&&window._ndviSeries)drawNDVI(window._ndviSeries,'c-ndvi-full');}
+}
+
+// ── Geolocation ──
+function locateMe(){const btn=document.getElementById('btn-loc');btn.textContent='⏳';if(!navigator.geolocation){btn.textContent='📍';return;}function show(pos){if(btn.textContent!=='⏳')return;btn.textContent='📍';const la=pos.coords.latitude,lo=pos.coords.longitude,ac=pos.coords.accuracy,ll=L.latLng(la,lo);map.setView(ll,15);if(window._lM)map.removeLayer(window._lM);if(window._lC)map.removeLayer(window._lC);window._lC=L.circle(ll,{radius:ac,color:'#25845e',fillColor:'#25845e',fillOpacity:.1,weight:1}).addTo(map);window._lM=L.circleMarker(ll,{radius:8,color:'#1a5c47',fillColor:'#25845e',fillOpacity:.9,weight:2.5}).addTo(map).bindPopup('📍 ±'+Math.round(ac)+'м').openPopup();}navigator.geolocation.getCurrentPosition(show,()=>{},{enableHighAccuracy:false,timeout:5000,maximumAge:60000});navigator.geolocation.getCurrentPosition(show,()=>{btn.textContent='📍';},{enableHighAccuracy:true,timeout:60000,maximumAge:0});}
+
+// ── Market ──
+let mktData={},mktChart=null;
+const MKT_CFG={wheat:{sym:'EBM.PA',name:'Пшеница (МАТИФ)',bg:175,note:'ДФЗ'},corn:{sym:'EMA.PA',name:'Царевица (МАТИФ)',bg:178,note:'ДФЗ',alt:['ZC=F']},rapeseed:{sym:'ECO.PA',name:'Рапица (МАТИФ)',bg:460,note:'ДФЗ'},sunflower:{sym:null,name:'Слънчоглед',bg:490,note:'borsaagro'},barley:{sym:null,name:'Ечемик',bg:168,note:'ДФЗ'}};
+
+async function yfPrice(sym,alts){
+  const syms=[sym,...(alts||[])];
+  for(const s of syms){for(const q of['query1','query2']){try{const r=await fetch(`https://${q}.finance.yahoo.com/v8/finance/chart/${s}?interval=1d&range=30d`);if(!r.ok)continue;const d=await r.json(),res=d?.chart?.result?.[0];if(!res)continue;const m=res.meta,p=m.regularMarketPrice||m.previousClose,pv=m.chartPreviousClose||p;const ts=res.timestamp||[],cl=res.indicators?.quote?.[0]?.close||[];const h=ts.map((t,i)=>({date:new Date(t*1000).toISOString().slice(0,10),price:cl[i]?Math.round(cl[i]*100)/100:null})).filter(x=>x.price).slice(-20);return{price:Math.round(p*100)/100,prev:Math.round(pv*100)/100,history:h};}catch(e){}}}return null;}
+
+async function loadMarket(){
+  const sp=document.getElementById('mkt-spin'),up=document.getElementById('mkt-upd');if(sp)sp.style.display='inline-block';if(up)up.textContent='Зарежда…';
+  const prices={};
+  for(const[k,cfg]of Object.entries(MKT_CFG)){
+    if(cfg.sym){const yf=await yfPrice(cfg.sym,cfg.alt);if(yf?.price){const chg=yf.prev?Math.round((yf.price-yf.prev)/yf.prev*10000)/100:0;prices[k]={name:cfg.name,price:yf.price,prev:yf.prev,chg,bg:cfg.bg,note:cfg.note,history:yf.history,src:'МАТИФ'};continue;}}
+    prices[k]={name:cfg.name,price:cfg.bg,prev:cfg.bg,chg:0,bg:cfg.bg,note:cfg.note,history:[],src:cfg.note};
   }
-  for(const url of urls){
-    try{
-      const r = await fetch(url);
-      if(!r.ok) continue;
-      const data = await r.json();
-      const res = data?.chart?.result?.[0];
-      if(!res) continue;
-      const meta = res.meta;
-      const price = meta.regularMarketPrice || meta.previousClose;
-      const prev  = meta.chartPreviousClose || price;
-      const ts    = res.timestamp || [];
-      const closes= res.indicators?.quote?.[0]?.close || [];
-      const history = ts.map((t,i)=>({
-        date: new Date(t*1000).toISOString().slice(0,10),
-        price: closes[i] ? Math.round(closes[i]*100)/100 : null
-      })).filter(h=>h.price).slice(-20);
-      return {price:Math.round(price*100)/100, prev:Math.round(prev*100)/100, history};
-    }catch(e){}
-  }
-  return null;
+  mktData={prices};
+  renderMktCards(prices);renderMktTable(prices);calcBasis();
+  const first=Object.keys(prices).find(k=>prices[k].history?.length>0);if(first)showMktChart(first);
+  if(up)up.textContent=new Date().toLocaleTimeString('bg-BG')+' · live';if(sp)sp.style.display='none';
+  genMktAnalysis(prices);
 }
 
-async function loadMarketPrices(){
-  const spin = document.getElementById('market-spin');
-  const upd  = document.getElementById('market-updated');
-  if(spin) spin.style.display='inline-block';
-  if(upd)  upd.textContent='Зарежда МАТИФ...';
+function renderMktCards(pr){const el=document.getElementById('mkt-cards');if(!el)return;el.innerHTML=Object.entries(pr).map(([k,p])=>{const up=p.chg>=0;return`<div class="mkt-card" style="border:1.5px solid ${up?'var(--pri2)':'var(--err)'}" onclick="showMktChart('${k}')"><div class="mkt-name">${p.name}</div><div class="mkt-price" style="color:${up?'var(--pri)':'var(--err)'}">${p.price} €</div><div class="mkt-chg" style="color:${up?'var(--pri)':'var(--err)'}">${up?'▲':'▼'} ${Math.abs(p.chg).toFixed(1)}%</div>${p.bg?`<div class="mkt-bg">БГ ${p.bg} €/т</div>`:''}</div>`;}).join('');}
 
-  const prices = {};
-  for(const [key, cfg] of Object.entries(MARKET_CONFIG)){
-    if(cfg.symbol){
-      const yf = await fetchYahooPrice(cfg.symbol, cfg.alt);
-      if(yf && yf.price){
-        const chg = yf.prev ? Math.round((yf.price-yf.prev)/yf.prev*10000)/100 : 0;
-        prices[key] = {
-          name:cfg.name, symbol:cfg.symbol,
-          price:yf.price, prev_close:yf.prev, change_pct:chg,
-          currency:'EUR', unit:'€/т',
-          bg_price:cfg.bg_ref, bg_note:cfg.bg_note,
-          history:yf.history, source:'МАТИФ Euronext · Yahoo Finance',
-        };
-        continue;
-      }
-    }
-    prices[key] = {
-      name:cfg.name, price:cfg.bg_ref, prev_close:cfg.bg_ref,
-      change_pct:0, currency:'EUR', unit:'€/т',
-      bg_price:cfg.bg_ref, bg_note:cfg.bg_note,
-      history:[], source:cfg.bg_note,
-    };
-  }
+function renderMktTable(pr){const el=document.getElementById('mkt-table');if(!el)return;el.innerHTML=`<div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:0;font-size:10px">`+Object.entries(pr).map(([k,p])=>{const up=p.chg>=0;return`<div style="padding:5px 0;border-bottom:1px solid var(--brd);cursor:pointer;color:var(--info)" onclick="showMktChart('${k}')">${p.name}</div><div style="padding:5px 6px;text-align:right;border-bottom:1px solid var(--brd);font-family:var(--mono);font-weight:600">${p.price}</div><div style="padding:5px 6px;text-align:right;border-bottom:1px solid var(--brd);color:${up?'var(--pri)':'var(--err)'}">${up?'▲':'▼'}${Math.abs(p.chg).toFixed(1)}%</div><div style="padding:5px 6px;text-align:right;border-bottom:1px solid var(--brd);font-family:var(--mono);color:var(--tx3)">${p.bg||'—'}</div><div style="padding:5px 0 5px 6px;text-align:right;border-bottom:1px solid var(--brd)">${sparkline(p.history?.map(h=>h.price)||[])}</div>`;}).join('')+'</div>';}
 
-  marketData = {prices, updated:new Date().toLocaleString('bg-BG'), _cache:'live'};
-  renderMarketCards(marketData);
-  renderMarketTable(marketData);
-  const first = Object.keys(prices).find(k=>prices[k].history?.length>0);
-  if(first) showMarketChart(first);
-  if(upd) upd.textContent=new Date().toLocaleTimeString('bg-BG')+' · live';
-  if(spin) spin.style.display='none';
-  generateMarketAnalysis(marketData);
-}
+function sparkline(v){if(!v.length)return'—';const mn=Math.min(...v),mx=Math.max(...v),w=50,h=16;if(mn===mx)return`<svg width="${w}" height="${h}"><line x1="0" y1="${h/2}" x2="${w}" y2="${h/2}" stroke="var(--tx3)" stroke-width="1"/></svg>`;const pts=v.map((val,i)=>`${(i/(v.length-1)*w).toFixed(1)},${((1-(val-mn)/(mx-mn))*(h-2)+1).toFixed(1)}`).join(' ');const up=v[v.length-1]>=v[0];return`<svg width="${w}" height="${h}" style="vertical-align:middle"><polyline points="${pts}" fill="none" stroke="${up?'var(--pri2)':'var(--err)'}" stroke-width="1.5"/></svg>`;}
 
-function renderMarketCards(data){
-  const el = document.getElementById('market-cards');
-  if(!el) return;
-  const prices = data.prices || {};
-  // Show top 3: wheat, sunflower, rapeseed
-  const featured = ['wheat','rapeseed','corn','sunflower','barley'];
-  el.innerHTML = featured.filter(k=>prices[k]&&!prices[k].error).map(k=>{
-    const p = prices[k];
-    const up = p.change_pct >= 0;
-    return `<div style="background:var(--s);border:1.5px solid ${up?'var(--gm)':'var(--r)'};border-radius:10px;padding:12px 14px;cursor:pointer" onclick="showMarketChart('${k}')">
-      <div style="font-size:11px;font-weight:600;color:var(--t3);margin-bottom:4px">${p.name}</div>
-      <div style="font-size:24px;font-weight:700;font-family:'DM Mono',monospace;color:var(--t)">${p.price} €</div>
-      <div style="font-size:11px;margin-top:3px;color:${up?'var(--g)':'var(--r)'}">
-        ${up?'▲':'▼'} ${Math.abs(p.change_pct).toFixed(2)}% · МАТИФ
-      </div>
-      <div style="font-size:10px;color:var(--t3);margin-top:4px">${p.bg_price?'БГ '+p.bg_price+' €/т':''}</div>
-    </div>`;
-  }).join('');
-}
+function showMktChart(k){const p=mktData.prices?.[k];if(!p?.history?.length)return;const t=document.getElementById('mkt-ch-title');if(t)t.textContent=`📈 ${p.name} — ${p.history.length} дни (€/т)`;if(mktChart){mktChart.destroy();mktChart=null;}const ctx=document.getElementById('mkt-chart')?.getContext('2d');if(!ctx)return;const up=p.history[p.history.length-1].price>=p.history[0].price;mktChart=new Chart(ctx,{type:'line',data:{labels:p.history.map(h=>h.date.slice(5)),datasets:[{label:p.name,data:p.history.map(h=>h.price),borderColor:up?'var(--pri2)':'var(--err)',backgroundColor:up?'rgba(37,132,94,.06)':'rgba(166,32,32,.04)',borderWidth:2,tension:.3,pointRadius:2,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9},maxTicksLimit:10},grid:{display:false}}}}});}
 
-function renderMarketTable(data){
-  const el = document.getElementById('market-table');
-  if(!el) return;
-  const prices = data.prices || {};
-  el.innerHTML = `<div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:0;font-size:11px">
-    <div style="font-weight:700;color:var(--t3);padding:6px 0;border-bottom:2px solid var(--bd2)">Култура</div>
-    <div style="font-weight:700;color:var(--t3);padding:6px 8px;text-align:right;border-bottom:2px solid var(--bd2)">МАТИФ €/т</div>
-    <div style="font-weight:700;color:var(--t3);padding:6px 8px;text-align:right;border-bottom:2px solid var(--bd2)">Промяна</div>
-    <div style="font-weight:700;color:var(--t3);padding:6px 8px;text-align:right;border-bottom:2px solid var(--bd2)">БГ ~€/т</div>
-    <div style="font-weight:700;color:var(--t3);padding:6px 0 6px 8px;text-align:right;border-bottom:2px solid var(--bd2)">Тренд</div>
-    ${Object.entries(prices).map(([k,p])=>{
-      if(p.error) return `<div style="grid-column:1/-1;padding:4px 0;color:var(--r);font-size:10px">${p.name}: ${p.error}</div>`;
-      const up=p.change_pct>=0;
-      return `<div style="padding:7px 0;border-bottom:1px solid var(--bd);font-weight:500;cursor:pointer;color:var(--b)" onclick="showMarketChart('${k}')">${p.name}</div>
-        <div style="padding:7px 8px;text-align:right;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;font-weight:600">${p.price}</div>
-        <div style="padding:7px 8px;text-align:right;border-bottom:1px solid var(--bd);color:${up?'var(--g)':'var(--r)'}">
-          ${up?'▲':'▼'}${Math.abs(p.change_pct).toFixed(1)}%
-        </div>
-        <div style="padding:7px 8px;text-align:right;border-bottom:1px solid var(--bd);font-family:'DM Mono',monospace;color:var(--t3)">${p.bg_price}</div>
-        <div style="padding:7px 0 7px 8px;text-align:right;border-bottom:1px solid var(--bd)">${sparkline(p.history?.map(h=>h.price)||[])}</div>`;
-    }).join('')}
-  </div>`;
-}
+function calcBasis(){const tr=parseFloat(document.getElementById('b-transport')?.value)||12,sl=parseFloat(document.getElementById('b-silo')?.value)||8,tot=tr+sl,pr=mktData.prices||{};const el=document.getElementById('basis-out');if(!el)return;
+const emoji={'wheat':'🌾','corn':'🌽','rapeseed':'🌱','sunflower':'🌻','barley':'🌿'};
+el.innerHTML=Object.entries(pr).map(([k,p])=>`<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid var(--brd)"><span>${emoji[k]||''} ${p.name.split(' ')[0]}</span><span style="font-family:var(--mono);font-weight:700;color:var(--pri)">${Math.max(0,p.price-tot).toFixed(0)} €/т</span></div>`).join('')+`<div style="font-size:8px;color:var(--tx3);margin-top:3px">МАТИФ минус транспорт(${tr}€)+силоз(${sl}€) = -${tot}€/т</div>`;}
 
-function sparkline(vals){
-  if(!vals.length) return '—';
-  const min=Math.min(...vals),max=Math.max(...vals);
-  const w=60,h=20;
-  if(min===max) return `<svg width="${w}" height="${h}"><line x1="0" y1="${h/2}" x2="${w}" y2="${h/2}" stroke="var(--t3)" stroke-width="1"/></svg>`;
-  const pts=vals.map((v,i)=>`${(i/(vals.length-1)*w).toFixed(1)},${((1-(v-min)/(max-min))*(h-2)+1).toFixed(1)}`).join(' ');
-  const last=vals[vals.length-1];const first=vals[0];const up=last>=first;
-  return `<svg width="${w}" height="${h}" style="vertical-align:middle"><polyline points="${pts}" fill="none" stroke="${up?'var(--gm)':'var(--r)'}" stroke-width="1.5"/></svg>`;
-}
+async function genMktAnalysis(pr){const lines=Object.entries(pr).map(([k,p])=>`${p.name}: ${p.price}€/т (${p.chg>=0?'+':''}${p.chg.toFixed(1)}%)`).join('; ');const p=active>=0?parcels[active]:null;const tr=parseFloat(document.getElementById('b-transport')?.value)||12,sl=parseFloat(document.getElementById('b-silo')?.value)||8;
+const sys=`Ти си борсов AI агент за агрокомодити в България. БЪЛГАРСКИ.\nМАТИФ: ${lines}\nBASIS: транспорт=${tr}€+силоз=${sl}€ → МАТИФ-${tr+sl}€/т\n${p?`Парцел: ${p.name}, ${p.crop}, ${p.area?.toFixed(1)} ха`:'Без парцел.'}\nАнализирай и дай конкретна препоръка: кога и какво да продава, сега или да чака. Сезонност: жътва пшеница/ечемик юли, слънчоглед/царевица септември. 4 изречения.`;
+const ch=document.getElementById('mkt-chat');if(ch)ch.innerHTML='<div class="msg msg-ai"><span class="spin"></span> Анализирам…</div>';
+mktH=[{role:'user',parts:[{text:'Анализирай и препоръчай.'}]}];
+try{const r=await aiCall(sys,mktH);if(ch)ch.innerHTML='';addMsg('mkt-chat','msg-ai',r.text);mktH.push({role:'model',parts:[{text:r.text}]});}catch(e){if(ch)ch.innerHTML='<div class="msg msg-ai">Грешка.</div>';}}
 
-function showMarketChart(cropKey){
-  const prices = marketData.prices || {};
-  const p = prices[cropKey];
-  if(!p || !p.history?.length) return;
-  const title = document.getElementById('market-chart-title');
-  if(title) title.textContent=`📈 ${p.name} — последните ${p.history.length} дни (МАТИФ €/т)`;
-  if(marketChart){marketChart.destroy();marketChart=null;}
-  const ctx = document.getElementById('market-chart')?.getContext('2d');if(!ctx)return;
-  const labels=p.history.map(h=>h.date.slice(5));
-  const vals=p.history.map(h=>h.price);
-  const up=vals[vals.length-1]>=vals[0];
-  marketChart=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:`${p.name} €/т`,data:vals,borderColor:up?'var(--gm)':'var(--r)',backgroundColor:up?'rgba(29,158,117,.08)':'rgba(163,45,45,.06)',borderWidth:2,tension:.3,pointRadius:2,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.parsed.y} €/т`}}},scales:{y:{ticks:{font:{size:9},callback:v=>`${v} €`},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9},maxTicksLimit:12},grid:{display:false}}}}});
-}
+async function mktSend(){const inp=document.getElementById('mkt-ai-in'),txt=inp.value.trim();if(!txt)return;inp.value='';addMsg('mkt-chat','msg-u',txt);mktH.push({role:'user',parts:[{text:txt}]});const l=addLd('mkt-chat');const pr=mktData.prices||{};const lines=Object.entries(pr).map(([k,p])=>`${p.name}:${p.price}€`).join(', ');const p=active>=0?parcels[active]:null;const sys=`Борсов AI агент. БЪЛГАРСКИ.\nЦЕНИ: ${lines}\n${p?`Парцел: ${p.name}, ${p.crop}`:''}`;try{const r=await aiCall(sys,mktH);l.remove();addMsg('mkt-chat','msg-ai',r.text);mktH.push({role:'model',parts:[{text:r.text}]});}catch(e){l.remove();addMsg('mkt-chat','msg-ai','Грешка.');}}
+function mqa(q){document.getElementById('mkt-ai-in').value=q;mktSend();}
 
-async function generateMarketAnalysis(data){
-  const prices = data.prices || {};
-  const lines = Object.entries(prices).filter(([k,p])=>!p.error).map(([k,p])=>`${p.name}: ${p.price} €/т (${p.change_pct>=0?'+':''}${p.change_pct.toFixed(1)}%, БГ ~${p.bg_price} €/т)`).join('\n');
+// ── Supabase load ──
+async function loadSupa(){try{const r=await fetch(`${B}/api/parcels`);if(!r.ok)return;const data=await r.json();if(!data?.length)return;let ch=false;data.forEach(sb=>{if(parcels.find(l=>l.supabase_id===sb.id))return;if(!sb.coords_json)return;try{const co=JSON.parse(sb.coords_json);if(!co?.length)return;const ct=co.reduce((a,c)=>[a[0]+c[0]/co.length,a[1]+c[1]/co.length],[0,0]);parcels.push({id:Date.now()+'_sb',supabase_id:sb.id,name:sb.name,crop:sb.crop,area:sb.area_ha,lat:ct[0],lon:ct[1],coords:co,source:sb.source||'drawn'});ch=true;}catch(e){}});if(ch){saveP();renderList();reloadLyr();}}catch(e){}}
 
-  if(!lines) return;
-
-  const p = activeIdx>=0 ? parcels[activeIdx] : null;
-  const parcelCtx = p ? `Фермерът отглежда: ${p.crop||'—'}, ${p.area?.toFixed(1)||'—'} ха` : 'Не е избран парцел.';
-
-  const transport = parseFloat(document.getElementById('basis-transport')?.value)||12;
-  const silo = parseFloat(document.getElementById('basis-silo')?.value)||8;
-  const basis = transport + silo;
-  const sys = `Ти си борсов AI агент за агрокомодити в България. Отговаряй кратко и конкретно на БЪЛГАРСКИ.
-МАТИФ ЦЕНИ (€/т):
-${lines}
-BASIS: Фермерът има разходи транспорт=${transport}€/т + силоз=${silo}€/т = ${basis}€/т. Реалната изкупна цена = МАТИФ - ${basis}€/т.
-${parcelCtx}
-Анализирай цените и тренда. Дай конкретна препоръка: кога и какво да продава, дали да продаде сега или да чака. Вземи предвид сезонността (реколта: юли за пшеница/ечемик, септември за слънчоглед/царевица). До 4 изречения.`;
-
-  const chat = document.getElementById('market-chat');
-  if(chat) chat.innerHTML='<div class="msg ai" style="animation:none"><span class="spin"></span> Анализирам МАТИФ цените...</div>';
-  marketChatH = [{role:'user',parts:[{text:'Анализирай цените и дай препоръка за продажба.'}]}];
-
-  try{
-    const r=await fetch(`${BACKEND}/api/ai`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:sys,contents:marketChatH})}).then(r=>r.json());
-    if(chat) chat.innerHTML='';
-    addMarketMsg('ai',r.text);
-    marketChatH.push({role:'model',parts:[{text:r.text}]});
-  }catch(e){if(chat) chat.innerHTML=`<div class="msg ai">Грешка: ${e.message}</div>`;}
-}
-
-function addMarketMsg(role,txt){
-  const c=document.getElementById('market-chat');if(!c)return;
-  const d=document.createElement('div');d.className='msg '+role;d.textContent=txt;c.appendChild(d);c.scrollTop=c.scrollHeight;
-}
-
-async function mSendMarket(){
-  const inp=document.getElementById('market-ai-in');const txt=inp.value.trim();if(!txt)return;
-  inp.value='';
-  addMarketMsg('user',txt);
-  marketChatH.push({role:'user',parts:[{text:txt}]});
-  const loader=document.createElement('div');loader.className='msg loading';loader.innerHTML='<div class="dots"><span></span><span></span><span></span></div>';
-  const c=document.getElementById('market-chat');if(c){c.appendChild(loader);c.scrollTop=c.scrollHeight;}
-
-  const prices=marketData.prices||{};
-  const lines=Object.entries(prices).filter(([k,p])=>!p.error).map(([k,p])=>`${p.name}: ${p.price} €/т (${p.change_pct>=0?'+':''}${p.change_pct.toFixed(1)}%)`).join(', ');
-  const p=activeIdx>=0?parcels[activeIdx]:null;
-  const sys=`Ти си борсов AI агент за агрокомодити. Отговаряй кратко на БЪЛГАРСКИ.
-МАТИФ ЦЕНИ: ${lines||'не са заредени'}
-${p?`Парцел: ${p.name}, ${p.crop}, ${p.area?.toFixed(1)} ха`:'Без избран парцел.'}`;
-
-  try{
-    const r=await fetch(`${BACKEND}/api/ai`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:sys,contents:marketChatH})}).then(r=>r.json());
-    loader.remove();addMarketMsg('ai',r.text);marketChatH.push({role:'model',parts:[{text:r.text}]});
-  }catch(e){loader.remove();addMarketMsg('ai','Грешка: '+e.message);}
-}
-function mqa(q){document.getElementById('market-ai-in').value=q;mSendMarket();}
-
-// Basis calculator
-// Transport cost: ~0.08 €/т/км for grain in BG
-const TRANSPORT_COST_PER_KM = 0.08;
-const BASIS_HANDLING = 8; // €/т силозна такса
-
-function calcBasis(){
-  const transport = parseFloat(document.getElementById('basis-transport')?.value) || 12;
-  const silo = parseFloat(document.getElementById('basis-silo')?.value) || 8;
-  const total_deduction = transport + silo;
-  const prices = marketData.prices || {};
-
-  const crops = [
-    {k:'wheat',    emoji:'🌾'},
-    {k:'sunflower',emoji:'🌻'},
-    {k:'rapeseed', emoji:'🌱'},
-    {k:'corn',     emoji:'🌽'},
-    {k:'barley',   emoji:'🌿'},
-  ];
-
-  const lines = crops.filter(c=>prices[c.k]&&!prices[c.k].error).map(c=>{
-    const p = prices[c.k];
-    const local = Math.max(0, p.price - total_deduction);
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--bd)">
-      <span>${c.emoji} ${p.name.split(' ')[0]}</span>
-      <span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--g)">${local.toFixed(0)} €/т</span>
-    </div>`;
-  }).join('');
-
-  const el = document.getElementById('basis-results');
-  if(el) el.innerHTML = lines +
-    `<div style="font-size:9px;color:var(--t3);margin-top:5px">
-      МАТИФ минус транспорт (${transport}€) + силоз (${silo}€) = -${total_deduction}€/т
-    </div>`;
-}
-
-// Init
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&isDrawing)cancelDraw();});
-
-// Mobile detection — JS based, not CSS, so desktop functionality is never broken
-if(window.innerWidth < 900 || (window.screen.width < 900 && window.innerHeight > window.innerWidth)){
-  document.querySelector('.mob-banner').style.display='flex';
-  document.querySelector('.app').style.display='none';
-}
-
-fetch(`${BACKEND}/health`).then(r=>r.json()).then(d=>{
-  if(d.status==='healthy'){setPill('pl-backend','pill p-live','Backend ✓');setSrc('ss-be','var(--gl)','var(--g)',`Live · ${d.cache_keys} кеша`);}
-}).catch(()=>setPill('pl-backend','pill p-err','Backend ✗'));
-
-// Test Copernicus WMS
-fetch(`${BACKEND}/api/wms?LAYERS=TRUE_COLOR&BBOX=3091724,5395842,3101508,5405626&WIDTH=64&HEIGHT=64&CRS=EPSG:3857&FORMAT=image/jpeg`)
-.then(r=>{if(r.ok&&r.headers.get('content-type')?.includes('image')){setPill('pl-cop','pill p-live','Copernicus ✓');setSrc('ss-cop','var(--gl)','var(--g)','Live');}else{setPill('pl-cop','pill p-warn','Copernicus !');setSrc('ss-cop','var(--al)','var(--a)','Частично');}})
-.catch(()=>{setPill('pl-cop','pill p-warn','Copernicus !');});
-
-fetch(`${BACKEND}/api/ai`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:'Отговори: готов',contents:[{role:'user',parts:[{text:'тест'}]}]})})
-.then(r=>r.json()).then(d=>{if(d.text){setPill('pl-ai','pill p-live','Groq ✓');setSrc('ss-ai','var(--gl)','var(--g)','Live');}})
-.catch(()=>setPill('pl-ai','pill p-err','Groq ✗'));
-
-renderList();
-reloadLayers();
+// ── Init ──
+renderList();reloadLyr();
 if(parcels.length>0&&parcels[0].coords?.length>0)map.setView([parcels[0].lat,parcels[0].lon],13);
-loadFromSupabase();
+loadSupa();
+
+// Health checks
+fetch(`${B}/health`).then(r=>r.json()).then(d=>{if(d.status==='healthy'){setPl('pl-be','p-ok','Backend ✓');setSt('ss-be','var(--pri3)','var(--pri)',`OK · ${d.cache_keys}`);}}).catch(()=>setPl('pl-be','p-err','Backend ✗'));
+fetch(`${B}/api/wms?LAYERS=TRUE_COLOR&BBOX=3091724,5395842,3101508,5405626&WIDTH=64&HEIGHT=64&CRS=EPSG:3857&FORMAT=image/jpeg`).then(r=>{if(r.ok){setPl('pl-cop','p-ok','Copernicus ✓');setSt('ss-cop','var(--pri3)','var(--pri)','Live');}}).catch(()=>{});
 </script>
 </body>
 </html>
