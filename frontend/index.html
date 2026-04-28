@@ -238,7 +238,6 @@ html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans'
       <div class="c-tabs" id="c-tabs">
         <button class="c-tab on" onclick="centerTab('map',this)">🗺 Карта</button>
         <button class="c-tab" onclick="centerTab('overview',this)">📈 Преглед</button>
-        <button class="c-tab" onclick="centerTab('stac',this)">🛰 STAC</button>
         <button class="c-tab" onclick="centerTab('meteo',this)">🌤 Метео</button>
         <button class="c-tab" onclick="centerTab('ndvi',this)">🌿 NDVI</button>
       </div>
@@ -262,34 +261,56 @@ html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans'
 
       <!-- Overview -->
       <div class="desk-view" id="cv-overview">
-        <div class="stat-grid">
-          <div class="stat-card"><div class="stat-lbl">NDVI</div><div class="stat-val" id="ov-ndvi" style="color:var(--gm)">—</div></div>
-          <div class="stat-card"><div class="stat-lbl">Температура</div><div class="stat-val" id="ov-temp" style="color:var(--a)">—</div></div>
-          <div class="stat-card"><div class="stat-lbl">ET₀ мм/д</div><div class="stat-val" id="ov-et" style="color:var(--b)">—</div></div>
+        <!-- KPI row -->
+        <div class="stat-grid" style="grid-template-columns:repeat(4,1fr)">
+          <div class="stat-card">
+            <div class="stat-lbl">🌿 NDVI · Sentinel-2</div>
+            <div class="stat-val" id="ov-ndvi" style="color:var(--gm)">—</div>
+            <div style="font-size:10px;color:var(--t3)" id="ov-ndvi-src">Зарежда...</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-lbl">🌡 Температура</div>
+            <div class="stat-val" id="ov-temp" style="color:var(--a)">—</div>
+            <div style="font-size:10px;color:var(--t3)">OpenMeteo live</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-lbl">💧 ET₀ мм/д</div>
+            <div class="stat-val" id="ov-et" style="color:var(--b)">—</div>
+            <div style="font-size:10px;color:var(--t3)">Евапотранспирация</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-lbl">🛰 Последна ясна снимка</div>
+            <div class="stat-val" id="ov-last-scene" style="color:var(--p);font-size:16px">—</div>
+            <div style="font-size:10px;color:var(--t3)" id="ov-scene-cloud">Copernicus</div>
+          </div>
         </div>
-        <div class="card">
-          <div class="card-title">🛰 NDVI Класификация · Sentinel-2 <span class="spin" id="d-ndvi-spin" style="display:none"></span></div>
-          <div id="d-ndvi-body"><div style="font-size:11px;color:var(--t3)">Избери парцел...</div></div>
-        </div>
-        <div class="card">
-          <div class="card-title">📅 EuroCrops · Сеитбообращение <span class="spin" id="d-ec-spin" style="display:none"></span></div>
-          <div id="d-ec-content"><div style="font-size:11px;color:var(--t3)">Избери парцел...</div></div>
-        </div>
-        <div class="pred-box">
-          <div class="pred-lbl">🤖 AI Предикция 2026 <span class="badge bg-purple" style="font-size:10px">Groq LLaMA 3.3</span></div>
-          <div class="pred-txt" id="d-pred-text">Избери парцел...</div>
-        </div>
-        <div class="card">
-          <div class="card-title">OpenMeteo — 14-дневна прогноза <span class="badge" id="meteo-badge" style="background:var(--al);color:var(--a)">Зарежда...</span></div>
-          <div class="ch-wrap"><canvas id="c-forecast"></canvas></div>
-        </div>
-      </div>
 
-      <!-- STAC -->
-      <div class="desk-view" id="cv-stac">
+        <!-- NDVI alert box -->
+        <div id="ov-ndvi-alert" style="display:none;border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:12px;line-height:1.65"></div>
+
+        <!-- NDVI Sentinel-2 real chart + classification -->
         <div class="card">
-          <div class="card-title">Copernicus Data Space · Sentinel-2 L2A <span class="badge" id="stac-badge" style="background:var(--al);color:var(--a)">—</span></div>
-          <div id="stac-list"><div style="font-size:11px;color:var(--t3)">Кликни таба след като избереш парцел.</div></div>
+          <div class="card-title">🛰 NDVI · Sentinel-2 реални данни <span class="spin" id="d-ndvi-spin" style="display:none"></span><span class="badge" id="d-ndvi-badge" style="display:none;background:var(--al);color:var(--a)"></span></div>
+          <div id="d-ndvi-body"><div style="font-size:11px;color:var(--t3)">Избери парцел...</div></div>
+          <div class="ch-wrap" style="margin-top:10px"><canvas id="c-ndvi90"></canvas></div>
+        </div>
+
+        <!-- EuroCrops + AI pred side by side -->
+        <div style="display:flex;gap:10px;margin-bottom:10px">
+          <div class="card" style="flex:1;margin-bottom:0">
+            <div class="card-title">📅 EuroCrops · Сеитбообращение <span class="spin" id="d-ec-spin" style="display:none"></span></div>
+            <div id="d-ec-content"><div style="font-size:11px;color:var(--t3)">Избери парцел...</div></div>
+          </div>
+          <div class="pred-box" style="flex:1;margin-bottom:0">
+            <div class="pred-lbl">🤖 AI Предикция 2026 <span class="badge bg-purple" style="font-size:10px">Groq</span></div>
+            <div class="pred-txt" id="d-pred-text">Избери парцел...</div>
+          </div>
+        </div>
+
+        <!-- 14-day forecast -->
+        <div class="card">
+          <div class="card-title">🌤 OpenMeteo — 14-дневна прогноза <span class="badge" id="meteo-badge" style="background:var(--al);color:var(--a)">Зарежда...</span></div>
+          <div class="ch-wrap"><canvas id="c-forecast"></canvas></div>
         </div>
       </div>
 
@@ -339,6 +360,19 @@ html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans'
 
         <!-- Right: AI market agent -->
         <div style="width:280px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden">
+          <!-- Basis calculator -->
+          <div style="padding:12px 14px;border-bottom:1px solid var(--bd);background:var(--s2)">
+            <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:8px">📍 Basis калкулатор</div>
+            <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+              <input id="basis-km" type="number" value="50" min="1" max="500"
+                style="width:60px;height:32px;border:1.5px solid var(--bd2);border-radius:6px;padding:0 8px;font-family:'DM Mono',monospace;font-size:12px;background:var(--s)"
+                onchange="calcBasis()">
+              <span style="font-size:11px;color:var(--t3)">км до силоза</span>
+            </div>
+            <div id="basis-results" style="font-size:11px;line-height:1.8;color:var(--t2)">
+              Въведи разстояние до силоза →
+            </div>
+          </div>
           <div style="padding:12px 14px;border-bottom:1px solid var(--bd);background:var(--gp)">
             <div style="font-size:12px;font-weight:700;color:var(--g);margin-bottom:2px">🤖 Борсов AI Агент</div>
             <div style="font-size:10px;color:var(--t3)">Groq LLaMA 3.3 · реални МАТИФ цени</div>
@@ -560,6 +594,9 @@ async function loadNDVI(p){
     const html=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><div style="font-size:20px;font-weight:700">${cls.crop||'—'}</div><span class="badge ${confCls}">${conf}%</span></div><div style="font-size:12px;color:var(--t2);line-height:1.6">${cls.reasoning||''}</div>${cls.rotation_hint?`<div style="margin-top:8px;padding:7px 11px;background:var(--bl);border-radius:7px;font-size:11px;color:var(--b);font-weight:500">💡 ${cls.rotation_hint}</div>`:''}<div style="font-size:10px;color:var(--t3);margin-top:7px">${data.series_summary||''}</div>`;
     if(body)body.innerHTML=html;
     if(spin)spin.style.display='none';
+    // Update badge
+    const badge=document.getElementById('d-ndvi-badge');
+    if(badge){badge.textContent=`${conf}% · Sentinel-2`;badge.style.display='inline';badge.style.background=conf>=70?'var(--gl)':conf>=50?'var(--al)':'var(--rl)';badge.style.color=conf>=70?'var(--g)':conf>=50?'var(--a)':'var(--r)';}
     return{crop:cls.crop,confidence:conf,reasoning:cls.reasoning};
   }catch(e){if(body)body.innerHTML=`<div style="color:var(--r);font-size:12px">Грешка: ${e.message}</div>`;if(spin)spin.style.display='none';return null;}
 }
@@ -654,10 +691,15 @@ async function selectParcel(i){
     if(rn.current_ndvi!=null){
       window._lastRealNDVI=rn.current_ndvi;
       setBar('bi-ndvi','vi-ndvi',rn.current_ndvi*100,rn.current_ndvi.toFixed(3));
-      document.getElementById('ov-ndvi').textContent=rn.current_ndvi.toFixed(3);
+      const ndviEl=document.getElementById('ov-ndvi');
+      if(ndviEl)ndviEl.textContent=rn.current_ndvi.toFixed(3);
+      const ndviSrc=document.getElementById('ov-ndvi-src');
+      if(ndviSrc)ndviSrc.textContent=`Реален · ${rn.series_count} сцени`;
       document.getElementById('ctx-tag').textContent=`NDVI ${rn.current_ndvi.toFixed(3)} · ET₀ ${meteoData.et0?.toFixed(1)||'—'}`;
       setPill('pl-cop','pill p-live','Copernicus ✓');
       setSrc('ss-cop','var(--gl)','var(--g)',`Live · ${rn.series_count} сцени`);
+      // Show NDVI alert
+      renderNDVIAlert(rn.current_ndvi, rn.series);
     }
     if(rn.series?.length>0)drawNDVI90Real(rn.series);
     else throw new Error('no series');
@@ -691,6 +733,37 @@ function drawNDVI90(hist,crop){
   const b=base[crop]||0.55;
   const series=dates.map((_,i)=>{const r7=rain.slice(Math.max(0,i-6),i+1).reduce((a,v)=>a+(v||0),0);const wb=(r7-(et0[i]||3)*7)/30;const hs=(tmax[i]||25)>33?-((tmax[i]-33)*0.01):0;return Math.min(0.95,Math.max(0.05,b+Math.min(0.18,Math.max(-0.22,wb))+hs));});
   charts['c-ndvi90']=new Chart(ctx,{type:'line',data:{labels:dates.map(d=>d.slice(5)),datasets:[{label:'NDVI',data:series,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.08)',borderWidth:1.5,tension:.3,pointRadius:0,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:0,max:1,ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9},maxTicksLimit:12},grid:{display:false}}}}});
+}
+
+function renderNDVIAlert(current, series){
+  const el=document.getElementById('ov-ndvi-alert');if(!el)return;
+  if(!series||series.length<2){el.style.display='none';return;}
+
+  // Detect trend — compare last value vs 2 weeks ago
+  const prev=series.length>=2?series[series.length-2].ndvi:null;
+  const change=prev?current-prev:0;
+  const pct=prev?((change/prev)*100):0;
+
+  let msg='',color='',bg='';
+  if(current>=0.7){
+    bg='var(--gl)';color='var(--g)';
+    msg=`✅ <strong>Отлично NDVI ${current.toFixed(3)}</strong> — гъста, здрава растителност. ${change>0.02?'Расте спрямо предходната сцена (+'+change.toFixed(3)+').':change<-0.05?'Лек спад спрямо предходната сцена ('+change.toFixed(3)+') — следи.':'Стабилно.'}`;
+  }else if(current>=0.5){
+    bg='var(--gp)';color='var(--g)';
+    msg=`🟡 <strong>Добро NDVI ${current.toFixed(3)}</strong> — умерена растителност. ${change<-0.05?'⚠️ Спад от '+Math.abs(change).toFixed(3)+' спрямо предходната сцена — провери за стрес.':'Нормален статус.'}`;
+  }else if(current>=0.3){
+    bg='var(--al)';color='var(--a)';
+    msg=`⚠️ <strong>Умерено NDVI ${current.toFixed(3)}</strong> — ${change<-0.08?'Рязък спад! Вероятен стрес от суша, болест или вредители. Препоръчва се теренна проверка.':'Рядка растителност или начало на сезона. Следи тренда.'}`;
+  }else{
+    bg='var(--rl)';color='var(--r)';
+    msg=`🔴 <strong>Ниско NDVI ${current.toFixed(3)}</strong> — малко или липсваща растителност. ${current<0.1?'Вероятно незасят парцел или сериозен проблем.':'Провери парцела. Суша, болест или механична повреда?'}`;
+  }
+
+  el.style.display='block';
+  el.style.background=bg;
+  el.style.border=`1px solid ${color}`;
+  el.style.color=color;
+  el.innerHTML=msg+(prev?` <span style="opacity:.7;font-size:10px">Промяна: ${change>=0?'+':''}${change.toFixed(3)} (${pct.toFixed(1)}%)</span>`:'');
 }
 
 function drawNDVI90Real(series){
@@ -814,10 +887,24 @@ function centerTab(name,btn){
   }
 }
 
+function updateLastSceneKPI(items){
+  if(!items||!items.length)return;
+  const sorted=items.slice().sort((a,b)=>new Date(b.properties?.datetime)-new Date(a.properties?.datetime));
+  const clear=sorted.filter(it=>(it.properties?.['eo:cloud_cover']||100)<25);
+  const lastClear=clear[0];
+  if(lastClear){
+    const el=document.getElementById('ov-last-scene');
+    const cl=document.getElementById('ov-scene-cloud');
+    if(el)el.textContent=lastClear.properties?.datetime?.slice(0,10)||'—';
+    if(cl)cl.textContent=`☁ ${(lastClear.properties?.['eo:cloud_cover']||0).toFixed(0)}% · ${clear.length} ясни от ${items.length}`;
+  }
+}
+
 function renderSTAC(items,cache){
   const el=document.getElementById('stac-list');if(!el)return;
   const b=document.getElementById('stac-badge');
   if(b){b.textContent=`${items.length} сцени · последните 60 дни`;b.style.background='var(--gl)';b.style.color='var(--g)';}
+  updateLastSceneKPI(items);
   if(!items.length){el.innerHTML='<div style="color:var(--t3);font-size:12px">Няма налични сцени.</div>';return;}
 
   // Sort by date desc, find clear scenes
@@ -1022,6 +1109,7 @@ async function loadMarketPrices(){
     marketData = data;
     renderMarketCards(data);
     renderMarketTable(data);
+    calcBasis();
     if(upd) upd.textContent=data.updated+' · '+(data._cache==='hit'?'кеш':'live');
     // Auto-generate AI market analysis
     generateMarketAnalysis(data);
@@ -1108,11 +1196,14 @@ async function generateMarketAnalysis(data){
   const p = activeIdx>=0 ? parcels[activeIdx] : null;
   const parcelCtx = p ? `Фермерът отглежда: ${p.crop||'—'}, ${p.area?.toFixed(1)||'—'} ха` : 'Не е избран парцел.';
 
-  const sys = `Ти си борсов AI агент за агрокомодити. Отговаряй кратко и конкретно на БЪЛГАРСКИ.
-МАТИФ ЦЕНИ (€/т): 
+  const km = parseFloat(document.getElementById('basis-km')?.value)||50;
+  const transport = (km*0.08+8).toFixed(0);
+  const sys = `Ти си борсов AI агент за агрокомодити в България. Отговаряй кратко и конкретно на БЪЛГАРСКИ.
+МАТИФ ЦЕНИ (€/т):
 ${lines}
+BASIS: Фермерът е на ${km}км от силоза. Транспорт+такси = -${transport}€/т (реалната му цена е МАТИФ - ${transport}€/т).
 ${parcelCtx}
-Анализирай цените, тренда и дай конкретна препоръка: кога и какво да продава фермерът. Вземи предвид сезонността. До 4 изречения.`;
+Анализирай цените и тренда. Дай конкретна препоръка: кога и какво да продава, дали да продаде сега или да чака. Вземи предвид сезонността (реколта: юли за пшеница/ечемик, септември за слънчоглед/царевица). До 4 изречения.`;
 
   const chat = document.getElementById('market-chat');
   if(chat) chat.innerHTML='<div class="msg ai" style="animation:none"><span class="spin"></span> Анализирам МАТИФ цените...</div>';
@@ -1152,6 +1243,41 @@ ${p?`Парцел: ${p.name}, ${p.crop}, ${p.area?.toFixed(1)} ха`:'Без и�
   }catch(e){loader.remove();addMarketMsg('ai','Грешка: '+e.message);}
 }
 function mqa(q){document.getElementById('market-ai-in').value=q;mSendMarket();}
+
+// Basis calculator
+// Transport cost: ~0.08 €/т/км for grain in BG
+const TRANSPORT_COST_PER_KM = 0.08;
+const BASIS_HANDLING = 8; // €/т силозна такса
+
+function calcBasis(){
+  const km = parseFloat(document.getElementById('basis-km')?.value) || 50;
+  const prices = marketData.prices || {};
+  const transport = km * TRANSPORT_COST_PER_KM;
+  const total_deduction = transport + BASIS_HANDLING;
+
+  const crops = [
+    {k:'wheat',    emoji:'🌾'},
+    {k:'sunflower',emoji:'🌻'},
+    {k:'rapeseed', emoji:'🌱'},
+    {k:'corn',     emoji:'🌽'},
+    {k:'barley',   emoji:'🌿'},
+  ];
+
+  const lines = crops.filter(c=>prices[c.k]&&!prices[c.k].error).map(c=>{
+    const p = prices[c.k];
+    const local = Math.max(0, p.price - total_deduction);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0">
+      <span>${c.emoji} ${p.name}</span>
+      <span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--g)">${local.toFixed(0)} €/т</span>
+    </div>`;
+  }).join('');
+
+  const el = document.getElementById('basis-results');
+  if(el) el.innerHTML = lines +
+    `<div style="font-size:9px;color:var(--t3);margin-top:4px;padding-top:4px;border-top:1px solid var(--bd)">
+      Транспорт: ${transport.toFixed(0)} €/т · Силоз: ${BASIS_HANDLING} €/т · Общо: -${total_deduction.toFixed(0)} €/т
+    </div>`;
+}
 
 // Init
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&isDrawing)cancelDraw();});
