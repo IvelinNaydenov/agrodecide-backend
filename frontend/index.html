@@ -78,7 +78,7 @@ html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans'
 .c-tab{padding:9px 13px;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;color:var(--t3);border-bottom:2px solid transparent;transition:all .15s}
 .c-tab.on{color:var(--g);border-bottom-color:var(--g)}
 .c-tab:hover:not(.on){color:var(--t)}
-.desk-view{display:none;flex:1;overflow-y:auto;padding:14px}
+.desk-view{display:none;overflow-y:auto;padding:14px;flex:1;min-height:0}
 .desk-view.on{display:block}
 
 /* Map */
@@ -234,7 +234,7 @@ html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans'
   <div class="col-center" id="col-center">
 
     <!-- Farmer: center tabs + map/views -->
-    <div id="farmer-center" style="display:flex;flex-direction:column;flex:1;min-height:0">
+    <div id="farmer-center" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
       <div class="c-tabs" id="c-tabs">
         <button class="c-tab on" onclick="centerTab('map',this)">🗺 Карта</button>
         <button class="c-tab" onclick="centerTab('overview',this)">📈 Преглед</button>
@@ -243,7 +243,7 @@ html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans'
       </div>
 
       <!-- Map -->
-      <div class="map-fill" id="cv-map">
+      <div class="map-fill" id="cv-map" style="flex:1;position:relative;min-height:0;display:block">
         <div id="map"></div>
         <div class="layer-pills">
           <button class="layer-pill on" onclick="setLayer('sentinel',this)">🛰 Satellite</button>
@@ -870,10 +870,10 @@ function centerTab(name,btn){
   const mapEl=document.getElementById('cv-map');
   document.querySelectorAll('.desk-view').forEach(v=>v.classList.remove('on'));
   if(name==='map'){
-    mapEl.style.display='block';
+    mapEl.style.flex='1';mapEl.style.display='block';
     setTimeout(()=>map.invalidateSize(),50);
   }else{
-    mapEl.style.display='none';
+    mapEl.style.flex='0';mapEl.style.display='none';
     const dv=document.getElementById('cv-'+name);if(dv)dv.classList.add('on');
     // Lazy STAC
     if(name==='stac'&&window._stacP){
