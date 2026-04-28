@@ -871,93 +871,118 @@ function evaluatePixel(s){
     except Exception as e:
         raise HTTPException(500, f"Real NDVI error: {e}")
 
+
 @app.get("/api/market/prices")
 async def market_prices():
-    """
-    Fetch real MATIF/Euronext commodity prices via Yahoo Finance.
-    Returns €/ton prices for major Bulgarian crops.
-    Cached 15 minutes.
-    """
-    cache_key = "market:prices:matif"
+    """Scrape real prices from borsaagro.com + Yahoo Finance history."""
+    cache_key = "market:prices:borsa"
     cached = cache_get(cache_key)
     if cached:
         return {**cached, "_cache": "hit"}
 
-    # MATIF/CBOT tickers on Yahoo Finance
-    # EBM.PA, ECO.PA, EMA.PA = MATIF Paris (€/t)
-    # ZW=F, ZC=F, ZS=F = CBOT Chicago (USD/bushel → convert to EUR/t)
-    tickers = {
-        "wheat":     {"symbol": "EBM.PA", "name": "Пшеница мелница", "bg_discount": -15, "unit": "€/т", "convert": None},
-        "rapeseed":  {"symbol": "ECO.PA", "name": "Рапица",          "bg_discount": -18, "unit": "€/т", "convert": None},
-        "corn":      {"symbol": "EMA.PA", "name": "Царевица",        "bg_discount": -12, "unit": "€/т", "convert": None},
-        "sunflower": {"symbol": "ZS=F",   "name": "Слънчоглед (соя proxy)", "bg_discount": -25, "unit": "$/bu→€/т", "convert": "soy_to_eur_t"},
-        "barley":    {"symbol": "ZW=F",   "name": "Ечемик (пшеница CBOT)", "bg_discount": -30, "unit": "$/bu→€/т", "convert": "wheat_to_eur_t"},
-    }
+    try:
+        import re as _re
 
-    import asyncio as _aio
-    results = {}
+        # Step 1: Scrape borsaagro.com for live prices
+        async with make_client(False, timeout=15) as client:
+            r = await client.get(
+                "https://borsaagro.com/",
+                headers={"User-Agent": "Mozilla/5.0 (compatible; AgroDecide/1.0)"}
+            )
+            r.raise_for_status()
+            html = r.text
 
-    async with make_client(False, timeout=15) as client:
-        for key, info in tickers.items():
-            try:
-                url = f"https://query1.finance.yahoo.com/v8/finance/chart/{info['symbol']}?interval=1d&range=30d"
-                r = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
-                if r.status_code == 200:
-                    data = r.json()
-                    meta = data["chart"]["result"][0]["meta"]
-                    raw_price = meta.get("regularMarketPrice") or meta.get("previousClose")
-                    raw_prev  = meta.get("chartPreviousClose") or meta.get("previousClose")
-                    currency = meta.get("currency", "EUR")
+        # Extract MATIF/Euronext prices
+        matif = {}
+        crops_to_find = [
+            ("wheat_matif",    "Пшеница MATIF"),
+            ("corn_matif",     "Царевица MATIF"),
+            ("rapeseed_matif", "Рапица MATIF"),
+            ("sunflower_enx",  "Слънчоглед - 44-9-2"),
+        ]
+        for key, crop in crops_to_find:
+            idx = html.find(crop)
+            if idx != -1:
+                snippet = html[idx:idx+300]
+                m = _re.search(r"(\d+[.,]\d+)", snippet)
+                if m:
+                    matif[key] = float(m.group(1).replace(",", ""))
 
-                    # Convert CBOT USD/bushel → EUR/tonne if needed
-                    def convert_price(p, conv_type):
-                        if not p: return p
-                        if conv_type == "soy_to_eur_t":
-                            # Soybeans: 1 bushel = 27.2155 kg → 1 USD/bu * (1/27.2155*1000) * 0.92 EUR/USD
-                            return round(p * (1000/27.2155) * 0.92, 2)
-                        elif conv_type == "wheat_to_eur_t":
-                            # Wheat: 1 bushel = 27.2155 kg
-                            return round(p * (1000/27.2155) * 0.92, 2)
-                        return p
+        # Extract BG physical prices
+        bg = {}
+        bg_crops = [
+            ("wheat_bread",  "ПШЕНИЦА ХЛЕБНА"),
+            ("wheat_feed",   "ПШЕНИЦА ФУРАЖНА"),
+            ("corn_bg",      "ЦАРЕВИЦА"),
+            ("barley_bg",    "ЕЧЕМИК ФУРАЖЕН"),
+            ("sunflower_bg", "СЛЪНЧОГЛЕД МАСЛОДАЕН"),
+            ("rapeseed_bg",  "РАПИЦА"),
+        ]
+        for key, crop in bg_crops:
+            idx = html.find(crop)
+            if idx != -1:
+                snippet = html[idx:idx+200]
+                m = _re.search(r"(\d+[.,]\d+)", snippet)
+                if m:
+                    bg[key] = float(m.group(1).replace(",", ""))
 
-                    conv = info.get("convert")
-                    price = convert_price(raw_price, conv) if conv else raw_price
-                    prev  = convert_price(raw_prev,  conv) if conv else raw_prev
+        # Step 2: Yahoo Finance 30-day history for trend charts
+        yf_history = {}
+        yf_symbols = {"wheat": "EBM.PA", "rapeseed": "ECO.PA", "corn": "EMA.PA"}
+        async with make_client(False, timeout=15) as client:
+            for key, symbol in yf_symbols.items():
+                try:
+                    yr = await client.get(
+                        f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=30d",
+                        headers={"User-Agent": "Mozilla/5.0"}
+                    )
+                    if yr.status_code == 200:
+                        yd = yr.json()
+                        ts = yd["chart"]["result"][0].get("timestamp", [])
+                        closes = yd["chart"]["result"][0]["indicators"]["quote"][0].get("close", [])
+                        yf_history[key] = [
+                            {"date": datetime.utcfromtimestamp(t).strftime("%Y-%m-%d"), "price": round(cl, 2)}
+                            for t, cl in zip(ts[-20:], closes[-20:]) if cl
+                        ]
+                except Exception:
+                    pass
 
-                    # Historical closes for trend
-                    timestamps = data["chart"]["result"][0].get("timestamp", [])
-                    closes     = data["chart"]["result"][0]["indicators"]["quote"][0].get("close", [])
-                    history = []
-                    for t, cl in zip(timestamps[-20:], closes[-20:]):
-                        if cl is not None:
-                            converted_cl = convert_price(cl, conv) if conv else cl
-                            history.append({"date": datetime.utcfromtimestamp(t).strftime("%Y-%m-%d"), "price": round(converted_cl, 2)})
+        def make_entry(name, matif_price, bg_price, history=None, source="MATIF Euronext"):
+            if matif_price is None and bg_price is None:
+                return {"name": name, "error": "Не е намерена цена"}
+            price = matif_price or bg_price
+            prev = history[-2]["price"] if history and len(history) >= 2 else price
+            chg = round((price - prev) / prev * 100, 2) if prev else 0
+            return {
+                "name": name,
+                "price": round(price, 2),
+                "prev_close": round(prev, 2),
+                "change_pct": chg,
+                "currency": "EUR",
+                "unit": "EUR/t",
+                "bg_price": round(bg_price, 2) if bg_price else None,
+                "bg_source": "borsaagro.com" if bg_price else "N/A",
+                "history": history or [],
+                "source": source,
+            }
 
-                    change_pct = ((price - prev) / prev * 100) if prev and prev != 0 else 0
+        prices = {
+            "wheat":     make_entry("Пшеница (МАТИФ мелница)", matif.get("wheat_matif"), bg.get("wheat_bread"), yf_history.get("wheat")),
+            "corn":      make_entry("Царевица (МАТИФ)", matif.get("corn_matif"), bg.get("corn_bg"), yf_history.get("corn")),
+            "rapeseed":  make_entry("Рапица (МАТИФ)", matif.get("rapeseed_matif"), bg.get("rapeseed_bg"), yf_history.get("rapeseed")),
+            "sunflower": make_entry("Слънчоглед (Euronext 44-9-2)", matif.get("sunflower_enx"), bg.get("sunflower_bg"), None, "Euronext"),
+            "barley":    make_entry("Ечемик (БГ физически)", None, bg.get("barley_bg"), None, "borsaagro.com"),
+        }
 
-                    results[key] = {
-                        "name":        info["name"],
-                        "symbol":      info["symbol"],
-                        "price":       round(price, 2),
-                        "prev_close":  round(prev, 2),
-                        "change_pct":  round(change_pct, 2),
-                        "currency":    "EUR",
-                        "unit":        "€/т",
-                        "bg_price":    round(price + info["bg_discount"], 2),
-                        "bg_discount": info["bg_discount"],
-                        "history":     history,
-                        "source":      "MATIF Euronext" if not conv else "CBOT converted to €/т"
-                    }
-                else:
-                    results[key] = {"name": info["name"], "error": f"HTTP {r.status_code}"}
-            except Exception as e:
-                results[key] = {"name": info["name"], "error": str(e)[:100]}
+        result = {
+            "prices": prices,
+            "updated": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+            "note": "MATIF Euronext + borsaagro.com BG physical prices, EUR/t",
+            "source_url": "https://borsaagro.com",
+            "_cache": "miss",
+        }
+        cache_set(cache_key, result, 15 * 60)
+        return result
 
-    result = {
-        "prices": results,
-        "updated": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
-        "note": "МАТИФ Euronext фючърси · 15мин забавяне · Цени в €/т",
-        "_cache": "miss"
-    }
-    cache_set(cache_key, result, 15 * 60)
-    return result
+    except Exception as e:
+        raise HTTPException(502, f"Market prices error: {e}")
