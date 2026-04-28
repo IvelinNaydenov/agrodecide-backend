@@ -883,13 +883,15 @@ async def market_prices():
     if cached:
         return {**cached, "_cache": "hit"}
 
-    # MATIF tickers on Yahoo Finance — all in €/ton
+    # MATIF/CBOT tickers on Yahoo Finance
+    # EBM.PA, ECO.PA, EMA.PA = MATIF Paris (€/t)
+    # ZW=F, ZC=F, ZS=F = CBOT Chicago (USD/bushel → convert to EUR/t)
     tickers = {
-        "wheat":     {"symbol": "EBM.PA", "name": "Пшеница мелница", "bg_discount": -15},
-        "corn":      {"symbol": "EMA.PA", "name": "Царевица",        "bg_discount": -12},
-        "rapeseed":  {"symbol": "ECO.PA", "name": "Рапица",          "bg_discount": -18},
-        "sunflower": {"symbol": "XSF.PA", "name": "Слънчоглед",      "bg_discount": -20},
-        "barley":    {"symbol": "ALW.PA", "name": "Ечемик",          "bg_discount": -14},
+        "wheat":     {"symbol": "EBM.PA", "name": "Пшеница мелница", "bg_discount": -15, "unit": "€/т", "convert": None},
+        "rapeseed":  {"symbol": "ECO.PA", "name": "Рапица",          "bg_discount": -18, "unit": "€/т", "convert": None},
+        "corn":      {"symbol": "EMA.PA", "name": "Царевица",        "bg_discount": -12, "unit": "€/т", "convert": None},
+        "sunflower": {"symbol": "ZS=F",   "name": "Слънчоглед (соя proxy)", "bg_discount": -25, "unit": "$/bu→€/т", "convert": "soy_to_eur_t"},
+        "barley":    {"symbol": "ZW=F",   "name": "Ечемик (пшеница CBOT)", "bg_discount": -30, "unit": "$/bu→€/т", "convert": "wheat_to_eur_t"},
     }
 
     import asyncio as _aio
@@ -903,15 +905,33 @@ async def market_prices():
                 if r.status_code == 200:
                     data = r.json()
                     meta = data["chart"]["result"][0]["meta"]
-                    price = meta.get("regularMarketPrice") or meta.get("previousClose")
-                    prev  = meta.get("chartPreviousClose") or meta.get("previousClose")
+                    raw_price = meta.get("regularMarketPrice") or meta.get("previousClose")
+                    raw_prev  = meta.get("chartPreviousClose") or meta.get("previousClose")
                     currency = meta.get("currency", "EUR")
+
+                    # Convert CBOT USD/bushel → EUR/tonne if needed
+                    def convert_price(p, conv_type):
+                        if not p: return p
+                        if conv_type == "soy_to_eur_t":
+                            # Soybeans: 1 bushel = 27.2155 kg → 1 USD/bu * (1/27.2155*1000) * 0.92 EUR/USD
+                            return round(p * (1000/27.2155) * 0.92, 2)
+                        elif conv_type == "wheat_to_eur_t":
+                            # Wheat: 1 bushel = 27.2155 kg
+                            return round(p * (1000/27.2155) * 0.92, 2)
+                        return p
+
+                    conv = info.get("convert")
+                    price = convert_price(raw_price, conv) if conv else raw_price
+                    prev  = convert_price(raw_prev,  conv) if conv else raw_prev
 
                     # Historical closes for trend
                     timestamps = data["chart"]["result"][0].get("timestamp", [])
                     closes     = data["chart"]["result"][0]["indicators"]["quote"][0].get("close", [])
-                    history = [{"date": datetime.utcfromtimestamp(t).strftime("%Y-%m-%d"), "price": round(c, 2)}
-                               for t, c in zip(timestamps[-20:], closes[-20:]) if c is not None]
+                    history = []
+                    for t, cl in zip(timestamps[-20:], closes[-20:]):
+                        if cl is not None:
+                            converted_cl = convert_price(cl, conv) if conv else cl
+                            history.append({"date": datetime.utcfromtimestamp(t).strftime("%Y-%m-%d"), "price": round(converted_cl, 2)})
 
                     change_pct = ((price - prev) / prev * 100) if prev and prev != 0 else 0
 
@@ -921,12 +941,12 @@ async def market_prices():
                         "price":       round(price, 2),
                         "prev_close":  round(prev, 2),
                         "change_pct":  round(change_pct, 2),
-                        "currency":    currency,
+                        "currency":    "EUR",
                         "unit":        "€/т",
                         "bg_price":    round(price + info["bg_discount"], 2),
                         "bg_discount": info["bg_discount"],
                         "history":     history,
-                        "source":      "MATIF Euronext via Yahoo Finance"
+                        "source":      "MATIF Euronext" if not conv else "CBOT converted to €/т"
                     }
                 else:
                     results[key] = {"name": info["name"], "error": f"HTTP {r.status_code}"}
