@@ -292,7 +292,14 @@ html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans'
         <div class="card">
           <div class="card-title">🛰 NDVI · Sentinel-2 реални данни <span class="spin" id="d-ndvi-spin" style="display:none"></span><span class="badge" id="d-ndvi-badge" style="display:none;background:var(--al);color:var(--a)"></span></div>
           <div id="d-ndvi-body"><div style="font-size:11px;color:var(--t3)">Избери парцел...</div></div>
-          <div class="ch-wrap" style="margin-top:10px"><canvas id="c-ndvi90"></canvas></div>
+          <!-- NDVI explanation -->
+          <div style="background:var(--bl);border-radius:8px;padding:10px 12px;margin-top:10px;margin-bottom:8px;font-size:11px;color:var(--b);line-height:1.7">
+            <strong>Какво е NDVI?</strong> Индекс на зеленост от спътника (0–1). Показва колко гъста и здрава е растителността.<br>
+            <strong>Кривата</strong>: нормален посев расте плавно нагоре до средата на сезона. <strong>Рязък спад</strong> = стрес (суша, болест, вредители).
+            <span style="opacity:.7">· 0.7+ отлично · 0.5–0.7 добро · 0.3–0.5 умерено · под 0.3 ниско</span>
+          </div>
+          <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">90-дневна NDVI история · Sentinel-2</div>
+          <div class="ch-wrap"><canvas id="c-ndvi90"></canvas></div>
         </div>
 
         <!-- EuroCrops + AI pred side by side -->
@@ -330,9 +337,8 @@ html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans'
     <!-- Market: full-width center panel -->
         <!-- Market: full-width center panel -->
     <div id="market-center" style="display:none;flex:1;min-height:0;overflow:hidden">
-      <!-- Left: prices -->
       <div style="display:flex;height:100%;overflow:hidden">
-        <div style="flex:1;overflow-y:auto;padding:16px;border-right:1px solid var(--bd)">
+        <div style="flex:1;overflow-y:auto;padding:16px">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
             <div style="font-size:15px;font-weight:700">💹 Борсови цени · МАТИФ Euronext</div>
             <span class="spin" id="market-spin" style="display:none"></span>
@@ -341,7 +347,7 @@ html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans'
           </div>
 
           <!-- Price cards -->
-          <div id="market-cards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px"></div>
+          <div id="market-cards" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px"></div>
 
           <!-- Price chart -->
           <div class="card">
@@ -1124,7 +1130,7 @@ function renderMarketCards(data){
   if(!el) return;
   const prices = data.prices || {};
   // Show top 3: wheat, sunflower, rapeseed
-  const featured = ['wheat','sunflower','rapeseed'];
+  const featured = ['wheat','rapeseed','corn','sunflower','barley'];
   el.innerHTML = featured.filter(k=>prices[k]&&!prices[k].error).map(k=>{
     const p = prices[k];
     const up = p.change_pct >= 0;
