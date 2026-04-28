@@ -82,7 +82,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
 .map-pills{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;gap:4px;background:rgba(255,255,255,.92);border-radius:20px;padding:3px 6px;box-shadow:0 2px 10px rgba(0,0,0,.15);border:1px solid var(--brd)}
 .mpill{padding:3px 10px;border-radius:14px;border:none;font-family:var(--sans);font-size:11px;font-weight:500;cursor:pointer;background:none;color:var(--tx2)}
 .mpill.on{background:var(--pri);color:#fff}
-.map-coord{position:absolute;bottom:8px;right:8px;z-index:1000;background:rgba(255,255,255,.9);border-radius:5px;padding:3px 7px;font-size:9px;font-family:var(--mono);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.map-coord{position:absolute;top:8px;right:8px;z-index:1000;background:rgba(255,255,255,.9);border-radius:5px;padding:3px 7px;font-size:9px;font-family:var(--mono);box-shadow:0 1px 4px rgba(0,0,0,.1)}
 .draw-hint{position:absolute;top:52px;left:50%;transform:translateX(-50%);z-index:1000;background:var(--pri);color:#fff;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;display:none;box-shadow:0 2px 8px rgba(0,0,0,.2)}
 .fab-loc{position:absolute;bottom:48px;right:8px;z-index:1000;width:40px;height:40px;border-radius:var(--r);border:none;background:rgba(255,255,255,.94);box-shadow:0 2px 8px rgba(0,0,0,.15);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .map-btns{position:absolute;bottom:8px;left:8px;z-index:1000;display:flex;gap:6px}
@@ -148,7 +148,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
 #market-view{display:none;flex:1;overflow:hidden}
 .mkt{display:flex;height:100%;gap:0}
 .mkt-main{flex:1;overflow-y:auto;padding:14px;min-width:0}
-.mkt-side{width:260px;flex-shrink:0;border-left:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden;background:var(--card)}
+.mkt-side{width:240px;flex-shrink:0;border-left:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden;background:var(--card)}
 .mkt-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}
 .mkt-card{background:var(--card);border-radius:var(--r);padding:10px 12px;cursor:pointer;transition:all .12s}
 .mkt-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.1)}
@@ -216,7 +216,13 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
 <div class="api"><div><div class="api-n">Groq AI</div><div class="api-s">LLaMA 3.3</div></div><span class="api-b" id="ss-ai" style="background:var(--warn-bg);color:var(--warn)">…</span></div>
 <div class="api"><div><div class="api-n">EuroCrops</div><div class="api-s">PostGIS</div></div><span class="api-b" style="background:var(--pri3);color:var(--pri)">791k</span></div>
 </div>
-<div style="padding:6px 10px 0;border-bottom:1px solid var(--brd);flex-shrink:0"><div class="l-title" style="margin:0">Парцели</div></div>
+<div style="padding:6px 10px;border-bottom:1px solid var(--brd);flex-shrink:0">
+<div class="l-title" style="margin-bottom:4px">Парцели</div>
+<div style="display:flex;gap:4px">
+<input id="lpis-in" placeholder="LPIS номер" style="flex:1;height:26px;border:1px solid var(--brd);border-radius:4px;padding:0 6px;font-family:var(--mono);font-size:10px;background:var(--card);outline:none">
+<button onclick="loadLPIS()" style="height:26px;padding:0 8px;border-radius:4px;border:1px solid var(--brd);background:var(--info-bg);color:var(--info);font-size:9px;font-weight:600;cursor:pointer;font-family:var(--sans)">Зареди</button>
+</div>
+</div>
 <div class="l-scroll" id="parcel-list"><div style="font-size:10px;color:var(--tx3)">Зарежда…</div></div>
 </div>
 
@@ -232,9 +238,9 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
 <div class="map-wrap" id="cv-map">
 <div id="map"></div>
 <div class="map-pills">
-<button class="mpill on" onclick="setLyr('sentinel',this)">🛰 Satellite</button>
+<button class="mpill" onclick="setLyr('sentinel',this)">🛰 Satellite</button>
 <button class="mpill" onclick="setLyr('ndvi',this)">🌿 NDVI</button>
-<button class="mpill" onclick="setLyr('carto',this)">🗺 Карта</button>
+<button class="mpill on" onclick="setLyr('carto',this)">🗺 Карта</button>
 </div>
 <div class="map-coord" id="mcoord">—</div>
 <div class="draw-hint" id="draw-hint">✏️ Кликни точки · Двоен клик за край · ESC отказ</div>
@@ -366,8 +372,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
 <div style="padding:10px 12px;border-bottom:1px solid var(--brd);background:var(--card2)">
 <div style="font-size:10px;font-weight:600;color:var(--tx2);margin-bottom:6px">📍 Реална изкупна цена</div>
 <div style="display:flex;gap:5px;margin-bottom:5px">
-<div style="flex:1"><div style="font-size:8px;color:var(--tx3)">Транспорт €/т</div><input id="b-transport" type="number" value="12" min="0" max="100" style="width:100%;height:28px;border:1px solid var(--brd);border-radius:5px;padding:0 6px;font-family:var(--mono);font-size:11px;background:var(--card)" onchange="calcBasis()"></div>
-<div style="flex:1"><div style="font-size:8px;color:var(--tx3)">Силоз €/т</div><input id="b-silo" type="number" value="8" min="0" max="50" style="width:100%;height:28px;border:1px solid var(--brd);border-radius:5px;padding:0 6px;font-family:var(--mono);font-size:11px;background:var(--card)" onchange="calcBasis()"></div>
+<div style="flex:1"><div style="font-size:8px;color:var(--tx3)">Транспорт €/т</div><input id="b-transport" type="number" value="12" min="0" max="100" style="width:100%;height:28px;border:1px solid var(--brd);border-radius:5px;padding:0 6px;font-family:var(--mono);font-size:11px;background:var(--card)" oninput="calcBasis()"></div>
+<div style="flex:1"><div style="font-size:8px;color:var(--tx3)">Силоз €/т</div><input id="b-silo" type="number" value="8" min="0" max="50" style="width:100%;height:28px;border:1px solid var(--brd);border-radius:5px;padding:0 6px;font-family:var(--mono);font-size:11px;background:var(--card)" oninput="calcBasis()"></div>
 </div>
 <div id="basis-out" style="font-size:10px;color:var(--tx2);line-height:1.7"></div>
 </div>
@@ -425,8 +431,10 @@ function simHist(lat,lon){const s=Math.abs(Math.sin(lat*1000)*Math.cos(lon*1000)
 
 // ── Map ──
 const map=L.map('map',{center:[43.577,27.828],zoom:13,zoomControl:true});
-const TL={sentinel:L.tileLayer.wms(WMS,{layers:'TRUE_COLOR',format:'image/jpeg',version:'1.3.0',tileSize:512,attribution:'© Copernicus/ESA'}),ndvi:L.tileLayer.wms(WMS,{layers:'VEGETATION_INDEX',format:'image/png',version:'1.3.0',tileSize:512,transparent:true,attribution:'© Copernicus/ESA'}),carto:L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'© OSM · CARTO',subdomains:'abcd',maxZoom:20})};
-TL.carto.addTo(map);TL.sentinel.addTo(map);
+const TL={sentinel:L.tileLayer.wms(WMS,{layers:'TRUE_COLOR',format:'image/jpeg',version:'1.3.0',tileSize:512,attribution:'© Copernicus/ESA'}),ndvi:L.tileLayer.wms(WMS,{layers:'VEGETATION_INDEX',format:'image/png',version:'1.3.0',tileSize:512,transparent:true,attribution:'© Copernicus/ESA'}),carto:L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OSM · CARTO',subdomains:'abcd',maxZoom:20})};
+TL.carto.addTo(map);
+const labelsLayer=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:20,pane:'overlayPane'});
+labelsLayer.addTo(map);
 function setLyr(n,btn){map.removeLayer(TL.sentinel);map.removeLayer(TL.ndvi);if(n==='sentinel')TL.sentinel.addTo(map);else if(n==='ndvi')TL.ndvi.addTo(map);document.querySelectorAll('.mpill').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
 map.on('mousemove',e=>{document.getElementById('mcoord').textContent=`${e.latlng.lat.toFixed(4)}°N ${e.latlng.lng.toFixed(4)}°E`;});
 
@@ -453,6 +461,19 @@ function closeModal(save){
 }
 
 function bindPop(l,p){l.bindPopup(`<div style="font-family:var(--sans);padding:4px"><div style="font-weight:700">${p.name}</div><div style="font-size:11px;color:#666">${CL[p.crop]||p.crop} · ${p.area.toFixed(2)} ха</div></div>`);}
+function loadLPIS(){
+  const num=document.getElementById('lpis-in').value.trim();if(!num)return;
+  // BG LPIS lookup — placeholder until real DFZ API
+  const seed=num.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+  const bLat=43.3+(seed%35)/100,bLon=27.4+(seed%45)/100,sz=0.003+(seed%12)*0.0002;
+  const coords=[[bLat,bLon],[bLat+sz,bLon+sz*.4],[bLat+sz*.9,bLon+sz],[bLat-.1*sz,bLon+sz*.85],[bLat-.05*sz,bLon]];
+  const p={id:Date.now(),name:'LPIS '+num,crop:'unknown',area:sz*sz*12000,lat:bLat+sz/2,lon:bLon+sz/2,coords,source:'lpis',lpis_id:num};
+  const layer=L.polygon(coords,{color:'#1a4f8c',weight:2.5,fillColor:'#1a4f8c',fillOpacity:.2});
+  drawn.addLayer(layer);bindPop(layer,p);map.fitBounds(layer.getBounds(),{padding:[40,40]});
+  parcels.push(p);saveP();renderList();selectParcel(parcels.length-1);saveSupa(p);
+  document.getElementById('lpis-in').value='';
+}
+
 function renderList(){
   const el=document.getElementById('parcel-list');
   if(!parcels.length){el.innerHTML='<div style="font-size:10px;color:var(--tx3);text-align:center;padding:20px 0">Няма парцели.<br>Рисувай на картата.</div>';return;}
@@ -497,7 +518,7 @@ async function loadEC(p){
 // ── Select Parcel ──
 async function selectParcel(i){
   active=i;renderList();const p=parcels[i];map.setView([p.lat,p.lon],14);
-  dH=[];met={};ndviRes=null;
+  dH=[];met={};ndviRes=null;window._stacLoaded=false;
   document.getElementById('d-chat').innerHTML='<div class="msg msg-ai">Анализирам…</div>';
   document.getElementById('pred-text').textContent='Анализирам…';
   document.getElementById('ctx-tag').textContent='—';
@@ -510,7 +531,7 @@ async function selectParcel(i){
   // Meteo
   try{const m=await fetchMet(p.lat,p.lon);if(m){const c=m.current,et0=(m.hourly?.et0_fao_evapotranspiration||[]).slice(0,24).reduce((a,b)=>a+b,0)/24||3.5,r7=(m.daily?.precipitation_sum||[]).slice(0,7).reduce((a,b)=>a+(b||0),0),ndviD=Math.min(.95,Math.max(.05,.58+(r7-et0*7)/30*.18));
   met={temp:c.temperature_2m,hum:c.relative_humidity_2m,et0,rain7:r7,ndvi:ndviD,daily:m.daily};
-  setInd('bi-ndvi','vi-ndvi',ndviD*100,ndviD.toFixed(3));setInd('bi-hum','vi-hum',c.relative_humidity_2m,c.relative_humidity_2m?.toFixed(0)+'%');setInd('bi-et','vi-et',Math.min(100,et0/7*100),et0.toFixed(1));const spi=Math.max(0,Math.min(100,100-r7/.85));setInd('bi-spi','vi-spi',spi,spi>60?'Висок':spi>35?'Умерен':'Нисък');
+  setInd('bi-ndvi','vi-ndvi',ndviD*100,ndviD.toFixed(3));{const ns=document.getElementById('ov-ndvi-src');if(ns)ns.textContent='MeteoProxy';}setInd('bi-hum','vi-hum',c.relative_humidity_2m,c.relative_humidity_2m?.toFixed(0)+'%');setInd('bi-et','vi-et',Math.min(100,et0/7*100),et0.toFixed(1));const spi=Math.max(0,Math.min(100,100-r7/.85));setInd('bi-spi','vi-spi',spi,spi>60?'Висок':spi>35?'Умерен':'Нисък');
   document.getElementById('ov-ndvi').textContent=ndviD.toFixed(3);document.getElementById('ov-temp').textContent=c.temperature_2m?.toFixed(1)+'°C';document.getElementById('ov-et').textContent=et0.toFixed(1);
   document.getElementById('ctx-tag').textContent=`NDVI ${ndviD.toFixed(3)}`;
   document.getElementById('w-tmp').textContent=(c.temperature_2m?.toFixed(1)||'—')+'°C';document.getElementById('w-ico').textContent=wIco(c.weather_code||0);document.getElementById('w-desc').textContent=wDesc(c.weather_code||0);
@@ -529,7 +550,7 @@ async function selectParcel(i){
   setPl('pl-cop','p-ok','Copernicus ✓');setSt('ss-cop','var(--pri3)','var(--pri)',`Live · ${rn.series_count}`);
   showNDVIAlert(rn.current_ndvi,rn.series);}
   if(rn.series?.length>0)drawNDVI(rn.series,'c-ndvi90');
-  }catch(e){try{const h=await fetch(`${B}/api/meteo/history?lat=${p.lat}&lon=${p.lon}&days=90`).then(r=>r.json());if(h.daily?.time)drawNDVIproxy(h,p.crop);}catch(e2){}}
+  }catch(e){console.log('Real NDVI failed, using proxy:',e.message);try{const h=await fetch(`${B}/api/meteo/history?lat=${p.lat}&lon=${p.lon}&days=90`).then(r=>r.json());if(h.daily?.time)drawNDVIproxy(h,p.crop);else console.log('No meteo history data');}catch(e2){console.log('Meteo history failed:',e2.message);}}
 
   await genPred(p,history,ndviRes);
 }
@@ -636,7 +657,17 @@ function cTab(name,btn){
   const mw=document.getElementById('cv-map');document.querySelectorAll('.dview').forEach(v=>v.classList.remove('on'));
   if(name==='map'){mw.style.display='block';setTimeout(()=>map.invalidateSize(),50);}
   else{mw.style.display='none';const dv=document.getElementById('cv-'+name);if(dv)dv.classList.add('on');
-  if(name==='ndvi'&&window._ndviSeries)drawNDVI(window._ndviSeries,'c-ndvi-full');}
+  if(name==='ndvi'&&window._ndviSeries)drawNDVI(window._ndviSeries,'c-ndvi-full');
+  if(name==='overview'&&active>=0&&!window._stacLoaded){
+    const p=parcels[active];
+    fetch(`${B}/api/stac?lat=${p.lat}&lon=${p.lon}&days=60`).then(r=>r.json()).then(d=>{
+      const items=d.features||[];window._stacLoaded=true;
+      const clear=items.filter(it=>(it.properties?.['eo:cloud_cover']||100)<25);
+      const last=clear[0];
+      if(last){const el=document.getElementById('ov-scene');if(el)el.textContent=last.properties?.datetime?.slice(0,10)||'—';
+      const s=document.getElementById('ov-scene-s');if(s)s.textContent=`☁ ${(last.properties?.['eo:cloud_cover']||0).toFixed(0)}% · ${clear.length} ясни`;}
+    }).catch(()=>{});
+  }}
 }
 
 // ── Geolocation ──
@@ -668,9 +699,9 @@ function renderMktCards(pr){const el=document.getElementById('mkt-cards');if(!el
 
 function renderMktTable(pr){const el=document.getElementById('mkt-table');if(!el)return;el.innerHTML=`<div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:0;font-size:10px">`+Object.entries(pr).map(([k,p])=>{const up=p.chg>=0;return`<div style="padding:5px 0;border-bottom:1px solid var(--brd);cursor:pointer;color:var(--info)" onclick="showMktChart('${k}')">${p.name}</div><div style="padding:5px 6px;text-align:right;border-bottom:1px solid var(--brd);font-family:var(--mono);font-weight:600">${p.price}</div><div style="padding:5px 6px;text-align:right;border-bottom:1px solid var(--brd);color:${up?'var(--pri)':'var(--err)'}">${up?'▲':'▼'}${Math.abs(p.chg).toFixed(1)}%</div><div style="padding:5px 6px;text-align:right;border-bottom:1px solid var(--brd);font-family:var(--mono);color:var(--tx3)">${p.bg||'—'}</div><div style="padding:5px 0 5px 6px;text-align:right;border-bottom:1px solid var(--brd)">${sparkline(p.history?.map(h=>h.price)||[])}</div>`;}).join('')+'</div>';}
 
-function sparkline(v){if(!v.length)return'—';const mn=Math.min(...v),mx=Math.max(...v),w=50,h=16;if(mn===mx)return`<svg width="${w}" height="${h}"><line x1="0" y1="${h/2}" x2="${w}" y2="${h/2}" stroke="var(--tx3)" stroke-width="1"/></svg>`;const pts=v.map((val,i)=>`${(i/(v.length-1)*w).toFixed(1)},${((1-(val-mn)/(mx-mn))*(h-2)+1).toFixed(1)}`).join(' ');const up=v[v.length-1]>=v[0];return`<svg width="${w}" height="${h}" style="vertical-align:middle"><polyline points="${pts}" fill="none" stroke="${up?'var(--pri2)':'var(--err)'}" stroke-width="1.5"/></svg>`;}
+function sparkline(v){if(!v.length)return'—';const mn=Math.min(...v),mx=Math.max(...v),w=50,h=16;if(mn===mx)return`<svg width="${w}" height="${h}"><line x1="0" y1="${h/2}" x2="${w}" y2="${h/2}" stroke="var(--tx3)" stroke-width="1"/></svg>`;const pts=v.map((val,i)=>`${(i/(v.length-1)*w).toFixed(1)},${((1-(val-mn)/(mx-mn))*(h-2)+1).toFixed(1)}`).join(' ');const up=v[v.length-1]>=v[0];return`<svg width="${w}" height="${h}" style="vertical-align:middle"><polyline points="${pts}" fill="none" stroke="${up?'#25845e':'#a62020'}" stroke-width="1.5"/></svg>`;}
 
-function showMktChart(k){const p=mktData.prices?.[k];if(!p?.history?.length)return;const t=document.getElementById('mkt-ch-title');if(t)t.textContent=`📈 ${p.name} — ${p.history.length} дни (€/т)`;if(mktChart){mktChart.destroy();mktChart=null;}const ctx=document.getElementById('mkt-chart')?.getContext('2d');if(!ctx)return;const up=p.history[p.history.length-1].price>=p.history[0].price;mktChart=new Chart(ctx,{type:'line',data:{labels:p.history.map(h=>h.date.slice(5)),datasets:[{label:p.name,data:p.history.map(h=>h.price),borderColor:up?'var(--pri2)':'var(--err)',backgroundColor:up?'rgba(37,132,94,.06)':'rgba(166,32,32,.04)',borderWidth:2,tension:.3,pointRadius:2,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9},maxTicksLimit:10},grid:{display:false}}}}});}
+function showMktChart(k){const p=mktData.prices?.[k];if(!p?.history?.length)return;const t=document.getElementById('mkt-ch-title');if(t)t.textContent=`📈 ${p.name} — ${p.history.length} дни (€/т)`;if(mktChart){mktChart.destroy();mktChart=null;}const ctx=document.getElementById('mkt-chart')?.getContext('2d');if(!ctx)return;const up=p.history[p.history.length-1].price>=p.history[0].price;mktChart=new Chart(ctx,{type:'line',data:{labels:p.history.map(h=>h.date.slice(5)),datasets:[{label:p.name,data:p.history.map(h=>h.price),borderColor:up?'#25845e':'#a62020',backgroundColor:up?'rgba(37,132,94,.06)':'rgba(166,32,32,.04)',borderWidth:2,tension:.3,pointRadius:2,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.04)'}},x:{ticks:{font:{size:9},maxTicksLimit:10},grid:{display:false}}}}});}
 
 function calcBasis(){const tr=parseFloat(document.getElementById('b-transport')?.value)||12,sl=parseFloat(document.getElementById('b-silo')?.value)||8,tot=tr+sl,pr=mktData.prices||{};const el=document.getElementById('basis-out');if(!el)return;
 const emoji={'wheat':'🌾','corn':'🌽','rapeseed':'🌱','sunflower':'🌻','barley':'🌿'};
