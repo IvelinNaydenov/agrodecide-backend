@@ -1189,8 +1189,8 @@ function showMarketChart(cropKey){
 
 async function generateMarketAnalysis(data){
   const prices = data.prices || {};
-  const lines = Object.entries(prices).filter(([k,p])=>!p.error).map(([k,p])=>`${p.name}: ${p.price} €/т (${p.change_pct>=0?'+':''}${p.change_pct.toFixed(1)}%, БГ ~${p.bg_price} €/т)`).join('
-');
+  const lines = Object.entries(prices).filter(([k,p])=>!p.error).map(([k,p])=>`${p.name}: ${p.price} €/т (${p.change_pct>=0?'+':''}${p.change_pct.toFixed(1)}%, БГ ~${p.bg_price} €/т)`).join('\n');
+
   if(!lines) return;
 
   const p = activeIdx>=0 ? parcels[activeIdx] : null;
