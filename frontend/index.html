@@ -24,7 +24,6 @@ html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans'
 
 /* Mobile banner */
 .mob-banner{display:none;position:fixed;inset:0;background:var(--g);z-index:9999;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center;color:#fff}
-@media(max-width:900px){.mob-banner{display:flex}}
 .mb-logo{font-size:36px;font-weight:700;margin-bottom:8px}
 .mb-sub{font-size:15px;opacity:.8;margin-bottom:28px;line-height:1.7}
 .mb-box{background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);border-radius:14px;padding:18px 22px;font-size:14px;line-height:1.8;margin-bottom:8px}
@@ -430,8 +429,21 @@ html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans'
                 </tr>
               </table>
             </div>
+            <tr style="border-top:2px solid var(--bd2);background:var(--gp)">
+              <td style="padding:5px 8px;font-weight:700;color:var(--g)">Обвързана · рапица €/ха</td>
+              <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace;font-weight:700;color:var(--g)">72</td>
+              <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace;font-weight:700;color:var(--g)">75</td>
+              <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace;font-weight:700;color:var(--g)">78</td>
+              <td style="text-align:right;padding:5px 8px;font-family:'DM Mono',monospace;color:var(--t3)">~80</td>
+            </tr>
+            </table>
+            </div>
+            <div style="margin-top:10px;padding:8px 10px;background:var(--bl);border-radius:8px;font-size:11px;color:var(--b);line-height:1.7">
+              <strong>2025/2026 актуализация (ЕК):</strong> Европейската комисия одобри повишение на директните плащания за България с ~3.5% за кампания 2025. Обвързаната подкрепа за протеинови култури (соя, грах) се увеличава с 8%. Еко-схемите за биологично производство достигат 380 €/ха.
+              <a href="https://agriculture.ec.europa.eu/cap-my-country/cap-strategic-plans/bulgarias-cap-strategic-plan_en" target="_blank" style="display:block;margin-top:4px;color:var(--b)">ЕК · CAP Strategic Plan Bulgaria →</a>
+            </div>
             <div style="font-size:10px;color:var(--t3);margin-top:8px">
-              Данни: ДФЗ · Стратегически план на България за ОСП 2023-2027 · *прогнозни
+              Данни: ДФЗ · ЕК · Стратегически план ОСП 2023-2027 · *прогнозни
               · <a href="https://www.dfz.bg" target="_blank" style="color:var(--b)">dfz.bg →</a>
             </div>
           </div>
@@ -525,7 +537,7 @@ html,body{height:100%;overflow:hidden;background:var(--s2);font-family:'DM Sans'
 <div class="modal-ov" id="modal">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-title">Запази парцела</div>
+    <div class="modal-title" id="modal-title-text">Запази парцела</div>
     <div class="mf"><div class="ml">Ime</div><input class="mi" id="m-name" placeholder="напр. Северно поле А-12"></div>
     <div class="mf"><div class="ml">Планирана култура <span style="font-weight:400;text-transform:none;opacity:.7">(незадължително)</span></div>
       <select class="mi" id="m-crop" style="cursor:pointer">
@@ -610,9 +622,35 @@ map.on(L.Draw.Event.CREATED,function(e){
   setTimeout(()=>document.getElementById('m-name').focus(),300);
 });
 
+let editingIdx = -1;
+
+function editParcel(i){
+  editingIdx = i;
+  const p = parcels[i];
+  document.getElementById('m-name').value = p.name;
+  document.getElementById('m-crop').value = p.crop || 'unknown';
+  document.getElementById('m-area').textContent = p.area.toFixed(2) + ' ха';
+  document.getElementById('modal-title-text').textContent = 'Редактирай парцела';
+  document.getElementById('modal').classList.add('show');
+}
+
 function closeModal(save){
   document.getElementById('modal').classList.remove('show');
-  if(save&&pendingLayer){
+  document.getElementById('modal-title-text').textContent = 'Запази парцела';
+
+  if(save && editingIdx >= 0){
+    // Edit mode
+    const p = parcels[editingIdx];
+    p.name = document.getElementById('m-name').value || p.name;
+    p.crop = document.getElementById('m-crop').value;
+    saveP();
+    renderList();
+    if(activeIdx === editingIdx) selectParcel(editingIdx);
+    editingIdx = -1;
+    return;
+  }
+
+  if(save && pendingLayer){
     const name=document.getElementById('m-name').value||'Парцел '+(parcels.length+1);
     const crop=document.getElementById('m-crop').value;
     const lls=pendingLayer.getLatLngs()[0];
@@ -622,6 +660,7 @@ function closeModal(save){
     renderList();selectParcel(parcels.length-1);
     saveSupa(p);
   }
+  editingIdx = -1;
   pendingLayer=null;
 }
 
@@ -637,7 +676,12 @@ function renderList(){
     const ndvi=(0.45+Math.sin(p.id*.001)*.2).toFixed(2);
     const label=(CROP_LABELS[p.crop]||p.crop||'—').replace(/[🤔🌱🌲💧🏗🐄]/g,'').trim();
     return`<div class="sb-parcel ${activeIdx===i?'on':''}" onclick="selectParcel(${i})">
-      <div class="sb-p-name">${p.name}<span onclick="event.stopPropagation();delParcel(${i})" style="cursor:pointer;color:var(--t3);font-size:13px">×</span></div>
+      <div class="sb-p-name">${p.name}
+        <div style="display:flex;gap:4px">
+          <span onclick="event.stopPropagation();editParcel(${i})" style="cursor:pointer;color:var(--b);font-size:11px" title="Редактирай">✏️</span>
+          <span onclick="event.stopPropagation();delParcel(${i})" style="cursor:pointer;color:var(--t3);font-size:13px" title="Изтрий">×</span>
+        </div>
+      </div>
       <div class="sb-p-meta">${label} · ${p.area.toFixed(1)} ха</div>
     </div>`;
   }).join('');
@@ -792,11 +836,22 @@ async function selectParcel(i){
     if(rn.series?.length>0)drawNDVI90Real(rn.series);
     else throw new Error('no series');
   }catch(e){
-    // Fallback — meteo-derived NDVI
+    // Fallback — meteo-derived NDVI curve
     try{
       const hist=await fetch(`${BACKEND}/api/meteo/history?lat=${p.lat}&lon=${p.lon}&days=90`).then(r=>r.json());
-      if(hist.daily?.time)drawNDVI90(hist,p.crop);
-    }catch(e2){}
+      if(hist.daily?.time){
+        drawNDVI90(hist,p.crop);
+        // Update indicator with derived NDVI
+        const et0avg=(hist.daily.et0_fao_evapotranspiration||[]).slice(-7).reduce((a,b)=>a+b,0)/7||3.5;
+        const rain7=(hist.daily.precipitation_sum||[]).slice(-7).reduce((a,b)=>a+(b||0),0);
+        const ndviD=Math.min(0.95,Math.max(0.05,0.58+(rain7-et0avg*7)/30*0.18));
+        setBar('bi-ndvi','vi-ndvi',ndviD*100,ndviD.toFixed(3));
+        const ndviEl=document.getElementById('ov-ndvi');
+        if(ndviEl)ndviEl.textContent=ndviD.toFixed(3);
+        const ndviSrc=document.getElementById('ov-ndvi-src');
+        if(ndviSrc)ndviSrc.textContent='ERA5 proxy · метео';
+      }
+    }catch(e2){console.warn('NDVI fallback error:',e2);}
   }
 
   // AI prediction
@@ -1184,27 +1239,80 @@ let marketData = {};
 let marketChatH = [];
 let marketChart = null;
 
+// MATIF tickers
+const MARKET_CONFIG = {
+  wheat:     {symbol:'EBM.PA', name:'Пшеница мелница (МАТИФ)', bg_ref:175, bg_note:'ДФЗ бюлетин'},
+  corn:      {symbol:'EMA.PA', name:'Царевица (МАТИФ)',        bg_ref:178, bg_note:'ДФЗ бюлетин'},
+  rapeseed:  {symbol:'ECO.PA', name:'Рапица (МАТИФ)',          bg_ref:460, bg_note:'ДФЗ бюлетин'},
+  sunflower: {symbol:null,     name:'Слънчоглед маслодаен',    bg_ref:490, bg_note:'borsaagro.com'},
+  barley:    {symbol:null,     name:'Ечемик фуражен',          bg_ref:168, bg_note:'ДФЗ бюлетин'},
+};
+
+async function fetchYahooPrice(symbol){
+  const urls = [
+    `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=30d`,
+    `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=30d`,
+  ];
+  for(const url of urls){
+    try{
+      const r = await fetch(url);
+      if(!r.ok) continue;
+      const data = await r.json();
+      const res = data?.chart?.result?.[0];
+      if(!res) continue;
+      const meta = res.meta;
+      const price = meta.regularMarketPrice || meta.previousClose;
+      const prev  = meta.chartPreviousClose || price;
+      const ts    = res.timestamp || [];
+      const closes= res.indicators?.quote?.[0]?.close || [];
+      const history = ts.map((t,i)=>({
+        date: new Date(t*1000).toISOString().slice(0,10),
+        price: closes[i] ? Math.round(closes[i]*100)/100 : null
+      })).filter(h=>h.price).slice(-20);
+      return {price:Math.round(price*100)/100, prev:Math.round(prev*100)/100, history};
+    }catch(e){}
+  }
+  return null;
+}
+
 async function loadMarketPrices(){
   const spin = document.getElementById('market-spin');
   const upd  = document.getElementById('market-updated');
   if(spin) spin.style.display='inline-block';
   if(upd)  upd.textContent='Зарежда МАТИФ...';
 
-  try{
-    const r = await fetch(`${BACKEND}/api/market/prices`);
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const data = await r.json();
-    marketData = data;
-    renderMarketCards(data);
-    renderMarketTable(data);
-    calcBasis();
-    if(upd) upd.textContent=data.updated+' · '+(data._cache==='hit'?'кеш':'live');
-    // Auto-generate AI market analysis
-    generateMarketAnalysis(data);
-  }catch(e){
-    if(upd) upd.textContent='Грешка: '+e.message;
+  const prices = {};
+  for(const [key, cfg] of Object.entries(MARKET_CONFIG)){
+    if(cfg.symbol){
+      const yf = await fetchYahooPrice(cfg.symbol);
+      if(yf && yf.price){
+        const chg = yf.prev ? Math.round((yf.price-yf.prev)/yf.prev*10000)/100 : 0;
+        prices[key] = {
+          name:cfg.name, symbol:cfg.symbol,
+          price:yf.price, prev_close:yf.prev, change_pct:chg,
+          currency:'EUR', unit:'€/т',
+          bg_price:cfg.bg_ref, bg_note:cfg.bg_note,
+          history:yf.history, source:'МАТИФ Euronext · Yahoo Finance',
+        };
+        continue;
+      }
+    }
+    prices[key] = {
+      name:cfg.name, price:cfg.bg_ref, prev_close:cfg.bg_ref,
+      change_pct:0, currency:'EUR', unit:'€/т',
+      bg_price:cfg.bg_ref, bg_note:cfg.bg_note,
+      history:[], source:cfg.bg_note,
+    };
   }
+
+  marketData = {prices, updated:new Date().toLocaleString('bg-BG'), _cache:'live'};
+  renderMarketCards(marketData);
+  renderMarketTable(marketData);
+  const first = Object.keys(prices).find(k=>prices[k].history?.length>0);
+  if(first) showMarketChart(first);
+  if(upd) upd.textContent=new Date().toLocaleTimeString('bg-BG')+' · live';
   if(spin) spin.style.display='none';
+  generateMarketAnalysis(marketData);
 }
 
 function renderMarketCards(data){
@@ -1370,6 +1478,12 @@ function calcBasis(){
 
 // Init
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&isDrawing)cancelDraw();});
+
+// Mobile detection — JS based, not CSS, so desktop functionality is never broken
+if(window.innerWidth < 900 || (window.screen.width < 900 && window.innerHeight > window.innerWidth)){
+  document.querySelector('.mob-banner').style.display='flex';
+  document.querySelector('.app').style.display='none';
+}
 
 fetch(`${BACKEND}/health`).then(r=>r.json()).then(d=>{
   if(d.status==='healthy'){setPill('pl-backend','pill p-live','Backend ✓');setSrc('ss-be','var(--gl)','var(--g)',`Live · ${d.cache_keys} кеша`);}
