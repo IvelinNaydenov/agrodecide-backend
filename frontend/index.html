@@ -190,7 +190,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
 <span class="pill p-wait" id="pl-be"><span class="d"></span>Backend</span>
 <span class="pill p-wait" id="pl-cop"><span class="d"></span>Copernicus</span>
 <span class="pill p-wait" id="pl-met"><span class="d"></span>Метео</span>
-<span class="pill p-wait" id="pl-ai"><span class="d"></span>Gemini/Groq</span>
+<span class="pill p-wait" id="pl-gemini"><span class="d"></span>Gemini</span>
+<span class="pill p-wait" id="pl-groq"><span class="d"></span>Groq</span>
 </div>
 </div>
 
@@ -213,7 +214,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
 <div class="api"><div><div class="api-n">Backend</div><div class="api-s">Render EU</div></div><span class="api-b" id="ss-be" style="background:var(--warn-bg);color:var(--warn)">…</span></div>
 <div class="api"><div><div class="api-n">Copernicus</div><div class="api-s">Sentinel-2</div></div><span class="api-b" id="ss-cop" style="background:var(--warn-bg);color:var(--warn)">…</span></div>
 <div class="api"><div><div class="api-n">OpenMeteo</div><div class="api-s">Прогноза</div></div><span class="api-b" id="ss-met" style="background:var(--warn-bg);color:var(--warn)">…</span></div>
-<div class="api"><div><div class="api-n">Groq AI</div><div class="api-s">LLaMA 3.3</div></div><span class="api-b" id="ss-ai" style="background:var(--warn-bg);color:var(--warn)">…</span></div>
+<div class="api"><div><div class="api-n">Gemini</div><div class="api-s">2.5 Flash</div></div><span class="api-b" id="ss-gemini" style="background:var(--warn-bg);color:var(--warn)">…</span></div>
+<div class="api"><div><div class="api-n">Groq</div><div class="api-s">LLaMA 3.3</div></div><span class="api-b" id="ss-groq" style="background:var(--warn-bg);color:var(--warn)">…</span></div>
 <div class="api"><div><div class="api-n">EuroCrops</div><div class="api-s">PostGIS</div></div><span class="api-b" style="background:var(--pri3);color:var(--pri)">791k</span></div>
 </div>
 <div style="padding:6px 10px;border-bottom:1px solid var(--brd);flex-shrink:0">
@@ -232,7 +234,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
 <button class="ctab on" onclick="cTab('map',this)">🗺 Карта</button>
 <button class="ctab" onclick="cTab('overview',this)">📈 Преглед</button>
 <button class="ctab" onclick="cTab('meteo',this)">🌤 Метео</button>
-<button class="ctab" onclick="cTab('ndvi',this)">🌿 NDVI</button>
+
 </div>
 
 <div class="map-wrap" id="cv-map">
@@ -293,10 +295,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
 <div class="card"><div class="card-t">Воден баланс мм</div><div class="ch"><canvas id="c-wb"></canvas></div></div>
 </div>
 
-<!-- NDVI full -->
-<div class="dview" id="cv-ndvi">
-<div class="card"><div class="card-t">NDVI история 90 дни · Sentinel-2</div><div class="ch" style="height:200px"><canvas id="c-ndvi-full"></canvas></div></div>
-</div>
+
 
 </div><!-- center -->
 
@@ -699,7 +698,8 @@ async function genPred(p,hist,nr){
   try{const r=await aiCall(buildSys(p,hs,nr),dH,true);
   document.getElementById('pred-text').textContent=r.text||'—';dH.push({role:'model',parts:[{text:r.text}]});
   document.getElementById('d-chat').innerHTML='';addMsg('d-chat','msg-ai',r.text);
-  const mdl=r.model||'AI';setPl('pl-ai','p-ok',mdl==='gemini-2.5-flash'?'Gemini ✓':'Groq ✓');setSt('ss-ai','var(--pri3)','var(--pri)',mdl);
+  const mdl=r.model||'AI';if(mdl==='ensemble'||mdl==='gemini-2.5-flash'){setPl('pl-gemini','p-ok','Gemini ✓');setSt('ss-gemini','var(--pri3)','var(--pri)','Live');}
+  if(mdl==='ensemble'||mdl==='groq-llama-3.3'){setPl('pl-groq','p-ok','Groq ✓');setSt('ss-groq','var(--pri3)','var(--pri)','Live');}
   }catch(e){document.getElementById('pred-text').textContent='Грешка.';}
 }
 function addMsg(cid,cls,txt){const c=document.getElementById(cid),d=document.createElement('div');d.className='msg '+cls;d.textContent=txt;c.appendChild(d);c.scrollTop=c.scrollHeight;}
@@ -726,7 +726,7 @@ function cTab(name,btn){
   const mw=document.getElementById('cv-map');document.querySelectorAll('.dview').forEach(v=>v.classList.remove('on'));
   if(name==='map'){mw.style.display='block';setTimeout(()=>map.invalidateSize(),50);}
   else{mw.style.display='none';const dv=document.getElementById('cv-'+name);if(dv)dv.classList.add('on');
-  if(name==='ndvi'&&window._ndviSeries)drawNDVI(window._ndviSeries,'c-ndvi-full');
+  
   if(name==='overview'&&active>=0&&!window._stacLoaded){
     const p=parcels[active];
     fetch(`${B}/api/stac?lat=${p.lat}&lon=${p.lon}&days=60`).then(r=>r.json()).then(d=>{
@@ -821,6 +821,10 @@ loadSupa();
 // Health checks
 fetch(`${B}/health`).then(r=>r.json()).then(d=>{if(d.status==='healthy'){setPl('pl-be','p-ok','Backend ✓');setSt('ss-be','var(--pri3)','var(--pri)',`OK · ${d.cache_keys}`);}}).catch(()=>setPl('pl-be','p-err','Backend ✗'));
 fetch(`${B}/api/wms?LAYERS=TRUE_COLOR&BBOX=3091724,5395842,3101508,5405626&WIDTH=64&HEIGHT=64&CRS=EPSG:3857&FORMAT=image/jpeg`).then(r=>{if(r.ok){setPl('pl-cop','p-ok','Copernicus ✓');setSt('ss-cop','var(--pri3)','var(--pri)','Live');}}).catch(()=>{});
+// Groq health
+fetch(`${B}/api/ai`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:'OK',contents:[{role:'user',parts:[{text:'test'}]}]})}).then(r=>{if(r.ok){setPl('pl-groq','p-ok','Groq ✓');setSt('ss-groq','var(--pri3)','var(--pri)','Live');}}).catch(()=>setPl('pl-groq','p-err','Groq ✗'));
+// Gemini health
+fetch(`${B}/api/gemini`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:'OK'}]}]})}).then(r=>{if(r.ok){setPl('pl-gemini','p-ok','Gemini ✓');setSt('ss-gemini','var(--pri3)','var(--pri)','Live');}else{setPl('pl-gemini','p-warn','Gemini '+r.status);}}).catch(()=>setPl('pl-gemini','p-err','Gemini ✗'));
 </script>
 </body>
 </html>
