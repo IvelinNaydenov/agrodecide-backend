@@ -679,74 +679,186 @@ function evaluatePixel(s){
 
 
 
-@app.get("/api/test/prices")
-async def test_euronext():
-    """Test if we can scrape Euronext commodity prices from Render."""
-    results = {}
-    
-    urls = {
-        "agroportal_main": "https://agroportal.bg/",
-        "agroportal_prices": "https://agroportal.bg/%D1%86%D0%B5%D0%BD%D0%B8-%D0%B8-%D0%BA%D0%BE%D1%82%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B8",
-        "borsaagro": "https://borsaagro.com/",
-    }
-    
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-        "X-Requested-With": "XMLHttpRequest",
-        "Referer": "https://live.euronext.com/en/products/commodities",
-    }
-    
-    for key, url in urls.items():
-        for use_proxy in [True, False]:
-            try:
-                async with make_client(use_proxy, timeout=10) as client:
-                    r = await client.get(url, headers=headers)
-                    results[f"{key}_proxy={use_proxy}"] = {
-                        "status": r.status_code,
-                        "content_type": r.headers.get("content-type", "?"),
-                        "body_preview": r.text[:300] if r.status_code == 200 else r.text[:100],
-                        "body_length": len(r.text),
-                    }
-                    if r.status_code == 200:
-                        break  # Got it, no need to try without proxy
-            except Exception as e:
-                results[f"{key}_proxy={use_proxy}"] = {"error": str(e)[:100]}
-    
-    return results
 
-@app.get("/api/market/prices")
-async def market_prices():
-    """
-    Real commodity prices:
-    - MATIF Paris via Yahoo Finance: EBM.PA (wheat), ECO.PA (rapeseed), EMA.PA (corn)
-    - Euronext sunflower: fetched from public Euronext data
-    - BG physical reference prices from DFZ weekly bulletin (updated manually)
-    Cached 15 minutes.
-    """
-    cache_key = "market:prices:v2"
+# ── Price History (Supabase) ───────────────────────────
+@app.post("/api/prices/save")
+async def save_prices(body: dict):
+    """Save daily prices to Supabase price_history table."""
+    payload = {
+        "date": body.get("date"),
+        "wheat_matif": body.get("wheat_matif"),
+        "corn_matif": body.get("corn_matif"),
+        "rapeseed_matif": body.get("rapeseed_matif"),
+        "sunflower_euronext": body.get("sunflower_euronext"),
+        "barley_bg": body.get("barley_bg"),
+        "wheat_bg": body.get("wheat_bg"),
+        "corn_bg": body.get("corn_bg"),
+        "sunflower_bg": body.get("sunflower_bg"),
+        "source": body.get("source", "agroportal"),
+    }
+    async with make_client(False) as client:
+        r = await client.post(
+            f"{SUPABASE_URL}/rest/v1/price_history",
+            headers={**supa_headers(), "Prefer": "return=minimal,resolution=merge-duplicates"},
+            json=payload
+        )
+        return {"saved": r.status_code in (200, 201, 409)}
+
+
+@app.get("/api/prices/history")
+async def get_price_history(days: int = 30):
+    """Get price history from Supabase."""
+    cache_key = f"price_hist:{days}"
     cached = cache_get(cache_key)
     if cached:
         return {**cached, "_cache": "hit"}
 
-    # DFZ/NAZ reference BG physical prices (updated weekly from dfz.bg bulletin)
-    # Source: dfz.bg/bg/press-center/price-bulletins
-    BG_REFERENCE = {
-        "wheat":     {"bg_price": 175.0, "note": "Пшеница хлебна, ДФЗ бюлетин"},
-        "corn":      {"bg_price": 178.0, "note": "Царевица фуражна, ДФЗ бюлетин"},
-        "rapeseed":  {"bg_price": 460.0, "note": "Рапица, ДФЗ бюлетин"},
-        "sunflower": {"bg_price": 490.0, "note": "Слънчоглед маслодаен, ДФЗ бюлетин"},
-        "barley":    {"bg_price": 168.0, "note": "Ечемик фуражен, ДФЗ бюлетин"},
-    }
+    since = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
+    async with make_client(False) as client:
+        r = await client.get(
+            f"{SUPABASE_URL}/rest/v1/price_history?date=gte.{since}&order=date.asc",
+            headers=supa_headers()
+        )
+        r.raise_for_status()
+        data = r.json()
 
-    tickers = {
-        "wheat":    "EBM.PA",
-        "corn":     "EMA.PA",
-        "rapeseed": "ECO.PA",
-    }
+    result = {"history": data, "days": days, "_cache": "miss"}
+    cache_set(cache_key, result, 10 * 60)
+    return result
 
-    names = {
+
+# ── Market Prices (scrape agroportal.bg + borsaagro.com) ──
+@app.get("/api/market/prices")
+async def market_prices():
+    """
+    Scrape real commodity prices from agroportal.bg and borsaagro.com.
+    Returns MATIF futures + BG physical prices.
+    Also saves to Supabase price_history for charting.
+    Cached 15 minutes.
+    """
+    cache_key = "market:prices:v3"
+    cached = cache_get(cache_key)
+    if cached:
+        return {**cached, "_cache": "hit"}
+
+    import re as _re
+
+    matif_prices = {}
+    bg_prices = {}
+    source_used = "none"
+
+    # --- Try agroportal.bg first ---
+    try:
+        async with make_client(True, timeout=15) as client:
+            r = await client.get(
+                "https://agroportal.bg/",
+                headers={"User-Agent": "Mozilla/5.0 (compatible; AgroDecide/1.0)",
+                         "Accept-Language": "bg-BG,bg;q=0.9"}
+            )
+            if r.status_code == 200:
+                html = r.text
+                source_used = "agroportal.bg"
+
+                # Parse the scrolling ticker bar at top
+                # Format: "Царевица MATIF ... 222.75 €/мт"
+                ticker_crops = {
+                    "wheat_matif": ["Пшеница MATIF", "Пшеница МАТИФ"],
+                    "corn_matif": ["Царевица MATIF", "Царевица МАТИФ"],
+                    "rapeseed_matif": ["Рапица MATIF", "Рапица МАТИФ"],
+                    "sunflower_euronext": ["Слънчоглед - 44-9-2", "Слънчоглед 44-9-2"],
+                }
+                for key, names in ticker_crops.items():
+                    for name in names:
+                        idx = html.find(name)
+                        if idx != -1:
+                            snippet = html[idx:idx+200]
+                            m = _re.search(r'([\d,.]+)\s*[€$]', snippet)
+                            if m:
+                                val = m.group(1).replace(",", "").replace(" ", "")
+                                try:
+                                    matif_prices[key] = float(val)
+                                except ValueError:
+                                    pass
+                            break
+
+                # Parse BG physical prices
+                bg_crops = {
+                    "wheat_bg": ["Хлебна пшеница", "ХЛЕБНА ПШЕНИЦА", "Пшеница хлебна"],
+                    "corn_bg": ["Царевица", "ЦАРЕВИЦА"],
+                    "sunflower_bg": ["Слънчоглед маслодаен", "СЛЪНЧОГЛЕД МАСЛОДАЕН", "Слънчоглед - маслодаен"],
+                    "barley_bg": ["Ечемик фуражен", "ЕЧЕМИК ФУРАЖЕН", "Ечемик"],
+                    "rapeseed_bg": ["Рапица", "РАПИЦА"],
+                }
+                for key, names in bg_crops.items():
+                    for name in names:
+                        # Look in the physical market section
+                        idx = html.find(name)
+                        if idx != -1:
+                            snippet = html[idx:idx+200]
+                            m = _re.search(r'([\d,.]+)\s*[€лв]', snippet)
+                            if m:
+                                val = m.group(1).replace(",", "").replace(" ", "")
+                                try:
+                                    bg_prices[key] = float(val)
+                                except ValueError:
+                                    pass
+                            break
+    except Exception as e:
+        pass
+
+    # --- Fallback: borsaagro.com ---
+    if not matif_prices:
+        try:
+            async with make_client(True, timeout=15) as client:
+                r = await client.get(
+                    "https://borsaagro.com/",
+                    headers={"User-Agent": "Mozilla/5.0 (compatible; AgroDecide/1.0)"}
+                )
+                if r.status_code == 200:
+                    html = r.text
+                    source_used = "borsaagro.com"
+
+                    for key, names in {
+                        "wheat_matif": ["Пшеница MATIF"],
+                        "corn_matif": ["Царевица MATIF"],
+                        "rapeseed_matif": ["Рапица MATIF"],
+                        "sunflower_euronext": ["Слънчоглед - 44-9-2"],
+                    }.items():
+                        for name in names:
+                            idx = html.find(name)
+                            if idx != -1:
+                                snippet = html[idx:idx+300]
+                                m = _re.search(r'([\d,.]+)\s*€', snippet)
+                                if m:
+                                    val = m.group(1).replace(",", "")
+                                    try:
+                                        matif_prices[key] = float(val)
+                                    except ValueError:
+                                        pass
+
+                    # BG physical from borsaagro
+                    for key, names in {
+                        "wheat_bg": ["ПШЕНИЦА ФУРАЖНА", "ПШЕНИЦА ХЛЕБНА"],
+                        "corn_bg": ["ЦАРЕВИЦА"],
+                        "sunflower_bg": ["СЛЪНЧОГЛЕД МАСЛОДАЕН"],
+                        "barley_bg": ["ЕЧЕМИК ФУРАЖЕН"],
+                    }.items():
+                        for name in names:
+                            idx = html.find(name)
+                            if idx != -1:
+                                snippet = html[idx:idx+200]
+                                m = _re.search(r'([\d,.]+)\s*€', snippet)
+                                if m:
+                                    val = m.group(1).replace(",", "")
+                                    try:
+                                        bg_prices[key] = float(val)
+                                    except ValueError:
+                                        pass
+        except Exception:
+            pass
+
+    # --- Build response ---
+    names_map = {
         "wheat":     "Пшеница мелница (МАТИФ)",
         "corn":      "Царевица (МАТИФ)",
         "rapeseed":  "Рапица (МАТИФ)",
@@ -754,118 +866,80 @@ async def market_prices():
         "barley":    "Ечемик (БГ физически)",
     }
 
-    prices = {}
+    # Get history from Supabase for change calculation
+    history_data = []
+    try:
+        since = (datetime.utcnow() - timedelta(days=35)).strftime("%Y-%m-%d")
+        async with make_client(False) as client:
+            r = await client.get(
+                f"{SUPABASE_URL}/rest/v1/price_history?date=gte.{since}&order=date.asc",
+                headers=supa_headers()
+            )
+            if r.status_code == 200:
+                history_data = r.json()
+    except Exception:
+        pass
 
-    async with make_client(False, timeout=15) as client:
-        for key, symbol in tickers.items():
-            try:
-                r = await client.get(
-                    f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=30d",
-                    headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"}
-                )
-                if r.status_code != 200:
-                    raise ValueError(f"HTTP {r.status_code}")
+    def get_history_for(field):
+        return [{"date": row["date"], "price": row.get(field)} for row in history_data if row.get(field)]
 
-                data = r.json()
-                meta = data["chart"]["result"][0]["meta"]
-                price = meta.get("regularMarketPrice") or meta.get("previousClose", 0)
-                prev  = meta.get("chartPreviousClose") or price
-
-                ts = data["chart"]["result"][0].get("timestamp", [])
-                closes = data["chart"]["result"][0]["indicators"]["quote"][0].get("close", [])
-                history = [
-                    {"date": datetime.utcfromtimestamp(t).strftime("%Y-%m-%d"), "price": round(cl, 2)}
-                    for t, cl in zip(ts[-20:], closes[-20:]) if cl
-                ]
-
-                chg = round((price - prev) / prev * 100, 2) if prev else 0
-                bg = BG_REFERENCE[key]
-
-                prices[key] = {
-                    "name":      names[key],
-                    "symbol":    symbol,
-                    "price":     round(price, 2),
-                    "prev_close":round(prev, 2),
-                    "change_pct":chg,
-                    "currency":  "EUR",
-                    "unit":      "EUR/t",
-                    "bg_price":  bg["bg_price"],
-                    "bg_note":   bg["note"],
-                    "history":   history,
-                    "source":    "MATIF Euronext via Yahoo Finance",
-                }
-            except Exception as e:
-                prices[key] = {"name": names[key], "error": str(e)[:80]}
-
-        # Sunflower — try Euronext directly or use fixed reference
-        # Euronext sunflower: XSF futures not on Yahoo — use BG reference + MATIF rapeseed correlation
-        rape_price = prices.get("rapeseed", {}).get("price")
-        sunf_matif = round(rape_price * 1.18, 2) if rape_price else None  # historical correlation
-        bg_sunf = BG_REFERENCE["sunflower"]
-        prices["sunflower"] = {
-            "name":      names["sunflower"],
-            "price":     sunf_matif or bg_sunf["bg_price"],
-            "prev_close":sunf_matif or bg_sunf["bg_price"],
-            "change_pct":0,
-            "currency":  "EUR",
-            "unit":      "EUR/t",
-            "bg_price":  bg_sunf["bg_price"],
-            "bg_note":   bg_sunf["note"],
-            "history":   [],
-            "source":    "Изчислено от рапица МАТИФ · верифицирай с borsaagro.com",
+    def make_entry(key, name, matif_key, bg_key):
+        price = matif_prices.get(matif_key)
+        bg = bg_prices.get(bg_key)
+        if price is None and bg is not None:
+            price = bg
+        if price is None:
+            return {"name": name, "error": "Няма данни"}
+        hist = get_history_for(matif_key)
+        prev = hist[-2]["price"] if len(hist) >= 2 else price
+        chg = round((price - prev) / prev * 100, 2) if prev else 0
+        return {
+            "name": name, "price": round(price, 2),
+            "prev_close": round(prev, 2), "change_pct": chg,
+            "currency": "EUR", "unit": "EUR/t",
+            "bg_price": round(bg, 2) if bg else None,
+            "history": hist,
+            "source": source_used,
         }
 
-        # Barley — BG physical only
-        bg_barley = BG_REFERENCE["barley"]
-        prices["barley"] = {
-            "name":      names["barley"],
-            "price":     bg_barley["bg_price"],
-            "prev_close":bg_barley["bg_price"],
-            "change_pct":0,
-            "currency":  "EUR",
-            "unit":      "EUR/t",
-            "bg_price":  bg_barley["bg_price"],
-            "bg_note":   bg_barley["note"],
-            "history":   [],
-            "source":    "ДФЗ бюлетин",
-        }
+    prices = {
+        "wheat":     make_entry("wheat", names_map["wheat"], "wheat_matif", "wheat_bg"),
+        "corn":      make_entry("corn", names_map["corn"], "corn_matif", "corn_bg"),
+        "rapeseed":  make_entry("rapeseed", names_map["rapeseed"], "rapeseed_matif", "rapeseed_bg"),
+        "sunflower": make_entry("sunflower", names_map["sunflower"], "sunflower_euronext", "sunflower_bg"),
+        "barley":    make_entry("barley", names_map["barley"], "barley_bg", "barley_bg"),
+    }
+
+    # Save today prices to Supabase
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    save_payload = {
+        "date": today,
+        "wheat_matif": matif_prices.get("wheat_matif"),
+        "corn_matif": matif_prices.get("corn_matif"),
+        "rapeseed_matif": matif_prices.get("rapeseed_matif"),
+        "sunflower_euronext": matif_prices.get("sunflower_euronext"),
+        "barley_bg": bg_prices.get("barley_bg"),
+        "wheat_bg": bg_prices.get("wheat_bg"),
+        "corn_bg": bg_prices.get("corn_bg"),
+        "sunflower_bg": bg_prices.get("sunflower_bg"),
+        "source": source_used,
+    }
+    try:
+        async with make_client(False) as client:
+            await client.post(
+                f"{SUPABASE_URL}/rest/v1/price_history",
+                headers={**supa_headers(), "Prefer": "return=minimal,resolution=merge-duplicates"},
+                json=save_payload
+            )
+    except Exception:
+        pass
 
     result = {
         "prices": prices,
         "updated": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
-        "note": "MATIF/Yahoo Finance + DFZ reference prices",
-        "dfz_url": "https://www.dfz.bg/bg/press-center/price-bulletins",
+        "source": source_used,
+        "note": "Live prices from " + source_used,
         "_cache": "miss",
     }
     cache_set(cache_key, result, 15 * 60)
     return result
-
-GEMINI_KEY = os.getenv("GEMINI_KEY", "")
-
-@app.post("/api/gemini")
-async def gemini_proxy(body: dict):
-    """Proxy for Gemini API — keeps API key server-side."""
-    if not GEMINI_KEY:
-        raise HTTPException(503, "Gemini API key not configured")
-    
-    try:
-        async with make_client(False, timeout=25) as client:
-            r = await client.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_KEY}",
-                headers={"Content-Type": "application/json"},
-                json=body
-            )
-            if r.status_code == 200:
-                data = r.json()
-                text = ""
-                candidates = data.get("candidates", [])
-                if candidates:
-                    parts = candidates[0].get("content", {}).get("parts", [])
-                    text = parts[0].get("text", "") if parts else ""
-                return {"text": text, "model": "gemini-2.5-flash"}
-            else:
-                raise HTTPException(r.status_code, f"Gemini error: {r.text[:200]}")
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(502, f"Gemini proxy error: {e}")
