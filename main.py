@@ -582,51 +582,46 @@ async def eurostat_agriculture(country: str = "BG"):
     return result
 
 @app.get("/api/ndvi/real")
-async def real_ndvi(lat: float, lon: float, days: int = 30):
-    """Real Sentinel-2 NDVI via Copernicus Statistical API (evalscript)."""
-    cache_key = f"real_ndvi:{lat:.4f}:{lon:.4f}:{days}"
+async def real_ndvi(lat: float, lon: float, days: int = 90):
+    """Real Sentinel-2 NDVI via Copernicus Statistical API."""
+    cache_key = f"ndvi_real:{lat:.4f}:{lon:.4f}:{days}"
     cached = cache_get(cache_key)
     if cached:
         return {**cached, "_cache": "hit"}
 
-    end_date   = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
+    end_date = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
     start_date = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
-    delta = 0.005
+    delta = 0.003  # ~300m bbox
     bbox = [lon - delta, lat - delta, lon + delta, lat + delta]
 
-    evalscript = """
-//VERSION=3
-function setup(){return{input:[{bands:["B04","B08","CLM"],units:"REFLECTANCE"}],output:[{id:"ndvi",bands:1,sampleType:"FLOAT32"},{id:"dataMask",bands:1,sampleType:"UINT8"}]};}
+    evalscript = """//VERSION=3
+function setup(){return{input:[{bands:["B04","B08","CLM"],units:"REFLECTANCE"}],output:[{id:"ndvi",bands:1,sampleType:"FLOAT32"},{id:"dataMask",bands:1}]};}
 function evaluatePixel(s){
-  let ndvi=(s.B08-s.B04)/(s.B08+s.B04+0.0001);
-  let valid=s.CLM<0.5?1:0;
-  return{ndvi:[ndvi*valid+(-9999)*(1-valid)],dataMask:[valid]};
-}
-"""
+  if(s.CLM>0.5)return{ndvi:[0],dataMask:[0]};
+  var n=(s.B08-s.B04)/(s.B08+s.B04+0.001);
+  return{ndvi:[n],dataMask:[1]};
+}"""
 
-    stat_body = {
+    body = {
         "input": {
             "bounds": {"bbox": bbox, "properties": {"crs": "http://www.opengis.net/def/crs/OGC/1.3/CRS84"}},
-            "data": [{"type": "sentinel-2-l2a", "dataFilter": {"timeRange": {"from": f"{start_date}T00:00:00Z", "to": f"{end_date}T23:59:59Z"}, "maxCloudCoverage": 80}}]
+            "data": [{"type": "sentinel-2-l2a", "dataFilter": {
+                "timeRange": {"from": f"{start_date}T00:00:00Z", "to": f"{end_date}T23:59:59Z"},
+                "maxCloudCoverage": 70
+            }}]
         },
         "aggregation": {
             "timeRange": {"from": f"{start_date}T00:00:00Z", "to": f"{end_date}T23:59:59Z"},
             "aggregationInterval": {"of": "P7D"},
             "evalscript": evalscript,
-            "resampling": {"downsampling": "BILINEAR", "upsampling": "BILINEAR"},
-            "width": 10, "height": 10
+            "width": 5, "height": 5
         },
-        "calculations": {
-            "ndvi": {
-                "histograms": {"default": {"nBins": 20, "lowEdge": -1.0, "highEdge": 1.0}},
-                "statistics": {"default": {"percentiles": {"k": [25, 50, 75]}, "noDataValues": [-9999]}}
-            }
-        }
+        "calculations": {"ndvi": {"statistics": {"default": {"percentiles": {"k": [50]}}}}}
     }
 
     try:
         token = await get_token()
-        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json", "Accept": "application/json"}
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
         last_err = None
 
         for use_proxy in [True, False]:
@@ -634,47 +629,44 @@ function evaluatePixel(s){
                 async with make_client(use_proxy, timeout=30) as client:
                     r = await client.post(
                         "https://services.sentinel-hub.com/api/v1/statistics",
-                        headers=headers, json=stat_body
+                        headers=headers, json=body
                     )
                     if r.status_code == 200:
                         data = r.json()
-                        intervals = data.get("data", [])
                         series = []
-                        for interval in intervals:
-                            date = interval.get("interval", {}).get("from", "")[:10]
-                            outputs = interval.get("outputs", {})
-                            ndvi_stats = outputs.get("ndvi", {}).get("statistics", {}).get("default", {})
-                            mean = ndvi_stats.get("mean")
-                            median_val = ndvi_stats.get("percentiles", {}).get("50.0")
-                            sample_count = ndvi_stats.get("sampleCount", 0)
-                            no_data = ndvi_stats.get("noDataCount", 0)
-                            if sample_count > 0 and (no_data / max(sample_count, 1)) < 0.7:
-                                ndvi_val = median_val or mean
-                                if ndvi_val is not None and ndvi_val > -1:
-                                    series.append({"date": date, "ndvi": round(ndvi_val, 4), "mean": round(mean, 4) if mean else None, "source": "sentinel-2-l2a"})
+                        for interval in data.get("data", []):
+                            dt = interval.get("interval", {}).get("from", "")[:10]
+                            stats = interval.get("outputs", {}).get("ndvi", {}).get("statistics", {}).get("default", {})
+                            mean_val = stats.get("mean")
+                            median_val = stats.get("percentiles", {}).get("50.0")
+                            sample_count = stats.get("sampleCount", 0)
+                            no_data = stats.get("noDataCount", 0)
+                            valid_ratio = (sample_count - no_data) / max(sample_count, 1)
+                            ndvi_val = median_val if median_val is not None else mean_val
+                            if ndvi_val is not None and valid_ratio > 0.3 and 0 < ndvi_val < 1:
+                                series.append({"date": dt, "ndvi": round(ndvi_val, 4), "source": "sentinel-2"})
 
-                        current_ndvi = series[-1]["ndvi"] if series else None
                         result = {
-                            "lat": lat, "lon": lon,
-                            "current_ndvi": current_ndvi,
+                            "current_ndvi": series[-1]["ndvi"] if series else None,
                             "series": series,
                             "series_count": len(series),
-                            "period": f"{start_date} → {end_date}",
-                            "source": "Copernicus Statistical API · Sentinel-2 L2A",
+                            "period": f"{start_date} to {end_date}",
+                            "source": "Copernicus Sentinel-2 L2A Statistical API",
+                            "real": True,
                             "_cache": "miss"
                         }
                         cache_set(cache_key, result, 6 * 3600)
                         return result
                     else:
-                        last_err = f"HTTP {r.status_code}: {r.text[:200]}"
+                        last_err = f"HTTP {r.status_code}: {r.text[:100]}"
             except Exception as e:
-                last_err = str(e)
+                last_err = str(e)[:100]
 
-        raise HTTPException(502, f"Statistical API error: {last_err}")
+        raise HTTPException(502, f"Sentinel Hub error: {last_err}")
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(500, f"Real NDVI error: {e}")
+        raise HTTPException(500, str(e))
 
 
 @app.get("/api/market/prices")
@@ -800,3 +792,33 @@ async def market_prices():
     }
     cache_set(cache_key, result, 15 * 60)
     return result
+
+GEMINI_KEY = os.getenv("GEMINI_KEY", "")
+
+@app.post("/api/gemini")
+async def gemini_proxy(body: dict):
+    """Proxy for Gemini API — keeps API key server-side."""
+    if not GEMINI_KEY:
+        raise HTTPException(503, "Gemini API key not configured")
+    
+    try:
+        async with make_client(False, timeout=25) as client:
+            r = await client.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_KEY}",
+                headers={"Content-Type": "application/json"},
+                json=body
+            )
+            if r.status_code == 200:
+                data = r.json()
+                text = ""
+                candidates = data.get("candidates", [])
+                if candidates:
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    text = parts[0].get("text", "") if parts else ""
+                return {"text": text, "model": "gemini-2.5-flash"}
+            else:
+                raise HTTPException(r.status_code, f"Gemini error: {r.text[:200]}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(502, f"Gemini proxy error: {e}")
