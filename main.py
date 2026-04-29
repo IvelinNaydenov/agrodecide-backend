@@ -943,3 +943,33 @@ async def market_prices():
     }
     cache_set(cache_key, result, 15 * 60)
     return result
+
+GEMINI_KEY = os.getenv("GEMINI_KEY", "")
+
+@app.post("/api/gemini")
+async def gemini_proxy(body: dict):
+    """Proxy for Gemini API — keeps API key server-side."""
+    if not GEMINI_KEY:
+        raise HTTPException(503, "Gemini API key not configured")
+    
+    try:
+        async with make_client(False, timeout=25) as client:
+            r = await client.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_KEY}",
+                headers={"Content-Type": "application/json"},
+                json=body
+            )
+            if r.status_code == 200:
+                data = r.json()
+                text = ""
+                candidates = data.get("candidates", [])
+                if candidates:
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    text = parts[0].get("text", "") if parts else ""
+                return {"text": text, "model": "gemini-2.5-flash"}
+            else:
+                raise HTTPException(r.status_code, f"Gemini error: {r.text[:200]}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(502, f"Gemini proxy error: {e}")
