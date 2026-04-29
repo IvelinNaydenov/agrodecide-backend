@@ -261,7 +261,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--san
 </div>
 <div id="ndvi-alert" class="ndvi-alert"></div>
 <div class="card">
-<div class="card-t">🛰 NDVI Класификация · Sentinel-2 <span class="spin" id="sp-ndvi" style="display:none"></span><span class="badge" id="b-ndvi" style="display:none"></span></div>
+<div class="card-t">🛰 NDVI Класификация <span class="spin" id="sp-ndvi" style="display:none"></span><span class="badge" id="b-ndvi" style="display:none"></span></div>
 <div id="ndvi-body"><div style="font-size:10px;color:var(--tx3)">Избери парцел…</div></div>
 <div style="background:var(--info-bg);border-radius:6px;padding:8px 10px;margin-top:8px;font-size:10px;color:var(--info);line-height:1.6">
 <b>Какво е NDVI?</b> Индекс на зеленост от спътника (0–1). Нормален посев расте плавно нагоре. <b>Рязък спад = стрес</b> (суша, болест, вредители).
@@ -542,15 +542,40 @@ async function selectParcel(i){
   if(m.daily)drawForecast(m.daily);if(m.daily)drawMeteo(m.daily);
   }}catch(e){setPl('pl-met','p-wait','Метео !');}
 
-  // Real NDVI
-  try{const rn=await fetch(`${B}/api/ndvi/real?lat=${p.lat}&lon=${p.lon}&days=90`).then(r=>r.json());
-  if(rn.current_ndvi!=null){window._ndviSeries=rn.series;setInd('bi-ndvi','vi-ndvi',rn.current_ndvi*100,rn.current_ndvi.toFixed(3));
-  document.getElementById('ov-ndvi').textContent=rn.current_ndvi.toFixed(3);const src=document.getElementById('ov-ndvi-src');if(src)src.textContent=`Реален · ${rn.series_count} сцени`;
-  document.getElementById('ctx-tag').textContent=`NDVI ${rn.current_ndvi.toFixed(3)}`;
-  setPl('pl-cop','p-ok','Copernicus ✓');setSt('ss-cop','var(--pri3)','var(--pri)',`Live · ${rn.series_count}`);
-  showNDVIAlert(rn.current_ndvi,rn.series);}
-  if(rn.series?.length>0)drawNDVI(rn.series,'c-ndvi90');
-  }catch(e){console.log('Real NDVI failed, using proxy:',e.message);try{const h=await fetch(`${B}/api/meteo/history?lat=${p.lat}&lon=${p.lon}&days=90`).then(r=>r.json());if(h.daily?.time)drawNDVIproxy(h,p.crop);else console.log('No meteo history data');}catch(e2){console.log('Meteo history failed:',e2.message);}}
+  // Real NDVI from Sentinel-2 Statistical API
+  let ndviDrawn=false;
+  try{
+    const rn_r=await fetch(`${B}/api/ndvi/real?lat=${p.lat}&lon=${p.lon}&days=90`);
+    if(rn_r.ok){
+      const rn=await rn_r.json();
+      if(rn.current_ndvi!=null){
+        window._ndviSeries=rn.series;
+        setInd('bi-ndvi','vi-ndvi',rn.current_ndvi*100,rn.current_ndvi.toFixed(3));
+        document.getElementById('ov-ndvi').textContent=rn.current_ndvi.toFixed(3);
+        const src=document.getElementById('ov-ndvi-src');if(src)src.textContent='Реален · '+rn.series_count+' сцени';
+        document.getElementById('ctx-tag').textContent='NDVI '+rn.current_ndvi.toFixed(3);
+        setPl('pl-cop','p-ok','Copernicus ✓');setSt('ss-cop','var(--pri3)','var(--pri)','Live · '+rn.series_count);
+        showNDVIAlert(rn.current_ndvi,rn.series);
+      }
+      if(rn.series?.length>0){drawNDVI(rn.series,'c-ndvi90');ndviDrawn=true;}
+    }
+  }catch(e){}
+  // Fallback: meteo-derived NDVI curve
+  if(!ndviDrawn){
+    try{
+      const mh_r=await fetch(`${B}/api/meteo/history?lat=${p.lat}&lon=${p.lon}&days=90`);
+      if(mh_r.ok){const mh=await mh_r.json();if(mh.daily?.time){drawNDVIproxy(mh,p.crop);ndviDrawn=true;}}
+    }catch(e){}
+  }
+  // Last fallback: direct Open-Meteo archive
+  if(!ndviDrawn){
+    try{
+      const end=new Date(Date.now()-86400000).toISOString().slice(0,10);
+      const start=new Date(Date.now()-86400000*91).toISOString().slice(0,10);
+      const mh_r=await fetch('https://archive-api.open-meteo.com/v1/archive?latitude='+p.lat+'&longitude='+p.lon+'&start_date='+start+'&end_date='+end+'&daily=precipitation_sum,et0_fao_evapotranspiration,temperature_2m_max&timezone=auto');
+      if(mh_r.ok){const mh=await mh_r.json();if(mh.daily?.time)drawNDVIproxy(mh,p.crop);}
+    }catch(e){}
+  }
 
   await genPred(p,history,ndviRes);
 }
@@ -596,26 +621,44 @@ dc('c-wb');const c3=document.getElementById('c-wb')?.getContext('2d');if(c3){con
 // AI: try Gemini 2.5 Flash first (browser-side), fallback to Groq (backend)
 const GEMINI_KEY='AIzaSyBU8yIOs5uBM60808QASxj6E_kWZphusZE';
 
-async function aiCall(system, contents){
-  // Try Gemini first
+async function aiCall(system, contents, ensemble){
+  let geminiText=null, groqText=null;
+
+  // Try Gemini
   try{
     const msgs = contents.map(m=>({role:m.role==='user'?'user':'model',parts:m.parts}));
     const body = {
       system_instruction:{parts:[{text:system}]},
       contents: msgs,
-      generationConfig:{maxOutputTokens:500,temperature:0.7}
+      generationConfig:{maxOutputTokens:600,temperature:0.7}
     };
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,{
       method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
-      signal:AbortSignal.timeout(15000)
+      signal:AbortSignal.timeout(20000)
     });
     if(r.ok){
       const d = await r.json();
-      const text = d.candidates?.[0]?.content?.parts?.[0]?.text;
-      if(text) return {text, model:'gemini-2.5-flash'};
+      geminiText = d.candidates?.[0]?.content?.parts?.[0]?.text;
     }
   }catch(e){}
-  // Fallback to Groq backend
+
+  // If ensemble mode — also get Groq opinion
+  if(ensemble && geminiText){
+    try{
+      const ensembleSys = system + '\nДРУГ AI МОДЕЛ КАЗА: ' + geminiText.slice(0,300) + '\nПОТВЪРДИ или ОСПОРИ тази прогноза. Кратко, 2-3 изречения.';
+      const r = await fetch(`${B}/api/ai`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system:ensembleSys,contents})});
+      const d = await r.json();
+      groqText = d.text;
+    }catch(e){}
+  }
+
+  // Build response
+  if(geminiText && groqText){
+    return {text: geminiText + '\n\n🔄 Втори AI модел: ' + groqText, model:'ensemble (Gemini + Groq)'};
+  }
+  if(geminiText) return {text:geminiText, model:'gemini-2.5-flash'};
+
+  // Fallback to Groq only
   try{
     const r = await fetch(`${B}/api/ai`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({system,contents})});
     const d = await r.json();
@@ -633,7 +676,7 @@ async function genPred(p,hist,nr){
   const hs=hist.map(h=>`${h.y||h.year}:${h.c||h.crop}`).join(', ');
   const q=nr?`Анализирай парцела. NDVI класификация: ${nr.crop} ${nr.confidence}%. Прогноза 2026 в 3-4 изречения.`:`Въз основа на историята (${hs}) прогноза 2026 в 3 изречения.`;
   dH=[{role:'user',parts:[{text:q}]}];
-  try{const r=await aiCall(buildSys(p,hs,nr),dH);
+  try{const r=await aiCall(buildSys(p,hs,nr),dH,true);
   document.getElementById('pred-text').textContent=r.text||'—';dH.push({role:'model',parts:[{text:r.text}]});
   document.getElementById('d-chat').innerHTML='';addMsg('d-chat','msg-ai',r.text);
   const mdl=r.model||'AI';setPl('pl-ai','p-ok',mdl==='gemini-2.5-flash'?'Gemini ✓':'Groq ✓');setSt('ss-ai','var(--pri3)','var(--pri)',mdl);
@@ -650,7 +693,15 @@ function switchView(name,btn){
   document.querySelectorAll('.ttab').forEach(t=>t.classList.remove('on'));btn.classList.add('on');
   const fv=document.getElementById('farmer-view'),mv=document.getElementById('market-view');
   if(name==='farmer'){fv.style.display='flex';mv.style.display='none';setTimeout(()=>map.invalidateSize(),50);}
-  else{fv.style.display='none';mv.style.display='flex';if(!mktData.prices)loadMarket();}
+  else{fv.style.display='none';mv.style.display='flex';
+    if(!mktData.prices)loadMarket();
+    else{
+      // Re-render chart after tab becomes visible
+      const first=Object.keys(mktData.prices).find(k=>mktData.prices[k].history?.length>0);
+      if(first)setTimeout(()=>showMktChart(first),150);
+      calcBasis();
+    }
+  }
 }
 function cTab(name,btn){
   document.querySelectorAll('#c-tabs .ctab').forEach(t=>t.classList.remove('on'));btn.classList.add('on');
@@ -695,9 +746,9 @@ async function loadMarket(){
   genMktAnalysis(prices);
 }
 
-function renderMktCards(pr){const el=document.getElementById('mkt-cards');if(!el)return;el.innerHTML=Object.entries(pr).map(([k,p])=>{const up=p.chg>=0;return`<div class="mkt-card" style="border:1.5px solid ${up?'var(--pri2)':'var(--err)'}" onclick="showMktChart('${k}')"><div class="mkt-name">${p.name}</div><div class="mkt-price" style="color:${up?'var(--pri)':'var(--err)'}">${p.price} €</div><div class="mkt-chg" style="color:${up?'var(--pri)':'var(--err)'}">${up?'▲':'▼'} ${Math.abs(p.chg).toFixed(1)}%</div>${p.bg?`<div class="mkt-bg">БГ ${p.bg} €/т</div>`:''}</div>`;}).join('');}
+function renderMktCards(pr){const el=document.getElementById('mkt-cards');if(!el)return;el.innerHTML=Object.entries(pr).map(([k,p])=>{const up=p.chg>=0;return`<div class="mkt-card" style="border:1.5px solid ${up?'#25845e':'#a62020'}" onclick="showMktChart('${k}')"><div class="mkt-name">${p.name}</div><div class="mkt-price" style="color:${up?'#1a5c47':'#a62020'}">${p.price} €</div><div class="mkt-chg" style="color:${up?'#1a5c47':'#a62020'}">${up?'▲':'▼'} ${Math.abs(p.chg).toFixed(1)}%</div>${p.bg?`<div class="mkt-bg">БГ ${p.bg} €/т</div>`:''}</div>`;}).join('');}
 
-function renderMktTable(pr){const el=document.getElementById('mkt-table');if(!el)return;el.innerHTML=`<div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:0;font-size:10px">`+Object.entries(pr).map(([k,p])=>{const up=p.chg>=0;return`<div style="padding:5px 0;border-bottom:1px solid var(--brd);cursor:pointer;color:var(--info)" onclick="showMktChart('${k}')">${p.name}</div><div style="padding:5px 6px;text-align:right;border-bottom:1px solid var(--brd);font-family:var(--mono);font-weight:600">${p.price}</div><div style="padding:5px 6px;text-align:right;border-bottom:1px solid var(--brd);color:${up?'var(--pri)':'var(--err)'}">${up?'▲':'▼'}${Math.abs(p.chg).toFixed(1)}%</div><div style="padding:5px 6px;text-align:right;border-bottom:1px solid var(--brd);font-family:var(--mono);color:var(--tx3)">${p.bg||'—'}</div><div style="padding:5px 0 5px 6px;text-align:right;border-bottom:1px solid var(--brd)">${sparkline(p.history?.map(h=>h.price)||[])}</div>`;}).join('')+'</div>';}
+function renderMktTable(pr){const el=document.getElementById('mkt-table');if(!el)return;el.innerHTML=`<div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:0;font-size:10px">`+Object.entries(pr).map(([k,p])=>{const up=p.chg>=0;return`<div style="padding:5px 0;border-bottom:1px solid var(--brd);cursor:pointer;color:var(--info)" onclick="showMktChart('${k}')">${p.name}</div><div style="padding:5px 6px;text-align:right;border-bottom:1px solid var(--brd);font-family:var(--mono);font-weight:600">${p.price}</div><div style="padding:5px 6px;text-align:right;border-bottom:1px solid var(--brd);color:${up?'#1a5c47':'#a62020'}">${up?'▲':'▼'}${Math.abs(p.chg).toFixed(1)}%</div><div style="padding:5px 6px;text-align:right;border-bottom:1px solid var(--brd);font-family:var(--mono);color:var(--tx3)">${p.bg||'—'}</div><div style="padding:5px 0 5px 6px;text-align:right;border-bottom:1px solid var(--brd)">${sparkline(p.history?.map(h=>h.price)||[])}</div>`;}).join('')+'</div>';}
 
 function sparkline(v){if(!v.length)return'—';const mn=Math.min(...v),mx=Math.max(...v),w=50,h=16;if(mn===mx)return`<svg width="${w}" height="${h}"><line x1="0" y1="${h/2}" x2="${w}" y2="${h/2}" stroke="var(--tx3)" stroke-width="1"/></svg>`;const pts=v.map((val,i)=>`${(i/(v.length-1)*w).toFixed(1)},${((1-(val-mn)/(mx-mn))*(h-2)+1).toFixed(1)}`).join(' ');const up=v[v.length-1]>=v[0];return`<svg width="${w}" height="${h}" style="vertical-align:middle"><polyline points="${pts}" fill="none" stroke="${up?'#25845e':'#a62020'}" stroke-width="1.5"/></svg>`;}
 
@@ -711,7 +762,7 @@ async function genMktAnalysis(pr){const lines=Object.entries(pr).map(([k,p])=>`$
 const sys=`Ти си борсов AI агент за агрокомодити в България. БЪЛГАРСКИ.\nМАТИФ: ${lines}\nBASIS: транспорт=${tr}€+силоз=${sl}€ → МАТИФ-${tr+sl}€/т\n${p?`Парцел: ${p.name}, ${p.crop}, ${p.area?.toFixed(1)} ха`:'Без парцел.'}\nАнализирай и дай конкретна препоръка: кога и какво да продава, сега или да чака. Сезонност: жътва пшеница/ечемик юли, слънчоглед/царевица септември. 4 изречения.`;
 const ch=document.getElementById('mkt-chat');if(ch)ch.innerHTML='<div class="msg msg-ai"><span class="spin"></span> Анализирам…</div>';
 mktH=[{role:'user',parts:[{text:'Анализирай и препоръчай.'}]}];
-try{const r=await aiCall(sys,mktH);if(ch)ch.innerHTML='';addMsg('mkt-chat','msg-ai',r.text);mktH.push({role:'model',parts:[{text:r.text}]});}catch(e){if(ch)ch.innerHTML='<div class="msg msg-ai">Грешка.</div>';}}
+try{const r=await aiCall(sys,mktH,true);if(ch)ch.innerHTML='';addMsg('mkt-chat','msg-ai',r.text);mktH.push({role:'model',parts:[{text:r.text}]});}catch(e){if(ch)ch.innerHTML='<div class="msg msg-ai">Грешка.</div>';}}
 
 async function mktSend(){const inp=document.getElementById('mkt-ai-in'),txt=inp.value.trim();if(!txt)return;inp.value='';addMsg('mkt-chat','msg-u',txt);mktH.push({role:'user',parts:[{text:txt}]});const l=addLd('mkt-chat');const pr=mktData.prices||{};const lines=Object.entries(pr).map(([k,p])=>`${p.name}:${p.price}€`).join(', ');const p=active>=0?parcels[active]:null;const sys=`Борсов AI агент. БЪЛГАРСКИ.\nЦЕНИ: ${lines}\n${p?`Парцел: ${p.name}, ${p.crop}`:''}`;try{const r=await aiCall(sys,mktH);l.remove();addMsg('mkt-chat','msg-ai',r.text);mktH.push({role:'model',parts:[{text:r.text}]});}catch(e){l.remove();addMsg('mkt-chat','msg-ai','Грешка.');}}
 function mqa(q){document.getElementById('mkt-ai-in').value=q;mktSend();}
