@@ -594,12 +594,12 @@ async def real_ndvi(lat: float, lon: float, days: int = 90):
     delta = 0.003  # ~300m bbox
     bbox = [lon - delta, lat - delta, lon + delta, lat + delta]
 
+    # Fixed evalscript: NO CLM (not available in CDSE), use dataMask instead
     evalscript = """//VERSION=3
-function setup(){return{input:[{bands:["B04","B08","CLM"],units:"REFLECTANCE"}],output:[{id:"ndvi",bands:1,sampleType:"FLOAT32"},{id:"dataMask",bands:1}]};}
+function setup(){return{input:["B04","B08","dataMask"],output:[{id:"ndvi",bands:1,sampleType:"FLOAT32"},{id:"dataMask",bands:1}]};}
 function evaluatePixel(s){
-  if(s.CLM>0.5)return{ndvi:[0],dataMask:[0]};
-  var n=(s.B08-s.B04)/(s.B08+s.B04+0.001);
-  return{ndvi:[n],dataMask:[1]};
+  var ndvi=(s.B08-s.B04)/(s.B08+s.B04+0.001);
+  return{ndvi:[ndvi],dataMask:[s.dataMask]};
 }"""
 
     body = {
@@ -624,43 +624,50 @@ function evaluatePixel(s){
         headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
         last_err = None
 
-        for use_proxy in [True, False]:
-            try:
-                async with make_client(use_proxy, timeout=30) as client:
-                    r = await client.post(
-                        "https://services.sentinel-hub.com/api/v1/statistics",
-                        headers=headers, json=body
-                    )
-                    if r.status_code == 200:
-                        data = r.json()
-                        series = []
-                        for interval in data.get("data", []):
-                            dt = interval.get("interval", {}).get("from", "")[:10]
-                            stats = interval.get("outputs", {}).get("ndvi", {}).get("statistics", {}).get("default", {})
-                            mean_val = stats.get("mean")
-                            median_val = stats.get("percentiles", {}).get("50.0")
-                            sample_count = stats.get("sampleCount", 0)
-                            no_data = stats.get("noDataCount", 0)
-                            valid_ratio = (sample_count - no_data) / max(sample_count, 1)
-                            ndvi_val = median_val if median_val is not None else mean_val
-                            if ndvi_val is not None and valid_ratio > 0.3 and 0 < ndvi_val < 1:
-                                series.append({"date": dt, "ndvi": round(ndvi_val, 4), "source": "sentinel-2"})
+        # Use CDSE endpoint, not old services.sentinel-hub.com
+        endpoints = [
+            "https://sh.dataspace.copernicus.eu/api/v1/statistics",
+            "https://services.sentinel-hub.com/api/v1/statistics",
+        ]
 
-                        result = {
-                            "current_ndvi": series[-1]["ndvi"] if series else None,
-                            "series": series,
-                            "series_count": len(series),
-                            "period": f"{start_date} to {end_date}",
-                            "source": "Copernicus Sentinel-2 L2A Statistical API",
-                            "real": True,
-                            "_cache": "miss"
-                        }
-                        cache_set(cache_key, result, 6 * 3600)
-                        return result
-                    else:
-                        last_err = f"HTTP {r.status_code}: {r.text[:100]}"
-            except Exception as e:
-                last_err = str(e)[:100]
+        for stat_url in endpoints:
+            for use_proxy in [True, False]:
+                try:
+                    async with make_client(use_proxy, timeout=30) as client:
+                        r = await client.post(
+                            stat_url,
+                            headers=headers, json=body
+                        )
+                        if r.status_code == 200:
+                            data = r.json()
+                            series = []
+                            for interval in data.get("data", []):
+                                dt = interval.get("interval", {}).get("from", "")[:10]
+                                stats = interval.get("outputs", {}).get("ndvi", {}).get("statistics", {}).get("default", {})
+                                mean_val = stats.get("mean")
+                                median_val = stats.get("percentiles", {}).get("50.0")
+                                sample_count = stats.get("sampleCount", 0)
+                                no_data = stats.get("noDataCount", 0)
+                                valid_ratio = (sample_count - no_data) / max(sample_count, 1)
+                                ndvi_val = median_val if median_val is not None else mean_val
+                                if ndvi_val is not None and valid_ratio > 0.3 and 0 < ndvi_val < 1:
+                                    series.append({"date": dt, "ndvi": round(ndvi_val, 4), "source": "sentinel-2"})
+
+                            result = {
+                                "current_ndvi": series[-1]["ndvi"] if series else None,
+                                "series": series,
+                                "series_count": len(series),
+                                "period": f"{start_date} to {end_date}",
+                                "source": "Copernicus Sentinel-2 L2A Statistical API",
+                                "real": True,
+                                "_cache": "miss"
+                            }
+                            cache_set(cache_key, result, 6 * 3600)
+                            return result
+                        else:
+                            last_err = f"HTTP {r.status_code}: {r.text[:100]}"
+                except Exception as e:
+                    last_err = str(e)[:100]
 
         raise HTTPException(502, f"Sentinel Hub error: {last_err}")
     except HTTPException:
@@ -668,6 +675,44 @@ function evaluatePixel(s){
     except Exception as e:
         raise HTTPException(500, str(e))
 
+
+
+@app.get("/api/test/euronext")
+async def test_euronext():
+    """Test if we can scrape Euronext commodity prices from Render."""
+    results = {}
+    
+    urls = {
+        "agri_widget": "https://live.euronext.com/en/ajax/getAgriQuotesWidget",
+        "wheat_quote": "https://live.euronext.com/en/ajax/getDetailedQuote/EBM-DPAR",
+        "commodities_page": "https://live.euronext.com/en/commodities-contracts",
+    }
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "X-Requested-With": "XMLHttpRequest",
+        "Referer": "https://live.euronext.com/en/products/commodities",
+    }
+    
+    for key, url in urls.items():
+        for use_proxy in [True, False]:
+            try:
+                async with make_client(use_proxy, timeout=10) as client:
+                    r = await client.get(url, headers=headers)
+                    results[f"{key}_proxy={use_proxy}"] = {
+                        "status": r.status_code,
+                        "content_type": r.headers.get("content-type", "?"),
+                        "body_preview": r.text[:300] if r.status_code == 200 else r.text[:100],
+                        "body_length": len(r.text),
+                    }
+                    if r.status_code == 200:
+                        break  # Got it, no need to try without proxy
+            except Exception as e:
+                results[f"{key}_proxy={use_proxy}"] = {"error": str(e)[:100]}
+    
+    return results
 
 @app.get("/api/market/prices")
 async def market_prices():
